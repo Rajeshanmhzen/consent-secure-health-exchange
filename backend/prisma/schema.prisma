@@ -1,0 +1,333 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================= ENUMS =================
+enum UserRole {
+  PATIENT
+  DOCTOR
+  RECEPTIONIST
+  HOSPITAL_ADMIN
+  SUPER_ADMIN
+}
+
+enum RequestStatus {
+  PENDING
+  PATIENT_APPROVED
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  DATA_REQUEST
+  CONSENT_UPDATE
+  EMERGENCY_ACCESS
+  SYSTEM_ALERT
+}
+
+enum AuditAction {
+  CREATE_REQUEST
+  APPROVE_CONSENT
+  VIEW_RECORD
+  EMERGENCY_ACCESS
+  LOGIN
+}
+
+// ================= USER =================
+model User {
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  passwordHash         String
+  role                 UserRole
+  isActive             Boolean  @default(true)
+  isVerified           Boolean  @default(false)
+  phone                String?  @unique
+  failedLoginAttempts  Int      @default(0)
+  lockedUntil          DateTime?
+  lastLoginAt          DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  patient              Patient?
+  doctor               Doctor?
+  receptionist         Receptionist?
+  superAdmin           SuperAdmin?
+
+  createdPatients      Patient[] @relation("PatientCreator")
+
+  auditLogs            AuditLog[]
+  otps                 OTP[]
+  notifications        Notification[]
+  notificationPref     NotificationPreference?
+
+  @@map("users")
+}
+
+// ================= ADMIN =================
+model SuperAdmin {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("super_admins")
+}
+
+// ================= HOSPITAL =================
+model Hospital {
+  id             String   @id @default(uuid())
+  name           String
+  email          String?  @unique
+  isVerified     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  doctors        Doctor[]
+  receptionists  Receptionist[]
+  templates      EmailTemplate[]
+
+  @@map("hospitals")
+}
+
+// ================= DOCTOR =================
+model Doctor {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  name           String
+  specialization String?
+  hospitalId     String
+  createdAt      DateTime @default(now())
+
+  user           User      @relation(fields: [userId], references: [id])
+  hospital       Hospital  @relation(fields: [hospitalId], references: [id])
+
+  medicalRecords   MedicalRecord[] @relation("DoctorRecords")
+  sentRequests     DataRequest[]   @relation("RequestingDoctor")
+  receivedRequests DataRequest[]   @relation("TargetDoctor")
+  emergencyAccess  EmergencyAccess[] @relation("RequestingDoctorEmergency")
+
+  @@map("doctors")
+}
+
+// ================= RECEPTIONIST =================
+model Receptionist {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  hospitalId  String
+
+  user        User     @relation(fields: [userId], references: [id])
+  hospital    Hospital @relation(fields: [hospitalId], references: [id])
+
+  @@map("receptionists")
+}
+
+// ================= PATIENT =================
+model Patient {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  name          String
+  dob           DateTime?
+  gender        String?
+  bloodGroup    String?
+  allergies     String?
+  createdAt     DateTime @default(now())
+
+  createdById   String?
+  createdBy     User? @relation("PatientCreator", fields: [createdById], references: [id])
+
+  user          User     @relation(fields: [userId], references: [id])
+
+  medicalRecords MedicalRecord[]
+  requests       DataRequest[]
+  emergencyAccess EmergencyAccess[]
+
+  @@map("patients")
+}
+
+// ================= MEDICAL =================
+model MedicalRecord {
+  id           String   @id @default(uuid())
+  patientId    String
+  doctorId     String
+  diagnosis    String?
+  prescription String?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  patient      Patient  @relation(fields: [patientId], references: [id])
+  doctor       Doctor   @relation("DoctorRecords", fields: [doctorId], references: [id])
+
+  files        RecordFile[]
+  sharedRecords SharedRecord[]
+
+  @@index([patientId])
+  @@index([doctorId])
+
+  @@map("medical_records")
+}
+
+model RecordFile {
+  id         String   @id @default(uuid())
+  recordId   String
+  fileUrl    String
+  fileType   String?
+  fileName   String?
+  uploadedAt DateTime @default(now())
+
+  record     MedicalRecord @relation(fields: [recordId], references: [id])
+
+  @@map("record_files")
+}
+
+// ================= REQUEST FLOW =================
+model DataRequest {
+  id                  String   @id @default(uuid())
+  patientId           String
+  requestingDoctorId  String
+  targetDoctorId      String
+  reason              String?
+  status              RequestStatus @default(PENDING)
+  createdAt           DateTime @default(now())
+
+  patient             Patient @relation(fields: [patientId], references: [id])
+  requestingDoctor    Doctor  @relation("RequestingDoctor", fields: [requestingDoctorId], references: [id])
+  targetDoctor        Doctor  @relation("TargetDoctor", fields: [targetDoctorId], references: [id])
+
+  consent             Consent?
+  sharedRecords       SharedRecord[]
+
+  @@index([patientId])
+  @@index([requestingDoctorId])
+  @@index([targetDoctorId])
+
+  @@map("data_requests")
+}
+
+model Consent {
+  id                     String   @id @default(uuid())
+  requestId              String   @unique
+  patientApproval        Boolean  @default(false)
+  patientApprovedAt      DateTime?
+  targetDoctorApproval   Boolean  @default(false)
+  targetDoctorApprovedAt DateTime?
+
+  request                DataRequest @relation(fields: [requestId], references: [id])
+
+  @@map("consents")
+}
+
+model SharedRecord {
+  id        String   @id @default(uuid())
+  requestId String
+  recordId  String
+  sharedAt  DateTime @default(now())
+
+  request   DataRequest   @relation(fields: [requestId], references: [id])
+  record    MedicalRecord @relation(fields: [recordId], references: [id])
+
+  @@unique([requestId, recordId])
+
+  @@map("shared_records")
+}
+
+// ================= EMERGENCY =================
+model EmergencyAccess {
+  id                  String   @id @default(uuid())
+  patientId           String
+  requestingDoctorId  String
+  reason              String
+  grantedAt           DateTime @default(now())
+  expiresAt           DateTime
+  isUsed              Boolean  @default(false)
+
+  patient             Patient @relation(fields: [patientId], references: [id])
+  requestingDoctor    Doctor  @relation("RequestingDoctorEmergency", fields: [requestingDoctorId], references: [id])
+
+  @@index([patientId])
+  @@index([requestingDoctorId])
+
+  @@map("emergency_access")
+}
+
+// ================= NOTIFICATIONS =================
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      NotificationType
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id            String  @id @default(uuid())
+  userId        String  @unique
+  emailEnabled  Boolean @default(true)
+  smsEnabled    Boolean @default(false)
+  inAppEnabled  Boolean @default(true)
+
+  user          User @relation(fields: [userId], references: [id])
+
+  @@map("notification_preferences")
+}
+
+// ================= EMAIL TEMPLATE =================
+model EmailTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  subject     String
+  body        String
+  hospitalId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  hospital    Hospital? @relation(fields: [hospitalId], references: [id])
+
+  @@unique([name, hospitalId])
+
+  @@map("email_templates")
+}
+
+// ================= AUDIT =================
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String
+  action      AuditAction
+  entityType  String?
+  entityId    String?
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  user        User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+
+  @@map("audit_logs")
+}
+
+// ================= OTP =================
+model OTP {
+  id        String   @id @default(uuid())
+  userId    String
+  codeHash  String
+  purpose   String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+
+  @@map("otps")
+}
