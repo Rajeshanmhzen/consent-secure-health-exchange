@@ -1,7 +1,19 @@
-import prisma from "@prisma/client";
+import { PrismaClient } from "../generated/prisma";
 
-const { PrismaClient } = prisma;
+const prisma = new PrismaClient();
 
-process.on("beforeExit", async () => {
-    await prisma.$disconnect()
-})
+async function ConnectDB() {
+    try {
+        await prisma.$connect();
+        console.log("✅ DB connected");
+
+    } catch (error) {
+        console.error("❌ DB connection failed:", error);
+    } finally {
+        await prisma.$disconnect();
+    }
+}
+
+ConnectDB();
+
+export default prisma;

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -64,15 +65,34 @@ model User {
   otps                 OTP[]
   notifications        Notification[]
   notificationPref     NotificationPreference?
+  refreshTokens        RefreshToken[]
 
   @@map("users")
 }
 
+// ================= AUTH =================
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+
+  @@map("refresh_tokens")
+}
+
 // ================= ADMIN =================
 model SuperAdmin {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
+  id       String @id @default(uuid())
+  userId   String @unique
+  fullName String
+  user     User   @relation(fields: [userId], references: [id])
 
   @@map("super_admins")
 }

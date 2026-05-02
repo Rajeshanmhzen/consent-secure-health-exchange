@@ -1,7 +1,6 @@
-import app from './src/app';
-import dotenv from 'dotenv';
+import "dotenv/config";
 
-dotenv.config();
+import app from "./src/app";
 
 const PORT = process.env.PORT || 8080;
 
