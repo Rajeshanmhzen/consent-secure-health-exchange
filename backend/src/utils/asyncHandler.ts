@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import { AppError, isAppError } from "./appError";
 
-export function asynHandler(fn:Function) {
+export function asyncHandler(fn: Function) {
     return async (req: Request, res: Response, next: NextFunction) => {
         try{
             const result = await fn(req,res,next);
@@ -34,4 +34,4 @@ export function asynHandler(fn:Function) {
             return res.status(500).json({ message: "Internal Server Error" });
         }
     };
-};
+}
