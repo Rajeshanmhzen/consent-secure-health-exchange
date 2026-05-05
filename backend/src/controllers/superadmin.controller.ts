@@ -16,6 +16,7 @@ import {
 import { asyncHandler } from "@/utils/asyncHandler";
 import { sendSuccess } from "@/utils/apiResponse";
 import { AppError } from "@/utils/appError";
+import { formatPagination } from "@/utils/formatPagination";
 
 export class SuperAdminController {
     private service = new SuperAdminService();
@@ -29,7 +30,17 @@ export class SuperAdminController {
     listSuperAdmin = asyncHandler(async (req: Request, res: Response) => {
         const params = listSuperAdminSchema.parse(req.query) as SuperAdminListParams;
         const result = await this.service.listSuperAdmins(params);
-        return sendSuccess(res, "Super admin list fetched", result);
+        const formattedResult = formatPagination({
+            data: result.data,
+            pagination: {
+                total: result.total,
+                page: result.page,
+                limit: result.limit,
+                totalPages: result.totalPages
+            },
+            dataKey: "superAdmins"
+        });
+        return sendSuccess(res, "Super admin list fetched", formattedResult);
     });
 
     detailSuperAdmin = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {

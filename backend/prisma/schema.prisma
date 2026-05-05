@@ -39,9 +39,22 @@ enum AuditAction {
   LOGIN
 }
 
+enum TenantType {
+  HOSPITAL
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
 // ================= USER =================
 model User {
   id                   String   @id @default(uuid())
+  tenantId             String?
   email                String   @unique
   passwordHash         String
   role                 UserRole
@@ -54,6 +67,7 @@ model User {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
+  tenant               Tenant?  @relation(fields: [tenantId], references: [id])
   patient              Patient?
   doctor               Doctor?
   receptionist         Receptionist?
@@ -66,6 +80,8 @@ model User {
   notifications        Notification[]
   notificationPref     NotificationPreference?
   refreshTokens        RefreshToken[]
+
+  @@index([tenantId])
 
   @@map("users")
 }
@@ -100,16 +116,72 @@ model SuperAdmin {
 // ================= HOSPITAL =================
 model Hospital {
   id             String   @id @default(uuid())
+  tenantId       String   @unique
   name           String
   email          String?  @unique
   isVerified     Boolean  @default(false)
   createdAt      DateTime @default(now())
 
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
   doctors        Doctor[]
   receptionists  Receptionist[]
   templates      EmailTemplate[]
 
   @@map("hospitals")
+}
+
+// ================= TENANT =================
+model Tenant {
+  id            String   @id @default(uuid())
+  name          String
+  type          TenantType
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  hospital      Hospital?
+  subscriptions Subscription[]
+  users         User[]
+
+  @@map("tenants")
+}
+
+// ================= PRICING =================
+model Plan {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  monthlyPrice  Decimal
+  currency      String   @default("USD")
+  description   String?
+  features      Json?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id            String             @id @default(uuid())
+  tenantId      String
+  planId        String
+  status        SubscriptionStatus @default(TRIALING)
+  startsAt      DateTime           @default(now())
+  endsAt        DateTime?
+  trialEndsAt   DateTime?
+  canceledAt    DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
+  plan          Plan   @relation(fields: [planId], references: [id])
+
+  @@index([tenantId])
+  @@index([planId])
+
+  @@map("subscriptions")
 }
 
 // ================= DOCTOR =================
