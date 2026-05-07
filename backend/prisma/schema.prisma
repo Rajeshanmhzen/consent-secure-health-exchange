@@ -64,6 +64,7 @@ model User {
   failedLoginAttempts  Int      @default(0)
   lockedUntil          DateTime?
   lastLoginAt          DateTime?
+  deletedAt            DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -247,6 +248,7 @@ model MedicalRecord {
   diagnosis    String?
   prescription String?
   notes        String?
+  deletedAt    DateTime?
   createdAt    DateTime @default(now())
 
   patient      Patient  @relation(fields: [patientId], references: [id])

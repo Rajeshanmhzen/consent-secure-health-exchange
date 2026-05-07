@@ -17,8 +17,11 @@ export class AuthRepository {
     }
 
     async login(email: string, password: string): Promise<LoginResult | null> {
-        const user = await prisma.user.findUnique({
-            where: { email }
+        const user = await prisma.user.findFirst({
+            where: {
+                email,
+                deletedAt: null
+            }
         });
 
         if (!user || !user.isActive) {
@@ -89,6 +92,14 @@ export class AuthRepository {
                     data: { revokedAt: new Date() }
                 });
             }
+            return null;
+        }
+
+        if (storedToken.user.deletedAt) {
+            await prisma.refreshToken.update({
+                where: { id: storedToken.id },
+                data: { revokedAt: new Date() }
+            });
             return null;
         }
 

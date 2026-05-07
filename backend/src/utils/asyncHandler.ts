@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
+import { Prisma } from "../generated/prisma";
 import { AppError, isAppError } from "./appError";
 
 export function asyncHandler(fn: Function) {
@@ -31,7 +32,34 @@ export function asyncHandler(fn: Function) {
                     details: error.details
                 });
             }
-            return res.status(500).json({ message: "Internal Server Error" });
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                if (error.code === "P2002") {
+                    return res.status(409).json({
+                        message: "Duplicate value already exists",
+                        code: "UNIQUE_CONSTRAINT_FAILED",
+                        details: error.meta
+                    });
+                }
+
+                if (error.code === "P2003") {
+                    return res.status(400).json({
+                        message: "Invalid related record id",
+                        code: "FOREIGN_KEY_CONSTRAINT_FAILED",
+                        details: error.meta
+                    });
+                }
+            }
+            console.error("Unhandled request error:", error);
+
+            return res.status(500).json({
+                message: "Internal Server Error",
+                ...(process.env.NODE_ENV === "production"
+                    ? {}
+                    : {
+                          error: error?.message,
+                          stack: error?.stack
+                      })
+            });
         }
     };
 }

@@ -1,6 +1,7 @@
-import { Prisma, TenantType } from "../generated/prisma";
+import { Prisma, TenantType, UserRole } from "../generated/prisma";
 
 import { PaginationParams } from "../utils/pagination";
+
 
 export type CreateTenantPayload = {
 	name: string;
@@ -35,3 +36,56 @@ export type CreateHospitalTenantPayload = {
 	isAdminActive?: boolean;
 	isAdminVerified?: boolean;
 };
+
+export type CreateTenantUserPayload = {
+	tenantId: string;
+	hospitalId?: string | null;
+	email: string;
+	password: string;
+	role: UserRole;
+	phone?: string | null;
+	isActive?: boolean;
+	isVerified?: boolean;
+
+	name?: string;
+	specialization?: string | null;
+	dob?: Date | null;
+	gender?: string | null;
+	bloodGroup?: string | null;
+	allergies?: string | null;
+};
+
+export type UpdateTenantUserPayload = {
+	email?: string;
+	password?: string;
+	phone?: string | null;
+	isActive?: boolean;
+	isVerified?: boolean;
+
+	name?: string;
+	specialization?: string | null;
+	dob?: Date | null;
+	gender?: string | null;
+	bloodGroup?: string | null;
+	allergies?: string | null;
+};
+
+export type UpdateTenantUserInput = Omit<UpdateTenantUserPayload, "password"> & {
+	passwordHash?: string;
+};
+
+export type TenantUserListParams = PaginationParams & {
+	tenantId: string;
+	role?: UserRole;
+	isActive?: boolean;
+	includeDeleted?: boolean;
+	deletedOnly?: boolean;
+};
+
+export type TenantUserWithProfile = Prisma.UserGetPayload<{
+	include: {
+		doctor: true;
+		patient: true;
+		receptionist: true;
+	};
+}>;

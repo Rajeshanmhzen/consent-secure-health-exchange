@@ -4,6 +4,9 @@ import { TenantService } from "../services/tenant.service";
 import {
     CreateHospitalTenantPayload,
     CreateTenantPayload,
+    CreateTenantUserPayload,
+    TenantUserListParams,
+    UpdateTenantUserPayload,
     TenantListParams,
     UpdateTenantPayload
 } from "../types/tenant.types";
@@ -11,6 +14,10 @@ import { formatPagination } from "../utils/formatPagination";
 import {
     createHospitalTenantSchema,
     createTenantSchema,
+    createTenantUserSchema,
+    listTenantUserSchema,
+    tenantUserIdParamSchema,
+    updateTenantUserSchema,
     listTenantSchema,
     tenantIdParamSchema,
     updateTenantSchema
@@ -86,4 +93,55 @@ export class TenantController {
         };
         return sendSuccess(res, "Hospital tenant created successfully", formattedResult, 201);
     });
+
+    addTenantUser = asyncHandler(async (req: Request, res: Response) => {
+        const payload = createTenantUserSchema.parse(req.body) as CreateTenantUserPayload;
+        const result = await this.service.addTenantUser(payload);
+        return sendSuccess(res, "Tenant user created successfully", result, 201);
+    });
+
+    listTenantUsers = asyncHandler(async (req: Request, res: Response) => {
+        const params = listTenantUserSchema.parse(req.query) as TenantUserListParams;
+        const result = await this.service.listTenantUsers(params);
+        const formattedResult = formatPagination({
+            data: result.data,
+            pagination: {
+                total: result.total,
+                page: result.page,
+                limit: result.limit,
+                totalPages: result.totalPages
+            },
+            dataKey: "users"
+        });
+        return sendSuccess(res, "Tenant user list fetched", formattedResult);
+    });
+
+    editTenantUser = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
+        const { id } = tenantUserIdParamSchema.parse(req.params);
+        const payload = updateTenantUserSchema.parse(req.body) as UpdateTenantUserPayload;
+        const result = await this.service.updateTenantUser(id, payload);
+        if (!result) {
+            throw new AppError("User not found", 404);
+        }
+        return sendSuccess(res, "Tenant user updated successfully", result);
+    });
+
+    softDeleteTenantUser = asyncHandler(
+        async (req: Request<{ id: string }>, res: Response) => {
+            const { id } = tenantUserIdParamSchema.parse(req.params);
+            const result = await this.service.softDeleteTenantUser(id);
+            return sendSuccess(res, "Tenant user soft deleted successfully", result);
+        }
+    );
+
+    hardDeleteTenantUser = asyncHandler(
+        async (req: Request<{ id: string }>, res: Response) => {
+            const { id } = tenantUserIdParamSchema.parse(req.params);
+            const result = await this.service.hardDeleteTenantUser(id);
+            if (!result) {
+                throw new AppError("User not found", 404);
+            }
+            return sendSuccess(res, "Tenant user hard deleted successfully", result);
+        }
+    );
 }
