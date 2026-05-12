@@ -1,1 +1,155 @@
 @import "tailwindcss";
+
+:root,
+[data-theme="light"] {
+  --color-primary:          #8B7CF6;
+  --color-primary-light:    #C4B5FD;
+  --color-primary-dark:     #6D5AE6;
+  --color-primary-ghost:    rgba(139, 124, 246, 0.08);
+
+  --color-background:       #F9F9FF;
+  --color-background-alt:   #F1F5F9;
+  --color-surface:          #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-sidebar:          #FFFFFF;
+  --color-input-bg:         #F8FAFC;
+  --color-table-hover:      #F5F3FF;
+  --color-overlay:          rgba(15, 23, 42, 0.4);
+
+  --color-border:           #E5E7EB;
+  --color-border-strong:    #D1D5DB;
+  --color-outline:          #E5E7EB;
+
+  --color-text:             #1F2937;
+  --color-text-secondary:   #6B7280;
+  --color-text-tertiary:    #9CA3AF;
+  --color-text-on-primary:  #FFFFFF;
+  --color-text-disabled:    #9CA3AF;
+  --color-link:             #6D5AE6;
+
+  --color-accent:           #60A5FA;
+
+  --color-success:          #22C55E;
+  --color-success-light:    #DCFCE7;
+  --color-warning:          #F59E0B;
+  --color-warning-light:    #FEF3C7;
+  --color-error:            #EF4444;
+  --color-error-light:      #FEE2E2;
+  --color-info:             #3B82F6;
+  --color-info-light:       #DBEAFE;
+
+  --color-disabled:         #D1D5DB;
+  --color-focus-ring:       rgba(139, 124, 246, 0.4);
+  --color-scrollbar:        #E5E7EB;
+  --color-scrollbar-thumb:  #C4B5FD;
+}
+
+[data-theme="dark"] {
+  --color-primary:          #A78BFA;
+  --color-primary-light:    #C4B5FD;
+  --color-primary-dark:     #8B7CF6;
+  --color-primary-ghost:    rgba(167, 139, 250, 0.1);
+
+  --color-background:       #0F172A;
+  --color-background-alt:   #0B1120;
+  --color-surface:          #151f32;
+  --color-surface-elevated: #1a2540;
+  --color-sidebar:          #151f32;
+  --color-input-bg:         #151f32;
+  --color-table-hover:      #2D3A4F;
+  --color-overlay:          rgba(0, 0, 0, 0.6);
+
+  --color-border:           #334155;
+  --color-border-strong:    #475569;
+  --color-outline:          #334155;
+
+  --color-text:             #F1F5F9;
+  --color-text-secondary:   #94A3B8;
+  --color-text-tertiary:    #64748B;
+  --color-text-on-primary:  #0F172A;
+  --color-text-disabled:    #475569;
+  --color-link:             #C4B5FD;
+
+  --color-accent:           #60A5FA;
+
+  --color-success:          #4ADE80;
+  --color-success-light:    rgba(74, 222, 128, 0.12);
+  --color-warning:          #FBBF24;
+  --color-warning-light:    rgba(251, 191, 36, 0.12);
+  --color-error:            #F87171;
+  --color-error-light:      rgba(248, 113, 113, 0.12);
+  --color-info:             #60A5FA;
+  --color-info-light:       rgba(96, 165, 250, 0.12);
+
+  --color-disabled:         #475569;
+  --color-focus-ring:       rgba(167, 139, 250, 0.4);
+  --color-scrollbar:        #1E293B;
+  --color-scrollbar-thumb:  #475569;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  transition: background-color 250ms ease, color 250ms ease;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar);
+}
+
+.inputBox {
+  position: relative;
+  width: 100%;
+}
+
+.inputBox input {
+  width: 100%;
+  padding: 10px;
+  background-color: var(--color-input-bg);
+  border: 1px solid var(--color-outline);
+  border-radius: 8px;
+  outline: none;
+  font-size: 1em;
+  color: var(--color-text);
+  transition: border-color 150ms ease, background-color 250ms ease;
+}
+
+.inputBox label {
+  position: absolute;
+  left: 0;
+  padding: 10px;
+  pointer-events: none;
+  font-size: 1em;
+  font-weight: 300;
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  transition: transform 0.25s ease, font-size 0.25s ease, color 0.25s ease,
+    padding 0.25s ease, background-color 0s 0.25s;
+  will-change: transform, font-size;
+}
+
+.inputBox input:focus {
+  border-color: var(--color-primary);
+}
+
+.inputBox input:not(:placeholder-shown) ~ label,
+.inputBox input:-webkit-autofill ~ label {
+  transform: translateX(10px) translateY(-8px);
+  font-size: 0.65em;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+  padding: 0 10px;
+  z-index: 1111;
+  background-color: var(--color-input-bg);
+}
+
+.inputBox input:focus ~ label {
+  transform: translateX(10px) translateY(-8px);
+  font-size: 0.65em;
+  font-weight: 400;
+  color: var(--color-primary);
+  padding: 0 10px;
+  z-index: 1111;
+  background-color: var(--color-input-bg);
+}
