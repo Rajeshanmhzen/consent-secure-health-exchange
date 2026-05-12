@@ -46,10 +46,10 @@ export const Colors = {
 
     background: "#0F172A",
     backgroundAlt: "#0B1120",
-    surface: "#1E293B",
-    surfaceElevated: "#273449",
-    sidebarBackground: "#1E293B",
-    inputBackground: "#273449",
+    surface: "#151f32",
+    surfaceElevated: "#1a2540",
+    sidebarBackground: "#151f32",
+    inputBackground: "#151f32",
     tableRowHover: "#2D3A4F",
     overlay: "rgba(0, 0, 0, 0.6)",
 
