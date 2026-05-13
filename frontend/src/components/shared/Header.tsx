@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-import AnimatedButton from './AnimatedButton'
+import AnimatedButton from './Button'
 
 const Header = () => {
   const navigate  = useNavigate()

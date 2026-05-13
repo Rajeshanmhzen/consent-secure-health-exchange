@@ -5,13 +5,11 @@ function App() {
 
   return (
     <>
-    <div className='min-h-screen'>
       <Header />
       <div>
       <Outlet />
       </div>
       {/* <Footer /> */}
-    </div>
     </>
   );
 }

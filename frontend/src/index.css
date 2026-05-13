@@ -2,10 +2,10 @@
 
 :root,
 [data-theme="light"] {
-  --color-primary:          #8B7CF6;
-  --color-primary-light:    #C4B5FD;
-  --color-primary-dark:     #6D5AE6;
-  --color-primary-ghost:    rgba(139, 124, 246, 0.08);
+  --color-primary:          #8B5CF6;
+  --color-primary-light:    #A78BFA;
+  --color-primary-dark:     #7C3AED;
+  --color-primary-ghost:    rgba(139, 92, 246, 0.08);
 
   --color-background:       #F9F9FF;
   --color-background-alt:   #F1F5F9;
@@ -25,7 +25,7 @@
   --color-text-tertiary:    #9CA3AF;
   --color-text-on-primary:  #FFFFFF;
   --color-text-disabled:    #9CA3AF;
-  --color-link:             #6D5AE6;
+  --color-link:             #7C3AED;
 
   --color-accent:           #60A5FA;
 
@@ -39,16 +39,16 @@
   --color-info-light:       #DBEAFE;
 
   --color-disabled:         #D1D5DB;
-  --color-focus-ring:       rgba(139, 124, 246, 0.4);
+  --color-focus-ring:       rgba(139, 92, 246, 0.4);
   --color-scrollbar:        #E5E7EB;
-  --color-scrollbar-thumb:  #C4B5FD;
+  --color-scrollbar-thumb:  #A78BFA;
 }
 
 [data-theme="dark"] {
-  --color-primary:          #A78BFA;
-  --color-primary-light:    #C4B5FD;
-  --color-primary-dark:     #8B7CF6;
-  --color-primary-ghost:    rgba(167, 139, 250, 0.1);
+  --color-primary:          #8B5CF6;
+  --color-primary-light:    #A78BFA;
+  --color-primary-dark:     #7C3AED;
+  --color-primary-ghost:    rgba(139, 92, 246, 0.12);
 
   --color-background:       #0F172A;
   --color-background-alt:   #0B1120;
