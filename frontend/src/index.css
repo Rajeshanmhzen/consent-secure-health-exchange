@@ -103,7 +103,9 @@ body {
   width: 100%;
 }
 
-.inputBox input {
+.inputBox input,
+.inputBox textarea,
+.inputBox select {
   width: 100%;
   padding: 10px;
   background-color: var(--color-input-bg);
@@ -113,6 +115,11 @@ body {
   font-size: 1em;
   color: var(--color-text);
   transition: border-color 150ms ease, background-color 250ms ease;
+}
+
+.inputBox textarea {
+  min-height: 120px;
+  resize: vertical;
 }
 
 .inputBox label {
@@ -129,12 +136,16 @@ body {
   will-change: transform, font-size;
 }
 
-.inputBox input:focus {
+.inputBox input:focus,
+.inputBox textarea:focus,
+.inputBox select:focus {
   border-color: var(--color-primary);
 }
 
 .inputBox input:not(:placeholder-shown) ~ label,
-.inputBox input:-webkit-autofill ~ label {
+.inputBox textarea:not(:placeholder-shown) ~ label,
+.inputBox input:-webkit-autofill ~ label,
+.inputBox select ~ label {
   transform: translateX(10px) translateY(-8px);
   font-size: 0.65em;
   font-weight: 400;
@@ -144,7 +155,9 @@ body {
   background-color: var(--color-input-bg);
 }
 
-.inputBox input:focus ~ label {
+.inputBox input:focus ~ label,
+.inputBox textarea:focus ~ label,
+.inputBox select:focus ~ label {
   transform: translateX(10px) translateY(-8px);
   font-size: 0.65em;
   font-weight: 400;
@@ -152,4 +165,30 @@ body {
   padding: 0 10px;
   z-index: 1111;
   background-color: var(--color-input-bg);
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-border) 70%, var(--color-surface) 30%);
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-surface) 70%, transparent),
+    transparent
+  );
+  animation: skeleton-wave 1.35s ease-in-out infinite;
+}
+
+@keyframes skeleton-wave {
+  100% {
+    transform: translateX(100%);
+  }
 }

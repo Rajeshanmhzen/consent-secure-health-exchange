@@ -1,29 +1,35 @@
-import {createBrowserRouter} from 'react-router-dom';
-import App from '../App';
-import Login from '../pages/Auth/login';
-import Home from '../pages/home';
-import Register from '../pages/Auth/register';
+import { createBrowserRouter } from 'react-router-dom'
+import App from '../App'
+import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, registerRouteElement } from './routeElements'
 
-const router = createBrowserRouter ([
-    {
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <App />,
+    children: [
+      {
         path: '/',
-        element: <App />,
-        children:[
-            {
-                path: '/',
-                index: true,
-                element: <Home />
-            },
-            {
-                path: '/login',
-                element: <Login />
-            },
-            {
-                path: '/register',
-                element: <Register />
-            },
-        ]
-    }
+        index: true,
+        element: homeRouteElement,
+      },
+      {
+        path: '/login',
+        element: loginRouteElement,
+      },
+      {
+        path: '/register',
+        element: registerRouteElement,
+      },
+      {
+        path: '/contact',
+        element: contactRouteElement,
+      },
+      {
+        path: '/features',
+        element: featureRouteElement,
+      },
+    ],
+  },
 ])
 
-export default router;
+export default router
