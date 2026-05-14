@@ -13,7 +13,7 @@ const LoginPage = () => {
 
   return (
     <PageWrapper fullHeight>
-      <div className="mx-auto w-full max-w-6xl px-6 py-10 relative">
+      <div className="relative mx-auto w-[82%] max-w-7xl px-6 py-10">
         <motion.div
           className="pointer-events-none absolute -left-8 top-32 h-16 w-16 rounded-full"
           style={{ backgroundColor: 'var(--color-primary-ghost)' }}

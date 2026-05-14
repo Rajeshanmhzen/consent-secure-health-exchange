@@ -2,7 +2,6 @@ import { Prisma, TenantType, UserRole } from "../generated/prisma";
 
 import { PaginationParams } from "../utils/pagination";
 
-
 export type CreateTenantPayload = {
 	name: string;
 	type: TenantType;
@@ -79,7 +78,6 @@ export type TenantUserListParams = PaginationParams & {
 	role?: UserRole;
 	isActive?: boolean;
 	includeDeleted?: boolean;
-	deletedOnly?: boolean;
 };
 
 export type TenantUserWithProfile = Prisma.UserGetPayload<{
