@@ -1,4 +1,6 @@
+import { motion } from 'framer-motion'
 import Button from '../components/shared/Button'
+import ScrollReveal from '../components/shared/ScrollReveal'
 
 const capabilityCards = [
   {
@@ -70,21 +72,24 @@ const FeaturePage = () => {
           </div>
 
           <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {capabilityCards.map((card) => (
-              <article
-                key={card.title}
-                className="rounded-2xl p-6 shadow-sm"
-                style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-              >
-                <div
-                  className="h-9 w-9 rounded-lg"
-                  style={{ backgroundColor: 'var(--color-background-alt)', border: '1px solid var(--color-border)' }}
-                />
-                <h3 className="mt-5 text-base font-bold" style={{ color: 'var(--color-text)' }}>{card.title}</h3>
-                <p className="mt-3 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-                  {card.description}
-                </p>
-              </article>
+            {capabilityCards.map((card, i) => (
+              <ScrollReveal key={card.title} delay={i * 0.08}>
+                <motion.article
+                  className="rounded-2xl p-6 shadow-sm h-full cursor-default"
+                  style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                  whileHover={{ y: -6, boxShadow: '0 12px 32px rgba(139,124,246,0.18)', borderColor: 'var(--color-primary)' }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                >
+                  <div
+                    className="h-9 w-9 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-background-alt)', border: '1px solid var(--color-border)' }}
+                  />
+                  <h3 className="mt-5 text-base font-bold" style={{ color: 'var(--color-text)' }}>{card.title}</h3>
+                  <p className="mt-3 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
+                    {card.description}
+                  </p>
+                </motion.article>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -92,12 +97,12 @@ const FeaturePage = () => {
 
       <section className="mx-auto w-[82%] max-w-7xl px-6 py-14">
         <div className="space-y-10">
-          {featureSections.map((section) => (
+          {featureSections.map((section, i) => (
             <div
               key={section.title}
               className={`grid items-center gap-14 ${section.reverse ? 'lg:grid-cols-[1.1fr_0.9fr]' : 'lg:grid-cols-[0.9fr_1.1fr]'}`}
             >
-              <div className={section.reverse ? 'order-2 lg:order-1' : ''}>
+              <ScrollReveal delay={0.1} className={section.reverse ? 'order-2 lg:order-1' : ''}>
                 <div
                   className="inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
                   style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}
@@ -111,9 +116,9 @@ const FeaturePage = () => {
                 <Button variant="default" size="md" className="mt-6 rounded-full px-5">
                   {section.button}
                 </Button>
-              </div>
+              </ScrollReveal>
 
-              <div className={section.reverse ? 'order-1 lg:order-2' : ''}>
+              <ScrollReveal delay={0.2} className={section.reverse ? 'order-1 lg:order-2' : ''}>
                 <div
                   className="flex h-64 items-center justify-center rounded-2xl text-xs"
                   style={{
@@ -124,7 +129,7 @@ const FeaturePage = () => {
                 >
                   {section.imageLabel}
                 </div>
-              </div>
+              </ScrollReveal>
             </div>
           ))}
         </div>

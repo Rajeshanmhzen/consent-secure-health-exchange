@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react'
 import type { ReactElement } from 'react'
-import { AuthSplitSkeleton, ContactSkeleton, FeatureSkeleton, HomeSkeleton } from '../components/skeletons/PageSkeletons'
+import { AuthSplitSkeleton, ContactSkeleton, FeatureSkeleton, HomeSkeleton, PricingSkeleton } from '../components/skeletons/PageSkeletons'
 
 const withSuspense = (element: ReactElement, fallback?: ReactElement) => (
   <Suspense fallback={fallback ?? <HomeSkeleton />}>
@@ -32,4 +32,8 @@ export const contactRouteElement = createLazyRouteElement(
 export const featureRouteElement = createLazyRouteElement(
   () => import('../pages/feature'),
   <FeatureSkeleton />,
+)
+export const pricingRouteElement = createLazyRouteElement(
+  () => import('../pages/pricing'),
+  <PricingSkeleton />,
 )

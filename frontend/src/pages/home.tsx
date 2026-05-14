@@ -1,4 +1,7 @@
+import { motion } from 'framer-motion'
 import Button from '../components/shared/Button'
+import ScrollReveal from '../components/shared/ScrollReveal'
+import Accordion from '../components/shared/Accordion'
 
 const capabilityCards = [
   {
@@ -26,8 +29,6 @@ const capabilityCards = [
     description: 'Immediate notifications for unusual access attempts and policy mismatches.',
   },
 ]
-
-const stakeholderItems = ['Providers', 'Care Teams', 'Patients', 'Administrators', 'IT Teams']
 
 const faqs = [
   {
@@ -142,13 +143,21 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="mx-auto mt-16 w-[82%] max-w-7xl px-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-y py-5" style={{ borderColor: 'var(--color-border)' }}>
-          {['Mercy Health', 'CityMed', 'LifePoint', 'HealthOne', 'BlueCross', 'LabNetwork'].map((brand) => (
-            <span key={brand} className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--color-text-tertiary)' }}>
-              {brand}
-            </span>
-          ))}
+      <section className="mx-auto mt-16 w-full overflow-hidden">
+        <div className="border-y py-6" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="marquee-wrapper">
+            <div className="marquee-track">
+              {[...['Mercy Health', 'CityMed', 'LifePoint', 'HealthOne', 'BlueCross', 'LabNetwork', 'MedCore', 'VitalSync'], ...['Mercy Health', 'CityMed', 'LifePoint', 'HealthOne', 'BlueCross', 'LabNetwork', 'MedCore', 'VitalSync']].map((brand, i) => (
+                <span
+                  key={i}
+                  className="mx-10 text-sm font-bold uppercase tracking-[0.2em] whitespace-nowrap"
+                  style={{ color: 'var(--color-text-tertiary)' }}
+                >
+                  {brand}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -162,54 +171,30 @@ const Home = () => {
           </h2>
         </div>
         <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {capabilityCards.map((card) => (
-            <article
-              key={card.title}
-              className="rounded-3xl p-6 shadow-sm"
-              style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-            >
-              <div
-                className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg font-bold"
-                style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}
+          {capabilityCards.map((card, i) => (
+            <ScrollReveal key={card.title} delay={i * 0.08}>
+              <motion.article
+                className="rounded-3xl p-6 shadow-sm h-full cursor-default"
+                style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                whileHover={{ y: -6, boxShadow: '0 12px 32px rgba(139,124,246,0.18)', borderColor: 'var(--color-primary)' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               >
-                +
-              </div>
-              <h3 className="mt-4 text-lg font-bold" style={{ color: 'var(--color-text)' }}>{card.title}</h3>
-              <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-                {card.description}
-              </p>
-            </article>
+                <div
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg font-bold"
+                  style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}
+                >
+                  +
+                </div>
+                <h3 className="mt-4 text-lg font-bold" style={{ color: 'var(--color-text)' }}>{card.title}</h3>
+                <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
+                  {card.description}
+                </p>
+              </motion.article>
+            </ScrollReveal>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto mt-18 w-[82%] max-w-7xl px-6">
-        <div
-          className="rounded-4xl px-6 py-10 text-center"
-          style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-        >
-          <p className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--color-primary)' }}>
-            Designed for Every Stakeholder
-          </p>
-          <div className="mt-8 grid gap-4 md:grid-cols-5">
-            {stakeholderItems.map((item) => (
-              <div
-                key={item}
-                className="rounded-3xl px-4 py-5"
-                style={{ backgroundColor: 'var(--color-background-alt)', border: '1px solid var(--color-border)' }}
-              >
-                <div
-                  className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
-                  style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}
-                >
-                  ✓
-                </div>
-                <p className="mt-3 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section className="mx-auto mt-18 w-[82%] max-w-5xl px-6">
         <div className="text-center">
@@ -220,20 +205,50 @@ const Home = () => {
             Frequently Asked Questions
           </h2>
         </div>
-        <div className="mt-10 space-y-4">
-          {faqs.map((item) => (
-            <div
-              key={item.question}
-              className="rounded-3xl p-6"
-              style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-            >
-              <h3 className="text-base font-bold" style={{ color: 'var(--color-text)' }}>{item.question}</h3>
-              <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-                {item.answer}
-              </p>
-            </div>
-          ))}
+        <div className="mt-10">
+          <Accordion items={faqs} />
         </div>
+      </section>
+
+      {/* CTA */}
+      <section className="mx-auto mt-18 w-[82%] max-w-7xl px-6">
+        <ScrollReveal>
+          <div
+            className="relative overflow-hidden rounded-3xl px-10 py-16 text-center"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            {/* Background blobs */}
+            <div className="absolute -left-10 -top-10 h-48 w-48 rounded-full blur-3xl" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            <div className="absolute -bottom-10 -right-10 h-56 w-56 rounded-full blur-3xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+
+            <p className="relative text-sm font-semibold uppercase tracking-[0.2em]" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Get Started Today
+            </p>
+            <h2 className="relative mt-3 text-3xl font-black md:text-4xl" style={{ color: 'var(--color-text-on-primary)' }}>
+              Ready to secure your health data exchange?
+            </h2>
+            <p className="relative mx-auto mt-4 max-w-xl text-base leading-7" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              Join hospitals already using Moniveo to manage patient consent, share records securely, and stay fully auditable.
+            </p>
+            <div className="relative mt-8 flex flex-wrap items-center justify-center gap-4">
+              <Button
+                variant="default"
+                size="lg"
+                className="rounded-full px-8"
+              >
+                Get Started Free
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="rounded-full px-8"
+                style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: 'var(--color-text-on-primary)' }}
+              >
+                Book a Demo
+              </Button>
+            </div>
+          </div>
+        </ScrollReveal>
       </section>
     </main>
   )

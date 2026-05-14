@@ -261,6 +261,59 @@ export const ContactSkeleton = () => {
   )
 }
 
+export const PricingSkeleton = () => {
+  return (
+    <main className="pt-24 pb-16" style={{ backgroundColor: 'var(--color-background)' }}>
+      <section className="mx-auto w-[82%] max-w-4xl px-6 text-center">
+        <SkeletonBlock className="mx-auto h-4 w-20 rounded-full" />
+        <SkeletonBlock className="mx-auto mt-4 h-12 w-full max-w-lg rounded-3xl" />
+        <SkeletonBlock className="mx-auto mt-3 h-4 w-full max-w-md rounded-full" />
+        <SkeletonBlock className="mx-auto mt-2 h-4 w-3/4 max-w-sm rounded-full" />
+      </section>
+
+      <section className="mx-auto mt-14 w-[82%] max-w-7xl px-6">
+        <div className="grid gap-6 md:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="rounded-3xl p-7"
+              style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            >
+              <SkeletonBlock className="h-6 w-32 rounded-full" />
+              <SkeletonBlock className="mt-3 h-4 w-full rounded-full" />
+              <SkeletonBlock className="mt-2 h-4 w-4/5 rounded-full" />
+              <SkeletonBlock className="mt-6 h-14 w-40 rounded-2xl" />
+              <SkeletonBlock className="mt-6 h-11 w-full rounded-xl" />
+              <div className="my-6 h-px w-full" style={{ backgroundColor: 'var(--color-border)' }} />
+              <div className="flex flex-col gap-3">
+                {[1, 2, 3, 4, 5, 6].map((f) => (
+                  <div key={f} className="flex items-center gap-3">
+                    <SkeletonBlock className="h-5 w-5 shrink-0 rounded-full" />
+                    <SkeletonBlock className="h-4 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto mt-20 w-[82%] max-w-3xl px-6">
+        <div
+          className="rounded-3xl px-8 py-10 text-center"
+          style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+        >
+          <SkeletonBlock className="mx-auto h-12 w-12 rounded-full" />
+          <SkeletonBlock className="mx-auto mt-5 h-5 w-full max-w-lg rounded-full" />
+          <SkeletonBlock className="mx-auto mt-2 h-5 w-5/6 max-w-md rounded-full" />
+          <SkeletonBlock className="mx-auto mt-4 h-4 w-36 rounded-full" />
+          <SkeletonBlock className="mx-auto mt-2 h-3 w-48 rounded-full" />
+        </div>
+      </section>
+    </main>
+  )
+}
+
 export const AuthSplitSkeleton = ({ variant = 'login' }: AuthSplitSkeletonProps) => {
   return (
     <main className="min-h-screen pt-24" style={{ backgroundColor: 'var(--color-background)' }}>
