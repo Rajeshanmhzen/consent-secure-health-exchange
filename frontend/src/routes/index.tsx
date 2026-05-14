@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import App from '../App'
-import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, registerRouteElement } from './routeElements'
+import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement } from './routeElements'
 
 const router = createBrowserRouter([
   {
@@ -27,6 +27,10 @@ const router = createBrowserRouter([
       {
         path: '/features',
         element: featureRouteElement,
+      },
+      {
+        path: '/pricing',
+        element: pricingRouteElement,
       },
     ],
   },
