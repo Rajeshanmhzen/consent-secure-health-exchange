@@ -1,37 +1,21 @@
 import { createBrowserRouter } from 'react-router-dom'
 import App from '../App'
-import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement } from './routeElements'
+import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement, forgotPasswordRouteElement, verifyCodeRouteElement, resetPasswordRouteElement } from './routeElements'
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
     children: [
-      {
-        path: '/',
-        index: true,
-        element: homeRouteElement,
-      },
-      {
-        path: '/login',
-        element: loginRouteElement,
-      },
-      {
-        path: '/register',
-        element: registerRouteElement,
-      },
-      {
-        path: '/contact',
-        element: contactRouteElement,
-      },
-      {
-        path: '/features',
-        element: featureRouteElement,
-      },
-      {
-        path: '/pricing',
-        element: pricingRouteElement,
-      },
+      { path: '/', index: true, element: homeRouteElement },
+      { path: '/login', element: loginRouteElement },
+      { path: '/register', element: registerRouteElement },
+      { path: '/forgot-password', element: forgotPasswordRouteElement },
+      { path: '/verify-code', element: verifyCodeRouteElement },
+      { path: '/reset-password', element: resetPasswordRouteElement },
+      { path: '/contact', element: contactRouteElement },
+      { path: '/features', element: featureRouteElement },
+      { path: '/pricing', element: pricingRouteElement },
     ],
   },
 ])
