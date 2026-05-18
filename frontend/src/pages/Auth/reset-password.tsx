@@ -5,6 +5,8 @@ import PageWrapper from '../../components/shared/PageWrapper'
 import InputField from '../../components/shared/InputField'
 import Button from '../../components/shared/Button'
 import { authApi } from '../../services/auth.service'
+import { validateResetPassword, type ResetPasswordErrors } from '../../validation/auth.validation'
+import { useToast } from '../../Context/ToastContext'
 
 const EyeIcon = ({ open }: { open: boolean }) =>
   open ? (
@@ -23,6 +25,7 @@ const EyeIcon = ({ open }: { open: boolean }) =>
 const ResetPasswordPage = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { showToast } = useToast()
   const email = searchParams.get('email') ?? ''
   const code = searchParams.get('code') ?? ''
 
@@ -32,20 +35,30 @@ const ResetPasswordPage = () => {
   const [showConfirm, setShowConfirm] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<ResetPasswordErrors>({})
   const [success, setSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (password.length < 6) return setError('Password must be at least 6 characters')
-    if (password !== confirmPassword) return setError('Passwords do not match')
+    setFieldErrors({})
+    
+    const validationErrs = validateResetPassword(password, confirmPassword)
+    if (Object.keys(validationErrs).length > 0) {
+      setFieldErrors(validationErrs)
+      showToast('Please check your password fields', 'error')
+      return
+    }
+
     setIsLoading(true)
     try {
       await authApi.resetPassword({ email, code, newPassword: password })
+      showToast('Password reset successfully!', 'success')
       setSuccess(true)
       setTimeout(() => navigate('/login'), 2000)
     } catch (err: any) {
       setError(err.message ?? 'Failed to reset password')
+      showToast(err.message ?? 'Failed to reset password', 'error')
     } finally {
       setIsLoading(false)
     }
@@ -89,7 +102,12 @@ const ResetPasswordPage = () => {
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={setPassword}
+                onChange={(v) => {
+                  setPassword(v)
+                  if (fieldErrors.password) setFieldErrors(p => ({ ...p, password: undefined }))
+                }}
+                required={false}
+                error={fieldErrors.password}
                 rightAdornment={
                   <Button type="button" variant="ghost" size="icon"
                     onClick={() => setShowPassword(p => !p)}
@@ -104,7 +122,12 @@ const ResetPasswordPage = () => {
                 name="confirmPassword"
                 type={showConfirm ? 'text' : 'password'}
                 value={confirmPassword}
-                onChange={setConfirmPassword}
+                onChange={(v) => {
+                  setConfirmPassword(v)
+                  if (fieldErrors.confirmPassword) setFieldErrors(p => ({ ...p, confirmPassword: undefined }))
+                }}
+                required={false}
+                error={fieldErrors.confirmPassword}
                 rightAdornment={
                   <Button type="button" variant="ghost" size="icon"
                     onClick={() => setShowConfirm(p => !p)}

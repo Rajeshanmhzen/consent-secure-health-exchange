@@ -10,6 +10,8 @@ import type {
 } from "../constants/Themes";
 
 export type ThemeMode = "light" | "dark";
+export type ThemePreference = "light" | "dark" | "system";
+export type DarkVariant = "classic" | "emerald" | "ocean";
 
 export interface Theme {
   mode: ThemeMode;
@@ -27,4 +29,8 @@ export interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (mode: ThemeMode) => void;
+  themePreference: ThemePreference;
+  setThemePreference: (pref: ThemePreference) => void;
+  darkVariant: DarkVariant;
+  setDarkVariant: (variant: DarkVariant) => void;
 }

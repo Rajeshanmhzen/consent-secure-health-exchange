@@ -1,15 +1,51 @@
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../Context/AuthContext'
 import PageWrapper from '../../components/shared/PageWrapper'
 import LoginForm from '../../components/module/auth/LoginForm'
+import { authApi } from '../../services/auth.service'
+import { validateLogin } from '../../validation/auth.validation'
+import { useToast } from '../../Context/ToastContext'
 
 const LoginPage = () => {
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const { showToast } = useToast()
   const [data, setData] = useState({ email: '', password: '' })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
 
   const { scrollY } = useScroll()
   const scatterSlow = useTransform(scrollY, [0, 500], [0, -30])
   const scatterFast = useTransform(scrollY, [0, 500], [0, 45])
   const scatterOpp  = useTransform(scrollY, [0, 500], [0, -60])
+
+  const handleSubmit = async () => {
+    setError('')
+    setFieldErrors({})
+
+    const errors = validateLogin(data.email, data.password)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      showToast('Please check your input fields', 'error')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const res = await authApi.login({ email: data.email, password: data.password })
+      showToast('Logged in successfully!', 'success')
+      login(res.data.user, res.data.accessToken, res.data.refreshToken)
+      navigate('/dashboard')
+    } catch (err: any) {
+      setError(err.message ?? 'Login failed')
+      showToast(err.message ?? 'Login failed', 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <PageWrapper fullHeight>
@@ -140,8 +176,18 @@ const LoginPage = () => {
               </div>
               <LoginForm
                 {...data}
-                onEmailChange={(v) => setData((p) => ({ ...p, email: v }))}
-                onPasswordChange={(v) => setData((p) => ({ ...p, password: v }))}
+                isLoading={isLoading}
+                error={error}
+                fieldErrors={fieldErrors}
+                onEmailChange={(v) => {
+                  setData((p) => ({ ...p, email: v }))
+                  if (fieldErrors.email) setFieldErrors(p => ({ ...p, email: undefined }))
+                }}
+                onPasswordChange={(v) => {
+                  setData((p) => ({ ...p, password: v }))
+                  if (fieldErrors.password) setFieldErrors(p => ({ ...p, password: undefined }))
+                }}
+                onSubmit={handleSubmit}
               />
             </motion.div>
           </div>

@@ -31,13 +31,13 @@
 
   --color-success:          #22C55E;
   --color-success-light:    #DCFCE7;
+
   --color-warning:          #F59E0B;
   --color-warning-light:    #FEF3C7;
   --color-error:            #EF4444;
   --color-error-light:      #FEE2E2;
   --color-info:             #3B82F6;
   --color-info-light:       #DBEAFE;
-
   --color-disabled:         #D1D5DB;
   --color-focus-ring:       rgba(139, 92, 246, 0.4);
   --color-scrollbar:        #E5E7EB;
@@ -87,10 +87,39 @@
   --color-scrollbar-thumb:  #475569;
 }
 
+[data-theme="dark"][data-dark-variant="classic"] {
+  --color-primary:          #8B5CF6;
+  --color-primary-light:    #A78BFA;
+  --color-primary-dark:     #7C3AED;
+  --color-primary-ghost:    rgba(139, 92, 246, 0.12);
+  --color-link:             #C4B5FD;
+}
+
+[data-theme="dark"][data-dark-variant="emerald"] {
+  --color-primary:          #10B981;
+  --color-primary-light:    #34D399;
+  --color-primary-dark:     #059669;
+  --color-primary-ghost:    rgba(16, 185, 129, 0.12);
+  --color-link:             #6EE7B7;
+}
+
+[data-theme="dark"][data-dark-variant="ocean"] {
+  --color-primary:          #0EA5E9;
+  --color-primary-light:    #38BDF8;
+  --color-primary-dark:     #0284C7;
+  --color-primary-ghost:    rgba(14, 165, 233, 0.12);
+  --color-link:             #7DD3FC;
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-text);
   transition: background-color 250ms ease, color 250ms ease;
+}
+
+select option {
+  background-color: var(--color-surface-elevated);
+  color: var(--color-text);
 }
 
 * {
@@ -115,6 +144,33 @@ body {
   font-size: 1em;
   color: var(--color-text);
   transition: border-color 150ms ease, background-color 250ms ease;
+}
+
+.inputBox input:-webkit-autofill,
+.inputBox input:-webkit-autofill:hover, 
+.inputBox input:-webkit-autofill:focus, 
+.inputBox input:-webkit-autofill:active,
+.inputBox textarea:-webkit-autofill,
+.inputBox textarea:-webkit-autofill:hover,
+.inputBox textarea:-webkit-autofill:focus,
+.inputBox select:-webkit-autofill,
+.inputBox select:-webkit-autofill:hover,
+.inputBox select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-input-bg) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  caret-color: var(--color-text) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.inputBox input::placeholder,
+.inputBox textarea::placeholder {
+  color: transparent;
+  transition: color 0.15s ease;
+}
+
+.inputBox input:focus::placeholder,
+.inputBox textarea:focus::placeholder {
+  color: var(--color-text-tertiary);
 }
 
 .inputBox textarea {

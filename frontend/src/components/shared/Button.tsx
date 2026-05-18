@@ -31,14 +31,31 @@ type ButtonProps = Omit<HTMLMotionProps<'button'>, 'onClick' | 'children'> & {
   rightIcon?: React.ReactNode
   rippleColor?: string
   rippleBg?: string
+  isLoading?: boolean
+  loadingText?: string
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
 }
 
-const Button = ({ children, variant, size = 'md', leftIcon, rightIcon, className = '', rippleColor, rippleBg, onClick, ...rest }: ButtonProps) => {
+const Button = ({
+  children,
+  variant,
+  size = 'md',
+  leftIcon,
+  rightIcon,
+  className = '',
+  rippleColor,
+  rippleBg,
+  isLoading = false,
+  loadingText,
+  onClick,
+  disabled,
+  ...rest
+}: ButtonProps) => {
   const resolvedRippleColor = rippleBg ?? rippleColor ?? (['outline', 'ghost', 'default'].includes(variant ?? '') ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.3)')
   const [ripples, setRipples] = useState<Ripple[]>([])
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isLoading) return
     const rect = e.currentTarget.getBoundingClientRect()
     const id = Date.now()
     setRipples((p) => [...p, { id, x: e.clientX - rect.left, y: e.clientY - rect.top }])
@@ -49,14 +66,15 @@ const Button = ({ children, variant, size = 'md', leftIcon, rightIcon, className
   return (
     <motion.button
       {...rest}
-      className={`relative overflow-hidden inline-flex items-center justify-center gap-2 ${variantStyles[variant ?? 'default']} ${sizeStyles[size]} ${className}`}
+      disabled={disabled || isLoading}
+      className={`relative overflow-hidden inline-flex items-center justify-center gap-2 ${variantStyles[variant ?? 'default']} ${sizeStyles[size]} ${className} ${isLoading ? 'opacity-80 cursor-not-allowed' : ''}`}
       onClick={handleClick}
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.93 }}
+      whileHover={isLoading ? undefined : { scale: 1.03 }}
+      whileTap={isLoading ? undefined : { scale: 0.93 }}
       transition={{ type: 'spring', stiffness: 400, damping: 20 }}
     >
       <AnimatePresence>
-        {ripples.map((r) => (
+        {!isLoading && ripples.map((r) => (
           <motion.span
             key={r.id}
             style={{ left: r.x, top: r.y, translateX: '-50%', translateY: '-50%', backgroundColor: resolvedRippleColor, position: 'absolute', borderRadius: '9999px', pointerEvents: 'none' }}
@@ -67,9 +85,18 @@ const Button = ({ children, variant, size = 'md', leftIcon, rightIcon, className
           />
         ))}
       </AnimatePresence>
-      {leftIcon && <span className="shrink-0 inline-flex">{leftIcon}</span>}
-      {children}
-      {rightIcon && <span className="shrink-0 inline-flex">{rightIcon}</span>}
+      {isLoading ? (
+        <span className="flex items-center gap-2">
+          <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin shrink-0" />
+          <span>{loadingText ?? children}</span>
+        </span>
+      ) : (
+        <>
+          {leftIcon && <span className="shrink-0 inline-flex">{leftIcon}</span>}
+          {children}
+          {rightIcon && <span className="shrink-0 inline-flex">{rightIcon}</span>}
+        </>
+      )}
     </motion.button>
   )
 }

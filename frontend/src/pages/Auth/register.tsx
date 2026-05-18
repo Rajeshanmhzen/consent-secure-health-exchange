@@ -3,9 +3,16 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import PageWrapper from '../../components/shared/PageWrapper'
 import RegisterForm from '../../components/module/auth/RegisterForm';
 import { useCallback, useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../Context/AuthContext';
+import { authApi } from '../../services/auth.service';
+import { validateRegister } from '../../validation/auth.validation'
+import { useToast } from '../../Context/ToastContext'
 
 const RegisterPage = () => {
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const { showToast } = useToast()
   const [data, setData] = useState({
     firstName: '',
     lastName: '',
@@ -14,29 +21,69 @@ const RegisterPage = () => {
     password: '',
     confirmPassword: '',
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const handleSubmit = async () => {
+    setError('')
+    setFieldErrors({})
+
+    const errs = validateRegister(data)
+    if (Object.keys(errs).length) {
+      setFieldErrors(errs)
+      showToast('Please check your registration form fields', 'error')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const res = await authApi.register({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone || undefined,
+        password: data.password,
+      })
+      showToast('Account registered successfully!', 'success')
+      login(res.data.user, res.data.accessToken, res.data.refreshToken)
+      navigate('/dashboard')
+    } catch (err: any) {
+      setError(err.message ?? 'Registration failed')
+      showToast(err.message ?? 'Registration failed', 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleFirstNameChange = useCallback((value: string) => {
     setData((prev) => ({ ...prev, firstName: value }));
+    setFieldErrors((prev) => ({ ...prev, firstName: '' }))
   }, []);
 
   const handleLastNameChange = useCallback((value: string) => {
     setData((prev) => ({ ...prev, lastName: value }));
+    setFieldErrors((prev) => ({ ...prev, lastName: '' }))
   }, []);
 
   const handleEmailChange = useCallback((value: string) => {
     setData((prev) => ({ ...prev, email: value }));
+    setFieldErrors((prev) => ({ ...prev, email: '' }))
   }, []);
 
   const handlePhoneChange = useCallback((value: string) => {
     setData((prev) => ({ ...prev, phone: value }));
+    setFieldErrors((prev) => ({ ...prev, phone: '' }))
   }, []);
 
   const handlePasswordChange = useCallback((value: string) => {
     setData((prev) => ({ ...prev, password: value }));
+    setFieldErrors((prev) => ({ ...prev, password: '' }))
   }, []);
 
   const handleConfirmPasswordChange = useCallback((value: string) => {
     setData((prev) => ({ ...prev, confirmPassword: value }));
+    setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }))
   }, []);
   
   const { scrollY } = useScroll();
@@ -173,12 +220,16 @@ const RegisterPage = () => {
                 </p>
               </div>
               <RegisterForm {...data}
+                isLoading={isLoading}
+                error={error}
+                fieldErrors={fieldErrors}
                 onFirstNameChange={handleFirstNameChange}
                 onLastNameChange={handleLastNameChange}
                 onEmailChange={handleEmailChange}
                 onPhoneChange={handlePhoneChange}
                 onPasswordChange={handlePasswordChange}
                 onConfirmPasswordChange={handleConfirmPasswordChange}
+                onSubmit={handleSubmit}
               />
             </motion.div>
           </div>
