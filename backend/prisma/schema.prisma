@@ -37,6 +37,7 @@ enum AuditAction {
   VIEW_RECORD
   EMERGENCY_ACCESS
   LOGIN
+  CREATE_PATIENT
 }
 
 enum TenantType {
@@ -147,11 +148,17 @@ model Tenant {
   @@map("tenants")
 }
 
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
 // ================= PRICING =================
 model Plan {
   id            String   @id @default(uuid())
   name          String   @unique
   monthlyPrice  Decimal
+  yearlyPrice   Decimal  @default(0)
   currency      String   @default("USD")
   description   String?
   features      Json?
@@ -169,6 +176,7 @@ model Subscription {
   tenantId      String
   planId        String
   status        SubscriptionStatus @default(TRIALING)
+  billingCycle  BillingCycle       @default(MONTHLY)
   startsAt      DateTime           @default(now())
   endsAt        DateTime?
   trialEndsAt   DateTime?
@@ -191,6 +199,7 @@ model Doctor {
   userId         String   @unique
   name           String
   specialization String?
+  licenseNumber  String?  @unique
   hospitalId     String
   createdAt      DateTime @default(now())
 
@@ -209,6 +218,7 @@ model Doctor {
 model Receptionist {
   id          String   @id @default(uuid())
   userId      String   @unique
+  name        String   @default("Reception Staff")
   hospitalId  String
 
   user        User     @relation(fields: [userId], references: [id])
@@ -424,4 +434,21 @@ model OTP {
   @@index([userId])
 
   @@map("otps")
+}
+
+// ================= INQUIRY =================
+model Inquiry {
+  id           String   @id @default(uuid())
+  firstName    String
+  lastName     String
+  workEmail    String
+  phoneNumber  String?
+  organization String?
+  inquiryType  String
+  message      String
+  status       String   @default("PENDING") // PENDING, IN_PROGRESS, RESOLVED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("inquiries")
 }

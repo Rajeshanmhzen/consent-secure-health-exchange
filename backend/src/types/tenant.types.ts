@@ -48,6 +48,7 @@ export type CreateTenantUserPayload = {
 
 	name?: string;
 	specialization?: string | null;
+	licenseNumber?: string | null;
 	dob?: Date | null;
 	gender?: string | null;
 	bloodGroup?: string | null;
@@ -63,6 +64,7 @@ export type UpdateTenantUserPayload = {
 
 	name?: string;
 	specialization?: string | null;
+	licenseNumber?: string | null;
 	dob?: Date | null;
 	gender?: string | null;
 	bloodGroup?: string | null;
@@ -78,6 +80,7 @@ export type TenantUserListParams = PaginationParams & {
 	role?: UserRole;
 	isActive?: boolean;
 	includeDeleted?: boolean;
+	deletedOnly?: boolean;
 };
 
 export type TenantUserWithProfile = Prisma.UserGetPayload<{

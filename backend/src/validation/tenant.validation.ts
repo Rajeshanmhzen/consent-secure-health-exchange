@@ -74,6 +74,7 @@ export const createTenantUserSchema = z
 
         name: z.string().trim().min(1).optional(),
         specialization: z.string().trim().min(1).nullable().optional(),
+        licenseNumber: z.string().trim().min(1).nullable().optional(),
         dob: z.preprocess(
             (value) => (value ? new Date(String(value)) : value),
             z.date().nullable().optional()
@@ -100,12 +101,21 @@ export const createTenantUserSchema = z
             }
         }
 
-        if (data.role === "RECEPTIONIST" && !data.hospitalId) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "hospitalId is required for receptionist",
-                path: ["hospitalId"]
-            });
+        if (data.role === "RECEPTIONIST") {
+            if (!data.hospitalId) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "hospitalId is required for receptionist",
+                    path: ["hospitalId"]
+                });
+            }
+            if (!data.name) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "name is required for receptionist",
+                    path: ["name"]
+                });
+            }
         }
 
         if (data.role === "PATIENT" && !data.name) {
@@ -129,6 +139,7 @@ export const updateTenantUserSchema = z.object({
     isVerified: z.boolean().optional(),
     name: z.string().trim().min(1).optional(),
     specialization: z.string().trim().min(1).nullable().optional(),
+    licenseNumber: z.string().trim().min(1).nullable().optional(),
     dob: z.preprocess(
         (value) => (value ? new Date(String(value)) : value),
         z.date().nullable().optional()

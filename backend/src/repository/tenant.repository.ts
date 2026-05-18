@@ -168,6 +168,7 @@ export class TenantRepository {
                         userId: user.id,
                         name: data.name as string,
                         specialization: data.specialization ?? null,
+                        licenseNumber: data.licenseNumber ?? null,
                         hospitalId: data.hospitalId as string
                     }
                 });
@@ -179,6 +180,7 @@ export class TenantRepository {
                 const receptionist = await tx.receptionist.create({
                     data: {
                         userId: user.id,
+                        name: data.name as string,
                         hospitalId: data.hospitalId as string
                     }
                 });
@@ -275,7 +277,8 @@ export class TenantRepository {
                     where: { userId },
                     data: {
                         name: data.name,
-                        specialization: data.specialization ?? null
+                        specialization: data.specialization ?? null,
+                        licenseNumber: data.licenseNumber ?? null
                     }
                 });
             }
@@ -296,7 +299,9 @@ export class TenantRepository {
             if (user.role === "RECEPTIONIST") {
                 await tx.receptionist.update({
                     where: { userId },
-                    data: {}
+                    data: {
+                        name: data.name
+                    }
                 });
             }
 

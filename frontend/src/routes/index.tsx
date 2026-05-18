@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import App from '../App'
-import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement, forgotPasswordRouteElement, verifyCodeRouteElement, resetPasswordRouteElement } from './routeElements'
+import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement, forgotPasswordRouteElement, verifyCodeRouteElement, resetPasswordRouteElement, dashboardRouteElement, tenantsRouteElement, superadminsRouteElement, plansRouteElement, subscriptionsRouteElement, inquiriesRouteElement, settingsRouteElement, patientsRouteElement, recordsRouteElement, requestsRouteElement, consentRouteElement, emergencyRouteElement, scheduleRouteElement, auditRouteElement, staffRouteElement } from './routeElements'
 
 const router = createBrowserRouter([
   {
@@ -18,6 +18,22 @@ const router = createBrowserRouter([
       { path: '/pricing', element: pricingRouteElement },
     ],
   },
+  // Dashboard routes — no Header/Footer
+  { path: '/dashboard', element: dashboardRouteElement },
+  { path: '/dashboard/tenants', element: tenantsRouteElement },
+  { path: '/dashboard/superadmins', element: superadminsRouteElement },
+  { path: '/dashboard/plans', element: plansRouteElement },
+  { path: '/dashboard/subscriptions', element: subscriptionsRouteElement },
+  { path: '/dashboard/inquiries', element: inquiriesRouteElement },
+  { path: '/dashboard/settings', element: settingsRouteElement },
+  { path: '/dashboard/patients', element: patientsRouteElement },
+  { path: '/dashboard/records', element: recordsRouteElement },
+  { path: '/dashboard/requests', element: requestsRouteElement },
+  { path: '/dashboard/consent', element: consentRouteElement },
+  { path: '/dashboard/emergency', element: emergencyRouteElement },
+  { path: '/dashboard/schedule', element: scheduleRouteElement },
+  { path: '/dashboard/audit', element: auditRouteElement },
+  { path: '/dashboard/staff', element: staffRouteElement },
 ])
 
 export default router

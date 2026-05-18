@@ -1,12 +1,15 @@
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { useToast } from '../Context/ToastContext'
 import ContactForm from '../components/module/contact/ContactForm'
 import { ContactSkeleton } from '../components/skeletons/PageSkeletons'
 import PageWrapper from '../components/shared/PageWrapper'
+import { inquiryApi, type InquiryType } from '../services/inquiry.service'
 
 const ContactPage = () => {
   const [isPageLoading, setIsPageLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { showToast } = useToast()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -31,9 +34,30 @@ const ContactPage = () => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsSubmitting(true)
-    window.setTimeout(() => setIsSubmitting(false), 1200)
+    try {
+      await inquiryApi.create({
+        ...formData,
+        inquiryType: formData.inquiryType as InquiryType,
+        phoneNumber: formData.phoneNumber || undefined,
+        organization: formData.organization || undefined,
+      })
+      showToast('Inquiry submitted successfully. We will contact you soon.', 'success')
+      setFormData({
+        firstName: '',
+        lastName: '',
+        workEmail: '',
+        phoneNumber: '',
+        organization: '',
+        inquiryType: 'Sales / Demo',
+        message: '',
+      })
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to submit inquiry', 'error')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
