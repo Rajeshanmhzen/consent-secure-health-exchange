@@ -62,7 +62,7 @@ const ForgotPasswordPage = () => {
             </motion.div>
           ) : (
             <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-              <InputField label="Email" name="email" type="email" value={email} onChange={setEmail} />
+              <InputField label="Email" name="email" type="email" value={email} onChange={setEmail} placeholder="Enter your email address" />
               {error && <span className="text-xs" style={{ color: 'var(--color-error)' }}>{error}</span>}
               <Button type="submit" variant="primary" size="lg" className="w-full rounded-xl mt-2" disabled={isLoading}>
                 {isLoading ? 'Sending...' : 'Send Reset Email'}

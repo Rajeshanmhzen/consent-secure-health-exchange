@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import InputField from '../../shared/InputField'
+import PhoneInputField from '../../shared/PhoneInputField'
 import Button from '../../shared/Button'
 
 interface RegisterFormProps {
   firstName: string
   lastName: string
   email: string
-  phone:string
+  phone: string
   password: string
   confirmPassword: string
   onFirstNameChange?: (value: string) => void
@@ -44,7 +45,7 @@ const EyeIcon = ({ open }: { open: boolean }) =>
 
 const RegisterForm = (props: RegisterFormProps) => {
   const {
-    firstName, lastName, email,phone, password, confirmPassword,
+    firstName, lastName, email, phone, password, confirmPassword,
     onFirstNameChange, onLastNameChange, onEmailChange, onPhoneChange,
     onPasswordChange, onConfirmPasswordChange,
     onSubmit, isLoading, error, fieldErrors,
@@ -60,29 +61,51 @@ const RegisterForm = (props: RegisterFormProps) => {
       onSubmit={(e) => { e.preventDefault(); onSubmit?.() }}
     >
       <div className="flex gap-4">
-        <div className="flex-1 space-y-1">
-          <InputField label="First Name" name="firstName" value={firstName} onChange={onFirstNameChange} />
-          {fieldErrors?.firstName && <span className="text-[10px] text-red-500">{fieldErrors.firstName}</span>}
-        </div>
-        <div className="flex-1 space-y-1">
-          <InputField label="Last Name" name="lastName" value={lastName} onChange={onLastNameChange} />
-          {fieldErrors?.lastName && <span className="text-[10px] text-red-500">{fieldErrors.lastName}</span>}
-        </div>
+        <InputField
+          label="First Name"
+          name="firstName"
+          value={firstName}
+          onChange={onFirstNameChange}
+          error={fieldErrors?.firstName}
+          required={false}
+          placeholder="First Name"
+        />
+        <InputField
+          label="Last Name"
+          name="lastName"
+          value={lastName}
+          onChange={onLastNameChange}
+          error={fieldErrors?.lastName}
+          required={false}
+          placeholder="Last Name"
+        />
       </div>
-      <div className="space-y-1">
-        <InputField label="Email" name="email" type="email" value={email} onChange={onEmailChange} />
-        {fieldErrors?.email && <span className="text-[10px] text-red-500">{fieldErrors.email}</span>}
-      </div>
-      <div className="space-y-1">
-        <InputField label="Phone" name="phone" type="tel" value={phone} onChange={onPhoneChange} />
-        {fieldErrors?.phone && <span className="text-[10px] text-red-500">{fieldErrors.phone}</span>}
-      </div>
+      <InputField
+        label="Email"
+        name="email"
+        type="email"
+        value={email}
+        onChange={onEmailChange}
+        error={fieldErrors?.email}
+        required={false}
+        placeholder="Enter your email address"
+      />
+      <PhoneInputField
+        label="Phone"
+        value={phone}
+        onChange={onPhoneChange || (() => {})}
+        error={fieldErrors?.phone}
+        required={false}
+      />
       <InputField
         label="Password"
         name="password"
         value={password}
         type={showPassword ? 'text' : 'password'}
         onChange={onPasswordChange}
+        error={fieldErrors?.password}
+        required={false}
+        placeholder="Create a strong password"
         rightAdornment={
           <Button
             type="button"
@@ -96,13 +119,15 @@ const RegisterForm = (props: RegisterFormProps) => {
           </Button>
         }
       />
-      {fieldErrors?.password && <span className="text-[10px] text-red-500">{fieldErrors.password}</span>}
       <InputField
         label="Confirm Password"
         name="confirmPassword"
         value={confirmPassword}
         type={showConfirmPassword ? 'text' : 'password'}
         onChange={onConfirmPasswordChange}
+        error={fieldErrors?.confirmPassword}
+        required={false}
+        placeholder="Re-enter password to confirm"
         rightAdornment={
           <Button
             type="button"
@@ -116,10 +141,11 @@ const RegisterForm = (props: RegisterFormProps) => {
           </Button>
         }
       />
-      {fieldErrors?.confirmPassword && <span className="text-[10px] text-red-500">{fieldErrors.confirmPassword}</span>}
-      <div className="flex items-center justify-between text-[10px] font-semibold tracking-normal text-primary -mt-1">
-        <span className="text-[10px] text-red-500">{error}</span>
-      </div>
+      {error && (
+        <div className="flex items-center justify-between text-[10px] font-semibold tracking-normal text-primary -mt-1">
+          <span className="text-[10px] text-red-500">{error}</span>
+        </div>
+      )}
       <Button
         type="submit"
         variant="primary"
@@ -164,7 +190,7 @@ const RegisterForm = (props: RegisterFormProps) => {
         <div className="mt-4 text-center">
           <p className="text-xs text-on-surface-variant">
             Have an account?{' '}
-            <a href="/login"className="font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>Login</a>
+            <a href="/login" className="font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>Login</a>
           </p>
         </div>
       </div>

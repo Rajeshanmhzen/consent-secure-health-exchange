@@ -13,6 +13,8 @@ type InputFieldProps = {
   as?: 'input' | 'textarea' | 'select'
   rows?: number
   options?: Array<{ label: string; value: string }>
+  error?: string
+  disabled?: boolean
 }
 
 const InputField = ({
@@ -28,6 +30,8 @@ const InputField = ({
   as = 'input',
   rows = 4,
   options = [],
+  error,
+  disabled = false,
 }: InputFieldProps) => {
   const [isFocused, setIsFocused] = useState(false)
   const [hasValue, setHasValue] = useState(false)
@@ -36,6 +40,7 @@ const InputField = ({
     value,
     required,
     name,
+    disabled,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       onChange?.(e.target.value)
       setHasValue(e.target.value !== '')
@@ -48,43 +53,50 @@ const InputField = ({
   }
 
   return (
-    <div className={`inputBox ${className}`}>
-      {as === 'textarea' ? (
-        <textarea
-          {...sharedProps}
-          rows={rows}
-          placeholder={placeholder ?? ''}
-          style={rightAdornment ? { paddingRight: '2.5rem' } : undefined}
-        />
-      ) : as === 'select' ? (
-        <select
-          {...sharedProps}
-          style={rightAdornment ? { paddingRight: '2.5rem' } : undefined}
+    <div className="w-full flex flex-col gap-1">
+      <div className={`inputBox ${className}`}>
+        {as === 'textarea' ? (
+          <textarea
+            {...sharedProps}
+            rows={rows}
+            placeholder={placeholder ?? ''}
+            style={rightAdornment ? { paddingRight: '2.5rem' } : undefined}
+          />
+        ) : as === 'select' ? (
+          <select
+            {...sharedProps}
+            style={rightAdornment ? { paddingRight: '2.5rem' } : undefined}
+          >
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            {...sharedProps}
+            type={type}
+            placeholder={placeholder ?? ''}
+            style={rightAdornment ? { paddingRight: '2.5rem' } : undefined}
+          />
+        )}
+        <label
+          htmlFor={name}
+          className={`label-line${isFloated ? ' label-line--floated' : ''}`}
         >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <input
-          {...sharedProps}
-          type={type}
-          placeholder={placeholder ?? ''}
-          style={rightAdornment ? { paddingRight: '2.5rem' } : undefined}
-        />
-      )}
-      <label
-        htmlFor={name}
-        className={`label-line${isFloated ? ' label-line--floated' : ''}`}
-      >
-        {label}
-      </label>
-      {rightAdornment && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2">
-          {rightAdornment}
-        </div>
+          {label}
+        </label>
+        {rightAdornment && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            {rightAdornment}
+          </div>
+        )}
+      </div>
+      {error && (
+        <span className="text-[10px] font-semibold text-rose-500 block px-1 animate-fadeIn">
+          {error}
+        </span>
       )}
     </div>
   )

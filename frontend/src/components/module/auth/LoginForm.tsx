@@ -45,16 +45,25 @@ const LoginForm = (props: LoginFormProps) => {
       noValidate
       onSubmit={(e) => { e.preventDefault(); onSubmit?.() }}
     >
-      <div className="space-y-1">
-        <InputField label="Email" name="email" type="email" value={email} onChange={onEmailChange} />
-        {fieldErrors?.email && <span className="text-[10px] text-red-500">{fieldErrors.email}</span>}
-      </div>
+      <InputField
+        label="Email"
+        name="email"
+        type="email"
+        value={email}
+        onChange={onEmailChange}
+        error={fieldErrors?.email}
+        required={false}
+        placeholder="Enter your email address"
+      />
       <InputField
         label="Password"
         name="password"
         value={password}
         type={showPassword ? 'text' : 'password'}
         onChange={onPasswordChange}
+        error={fieldErrors?.password}
+        required={false}
+        placeholder="Enter your password"
         rightAdornment={
           <Button
             type="button"
@@ -68,9 +77,12 @@ const LoginForm = (props: LoginFormProps) => {
           </Button>
         }
       />
-      {fieldErrors?.password && <span className="text-[10px] text-red-500">{fieldErrors.password}</span>}
-      <div className="flex items-center justify-between -mt-1">
-        <span className="text-[10px] text-red-500">{error}</span>
+      {error && (
+        <div className="flex items-center justify-between -mt-1">
+          <span className="text-[10px] text-red-500">{error}</span>
+        </div>
+      )}
+      <div className="flex justify-end -mt-1">
         <a href="/forgot-password" className="text-[11px] font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>
           Forgot password?
         </a>
