@@ -205,7 +205,7 @@ const DashboardPage = () => {
                 </div>
 
                 {/* Stats */}
-                <div className={`grid grid-cols-2 gap-4 ${role === 'SUPER_ADMIN' ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
+                <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4`}>
                     {stats.map((s, i) => (
                         <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} color={s.color} index={i} />
                     ))}

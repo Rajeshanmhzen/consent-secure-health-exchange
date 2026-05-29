@@ -5,8 +5,16 @@ import { useAuth } from '../../Context/AuthContext'
 import { useToast } from '../../Context/ToastContext'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import Pagination from '../../components/shared/Pagination'
+import FilterTabs from '../../components/shared/FilterTabs'
 import { inquiryApi, type Inquiry, type InquiryStatus } from '../../services/inquiry.service'
 import { createRealtimeConnection } from '../../services/realtime.service'
+
+const inquiryTabs = [
+    { key: 'ALL', label: 'All Statuses' },
+    { key: 'PENDING', label: 'Pending' },
+    { key: 'IN_PROGRESS', label: 'In Progress' },
+    { key: 'RESOLVED', label: 'Resolved' }
+] as const
 
 const statusStyles: Record<InquiryStatus, { label: string; bg: string; color: string }> = {
     PENDING: { label: 'Pending', bg: 'rgba(245, 158, 11, 0.12)', color: '#d97706' },
@@ -131,13 +139,14 @@ const InquiriesPage = () => {
                         <input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Search name, email, organization..." className="flex-1 bg-transparent text-sm outline-none" style={{ color: 'var(--color-text)' }} />
                         <button type="submit" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white" style={{ backgroundColor: 'var(--color-primary)' }}>Search</button>
                     </form>
-                    <select value={status} onChange={e => { setStatus(e.target.value as InquiryStatus | 'ALL'); setPage(1) }} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-                        <option value="ALL">All statuses</option>
-                        <option value="PENDING">Pending</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="RESOLVED">Resolved</option>
-                    </select>
                 </div>
+
+                <FilterTabs
+                    tabs={inquiryTabs}
+                    value={status}
+                    onChange={(val) => { setStatus(val as InquiryStatus | 'ALL'); setPage(1) }}
+                    layoutId="activeInquiryTabUnderline"
+                />
 
                 <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                     <div className="grid grid-cols-[1.1fr_1fr_1fr_1.4fr_0.8fr] gap-3 px-5 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>

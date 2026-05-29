@@ -1,6 +1,6 @@
 import { Prisma } from "../generated/prisma";
-
 import prisma from "../config/prisma";
+import { generateRsaKeypair } from "../utils/crypto.helper";
 import {
     buildPaginationResult,
     normalizePagination,
@@ -109,11 +109,14 @@ export class TenantRepository {
                 }
             });
 
+            const keys = generateRsaKeypair();
             const hospital = await tx.hospital.create({
                 data: {
                     tenantId: tenant.id,
                     name: data.hospitalName,
-                    email: data.hospitalEmail ?? null
+                    email: data.hospitalEmail ?? null,
+                    publicKey: keys.publicKey,
+                    privateKey: keys.privateKey
                 }
             });
 

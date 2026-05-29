@@ -2,10 +2,7 @@ import PaginationSkeleton from '../shared/PaginationSkeleton'
 
 const SuperAdminListSkeleton = () => (
     <div className="rounded-2xl overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-        {/* Header */}
-        <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
-            <div className="h-4 w-32 rounded-lg skeleton-shimmer" />
-        </div>
+        {/* Header removed to match UI */}
         {/* Table header */}
         <div className="grid grid-cols-5 px-5 py-2" style={{ backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
             {Array.from({ length: 5 }).map((_, i) => (

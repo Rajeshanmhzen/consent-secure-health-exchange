@@ -1,6 +1,7 @@
 import { Prisma } from "../generated/prisma";
-
+import crypto from "crypto";
 import prisma from "../config/prisma";
+import { encryptPacked, encryptAsymmetric } from "../utils/crypto.helper";
 import {
     buildPaginationResult,
     normalizePagination,
@@ -15,13 +16,35 @@ import {
 
 export class MedicalRecordRepository {
     async createMedicalRecord(data: CreateMedicalRecordPayload) {
+        // Fetch Custodian doctor's hospital Public Key
+        const doctor = await prisma.doctor.findUnique({
+            where: { id: data.doctorId },
+            include: { hospital: true }
+        });
+
+        if (!doctor || !doctor.hospital.publicKey) {
+            throw new Error("Custodian doctor's hospital has no public keys registered in the network.");
+        }
+
+        // Generate a cryptographically secure random 32-byte AES key
+        const aesKey = crypto.randomBytes(32);
+
+        // Encrypt the fields symmetrically with independent IVs and tags
+        const encryptedDiagnosis = data.diagnosis ? encryptPacked(data.diagnosis, aesKey) : null;
+        const encryptedPrescription = data.prescription ? encryptPacked(data.prescription, aesKey) : null;
+        const encryptedNotes = data.notes ? encryptPacked(data.notes, aesKey) : null;
+
+        // Wrap the AES key using the hospital's Public RSA Key
+        const encryptedAesKey = encryptAsymmetric(aesKey.toString("hex"), doctor.hospital.publicKey);
+
         return await prisma.medicalRecord.create({
             data: {
                 patientId: data.patientId,
                 doctorId: data.doctorId,
-                diagnosis: data.diagnosis ?? null,
-                prescription: data.prescription ?? null,
-                notes: data.notes ?? null
+                diagnosis: encryptedDiagnosis,
+                prescription: encryptedPrescription,
+                notes: encryptedNotes,
+                encryptedAesKey
             }
         });
     }
@@ -59,12 +82,38 @@ export class MedicalRecordRepository {
     }
 
     async updateMedicalRecord(recordId: string, data: UpdateMedicalRecordPayload) {
+        // Fetch the existing record to get the doctor's hospital Public Key
+        const record = await prisma.medicalRecord.findUnique({
+            where: { id: recordId },
+            include: {
+                doctor: {
+                    include: { hospital: true }
+                }
+            }
+        });
+
+        if (!record || !record.doctor.hospital.publicKey) {
+            throw new Error("Medical record or associated hospital public key not found.");
+        }
+
+        // Generate a new AES key for the updated values
+        const aesKey = crypto.randomBytes(32);
+
+        // Encrypt updated fields symmetrically
+        const encryptedDiagnosis = data.diagnosis ? encryptPacked(data.diagnosis, aesKey) : null;
+        const encryptedPrescription = data.prescription ? encryptPacked(data.prescription, aesKey) : null;
+        const encryptedNotes = data.notes ? encryptPacked(data.notes, aesKey) : null;
+
+        // Wrap the AES key using the hospital's Public RSA Key
+        const encryptedAesKey = encryptAsymmetric(aesKey.toString("hex"), record.doctor.hospital.publicKey);
+
         return await prisma.medicalRecord.update({
             where: { id: recordId },
             data: {
-                diagnosis: data.diagnosis ?? null,
-                prescription: data.prescription ?? null,
-                notes: data.notes ?? null
+                diagnosis: encryptedDiagnosis,
+                prescription: encryptedPrescription,
+                notes: encryptedNotes,
+                encryptedAesKey
             }
         });
     }

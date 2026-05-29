@@ -1,6 +1,7 @@
 import prisma from "../config/prisma";
 import { AppError } from "../utils/appError";
 import { AuditAction, NotificationType } from "../generated/prisma";
+import { decryptAsymmetric, encryptAsymmetric, decryptPacked } from "../utils/crypto.helper";
 
 export class RequestService {
     // Helper to log audit events easily
@@ -253,6 +254,26 @@ export class RequestService {
                 data: { status: "APPROVED" }
             });
 
+            // Fetch the requesting doctor's hospital Public Key (recipient)
+            const requestingDoc = await tx.doctor.findUnique({
+                where: { id: request.requestingDoctorId },
+                include: { hospital: true }
+            });
+            if (!requestingDoc || !requestingDoc.hospital.publicKey) {
+                throw new AppError("Requesting hospital has no registered public RSA keys.", 400);
+            }
+            const recipientPublicKey = requestingDoc.hospital.publicKey;
+
+            // Fetch the custodian hospital's Private Key (holder)
+            const custodianDoc = await tx.doctor.findUnique({
+                where: { id: request.targetDoctorId },
+                include: { hospital: true }
+            });
+            if (!custodianDoc || !custodianDoc.hospital.privateKey) {
+                throw new AppError("Custodian hospital has no registered private RSA keys.", 400);
+            }
+            const custodianPrivateKey = custodianDoc.hospital.privateKey;
+
             // Find all active records of the patient created under the same hospital/custodian
             const records = await tx.medicalRecord.findMany({
                 where: {
@@ -265,14 +286,27 @@ export class RequestService {
             });
 
             if (records.length > 0) {
-                const sharedData = records.map(r => ({
-                    requestId: req.id,
-                    recordId: r.id
-                }));
-                await tx.sharedRecord.createMany({
-                    data: sharedData,
-                    skipDuplicates: true
-                });
+                for (const r of records) {
+                    let sharedAesKey: string | null = null;
+                    if (r.encryptedAesKey) {
+                        try {
+                            // Decrypt symmetric AES key using custodian's Private RSA Key
+                            const plainAesKey = decryptAsymmetric(r.encryptedAesKey, custodianPrivateKey);
+                            // Encrypt symmetric AES key using recipient's Public RSA Key
+                            sharedAesKey = encryptAsymmetric(plainAesKey, recipientPublicKey);
+                        } catch (err) {
+                            console.error(`Failed to re-wrap key for record ${r.id}:`, err);
+                        }
+                    }
+
+                    await tx.sharedRecord.create({
+                        data: {
+                            requestId: req.id,
+                            recordId: r.id,
+                            encryptedAesKey: sharedAesKey
+                        }
+                    });
+                }
             }
 
             return req;
@@ -377,5 +411,105 @@ export class RequestService {
         }
 
         return [];
+    }
+
+    async getSharedRecords(userId: string, requestId: string) {
+        // Fetch the requesting doctor
+        const doctor = await prisma.doctor.findFirst({
+            where: { userId },
+            include: { hospital: true }
+        });
+        if (!doctor) {
+            throw new AppError("Only licensed clinicians are authorized to access shared records.", 403);
+        }
+
+        // Fetch the request
+        const request = await prisma.dataRequest.findUnique({
+            where: { id: requestId },
+            include: {
+                patient: true,
+                requestingDoctor: { include: { hospital: true } }
+            }
+        });
+
+        if (!request) {
+            throw new AppError("Shared request not found.", 404);
+        }
+
+        // Access check: Ensure the requesting doctor is either the recipient doctor or emergency authorized
+        if (request.status !== "APPROVED" && request.requestingDoctorId !== doctor.id) {
+            throw new AppError("Access to this dossier is restricted. Awaiting patient consent approval.", 403);
+        }
+
+        // Fetch all SharedRecord mappings for this request, along with the actual MedicalRecord
+        const sharedRecords = await prisma.sharedRecord.findMany({
+            where: { requestId },
+            include: {
+                record: {
+                    include: {
+                        doctor: {
+                            include: { hospital: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Ensure the recipient hospital private key is present to decrypt the record keys
+        if (!doctor.hospital.privateKey) {
+            throw new AppError("Recipient hospital private key not set. Cryptographic verification failed.", 500);
+        }
+
+        const recipientPrivateKey = doctor.hospital.privateKey;
+
+        // Decrypt the records!
+        const decryptedRecords = sharedRecords.map(sr => {
+            const record = sr.record;
+            let diagnosis = record.diagnosis;
+            let prescription = record.prescription;
+            let notes = record.notes;
+
+            // Decrypt symmetric AES key using recipient's Private RSA Key
+            if (sr.encryptedAesKey) {
+                try {
+                    const plainAesKeyHex = decryptAsymmetric(sr.encryptedAesKey, recipientPrivateKey);
+                    const aesKey = Buffer.from(plainAesKeyHex, "hex");
+
+                    if (record.diagnosis) diagnosis = decryptPacked(record.diagnosis, aesKey);
+                    if (record.prescription) prescription = decryptPacked(record.prescription, aesKey);
+                    if (record.notes) notes = decryptPacked(record.notes, aesKey);
+                } catch (err) {
+                    console.error(`Failed to decrypt record ${record.id}:`, err);
+                    diagnosis = "[ENCRYPTED - CRYPTO VERIFICATION FAILED]";
+                    prescription = "[ENCRYPTED - CRYPTO VERIFICATION FAILED]";
+                    notes = "[ENCRYPTED - CRYPTO VERIFICATION FAILED]";
+                }
+            }
+
+            return {
+                id: record.id,
+                patientId: record.patientId,
+                patientName: request.patient.name,
+                doctorId: record.doctorId,
+                doctorName: record.doctor.name,
+                specialty: record.doctor.specialization ?? "Clinical Medicine",
+                diagnosis,
+                prescription,
+                notes,
+                createdAt: record.createdAt,
+                files: []
+            };
+        });
+
+        // Write audit log entry for viewing these shared files (immutability)
+        await this.logAudit(userId, "VIEW_RECORD", "DataRequest", requestId, {
+            action: "VIEW_SHARED_DOSSIER",
+            doctorName: doctor.name,
+            hospitalName: doctor.hospital.name,
+            patientName: request.patient.name,
+            recordsViewedCount: decryptedRecords.length
+        });
+
+        return decryptedRecords;
     }
 }

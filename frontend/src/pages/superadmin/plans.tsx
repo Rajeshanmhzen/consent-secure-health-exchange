@@ -8,55 +8,42 @@ import Pagination from '../../components/shared/Pagination'
 import Button from '../../components/shared/Button'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { pricingApi, type Plan } from '../../services/pricing.service'
+import FilterTabs from '../../components/shared/FilterTabs'
 
-type TabProps = {
-    value: 'all' | 'active' | 'inactive'
-    onChange: (val: 'all' | 'active' | 'inactive') => void
-}
-
-const FilterTabs = ({ value, onChange }: TabProps) => {
-    const tabs = [
-        { key: 'all', label: 'All Plans' },
-        { key: 'active', label: 'Active Tiers' },
-        { key: 'inactive', label: 'Inactive Tiers' }
-    ] as const
-
-    return (
-        <div className="flex border-b w-full mt-2" style={{ borderColor: 'var(--color-border)' }}>
-            {tabs.map(t => {
-                const isActive = value === t.key
-                return (
-                    <button
-                        key={t.key}
-                        type="button"
-                        onClick={() => onChange(t.key)}
-                        className="relative py-3 px-5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer select-none outline-none"
-                        style={{
-                            color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                        }}
-                    >
-                        {t.label}
-                        {isActive && (
-                            <motion.div
-                                layoutId="activePlanTabUnderline"
-                                className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                                style={{ backgroundColor: 'var(--color-primary)' }}
-                                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                            />
-                        )}
-                    </button>
-                )
-            })}
-        </div>
-    )
-}
+const planTabs = [
+    { key: 'all', label: 'All Plans' },
+    { key: 'active', label: 'Active Tiers' },
+    { key: 'inactive', label: 'Inactive Tiers' }
+] as const
 
 const PlanListSkeleton = () => (
-    <div className="flex flex-col gap-3 animate-pulse">
-        <div className="h-12 w-full rounded-2xl bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-        <div className="h-16 w-full rounded-2xl bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-        <div className="h-16 w-full rounded-2xl bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-        <div className="h-16 w-full rounded-2xl bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+    <div className="rounded-2xl overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 0.8fr 2fr 1fr', alignItems: 'center', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">
+            {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-3 w-16 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+            ))}
+            <div className="h-3 w-12 justify-self-end rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+        </div>
+        <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 0.8fr 2fr 1fr', alignItems: 'center' }} className="px-5 py-4 gap-4">
+                    <div className="flex flex-col gap-2">
+                        <div className="h-4 w-24 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+                        <div className="h-3 w-12 rounded-full bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="h-4 w-16 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+                        <div className="h-3 w-12 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+                    </div>
+                    <div className="h-3 w-10 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+                    <div className="h-3 w-32 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+                    <div className="flex items-center justify-end gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+                        <div className="h-8 w-8 rounded-lg bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
+                    </div>
+                </div>
+            ))}
+        </div>
     </div>
 )
 
@@ -303,7 +290,7 @@ const PlansPage = () => {
                 </div>
 
                 {/* Filter Tabs */}
-                <FilterTabs value={statusFilter} onChange={handleStatusChange} />
+                <FilterTabs tabs={planTabs} value={statusFilter} onChange={handleStatusChange} layoutId="activePlanTabUnderline" />
 
                 {/* Table list */}
                 {loading ? <PlanListSkeleton /> : (

@@ -10,48 +10,13 @@ import AddTenantModal from '../../components/dashboard/AddTenantModal'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { useToast } from '../../Context/ToastContext'
 import { tenantApi, type Tenant } from '../../services/tenant.service'
+import FilterTabs from '../../components/shared/FilterTabs'
 
-type TabProps = {
-    value: 'all' | 'active' | 'inactive'
-    onChange: (val: 'all' | 'active' | 'inactive') => void
-}
-
-const FilterTabs = ({ value, onChange }: TabProps) => {
-    const tabs = [
-        { key: 'all', label: 'All Tenants' },
-        { key: 'active', label: 'Active Tenants' },
-        { key: 'inactive', label: 'Inactive Tenants' }
-    ] as const
-
-    return (
-        <div className="flex border-b w-full mt-2" style={{ borderColor: 'var(--color-border)' }}>
-            {tabs.map(t => {
-                const isActive = value === t.key
-                return (
-                    <button
-                        key={t.key}
-                        type="button"
-                        onClick={() => onChange(t.key)}
-                        className="relative py-3 px-5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer select-none outline-none"
-                        style={{
-                            color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                        }}
-                    >
-                        {t.label}
-                        {isActive && (
-                            <motion.div
-                                layoutId="activeTenantTabUnderline"
-                                className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                                style={{ backgroundColor: 'var(--color-primary)' }}
-                                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                            />
-                        )}
-                    </button>
-                )
-            })}
-        </div>
-    )
-}
+const tenantTabs = [
+    { key: 'all', label: 'All Tenants' },
+    { key: 'active', label: 'Active Tenants' },
+    { key: 'inactive', label: 'Inactive Tenants' }
+] as const
 
 const TenantsPage = () => {
     const { user } = useAuth()
@@ -183,7 +148,7 @@ const TenantsPage = () => {
                 </div>
 
                 {/* Filter Tabs row */}
-                <FilterTabs value={statusFilter} onChange={handleStatusChange} />
+                <FilterTabs tabs={tenantTabs} value={statusFilter} onChange={handleStatusChange} layoutId="activeTenantTabUnderline" />
 
                 {/* Table */}
                 {loading ? <TenantListSkeleton /> : (

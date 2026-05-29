@@ -6,48 +6,13 @@ import DashboardLayout from '../../components/layout/DashboardLayout'
 import Pagination from '../../components/shared/Pagination'
 import SuperAdminListSkeleton from '../../components/dashboard/SuperAdminListSkeleton'
 import { superAdminApi, type SuperAdmin } from '../../services/superadmin.service'
+import FilterTabs from '../../components/shared/FilterTabs'
 
-type TabProps = {
-    value: 'all' | 'active' | 'inactive'
-    onChange: (val: 'all' | 'active' | 'inactive') => void
-}
-
-const FilterTabs = ({ value, onChange }: TabProps) => {
-    const tabs = [
-        { key: 'all', label: 'All Admins' },
-        { key: 'active', label: 'Active Admins' },
-        { key: 'inactive', label: 'Inactive Admins' }
-    ] as const
-
-    return (
-        <div className="flex border-b w-full mt-2" style={{ borderColor: 'var(--color-border)' }}>
-            {tabs.map(t => {
-                const isActive = value === t.key
-                return (
-                    <button
-                        key={t.key}
-                        type="button"
-                        onClick={() => onChange(t.key)}
-                        className="relative py-3 px-5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer select-none outline-none"
-                        style={{
-                            color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                        }}
-                    >
-                        {t.label}
-                        {isActive && (
-                            <motion.div
-                                layoutId="activeTabUnderline"
-                                className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                                style={{ backgroundColor: 'var(--color-primary)' }}
-                                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                            />
-                        )}
-                    </button>
-                )
-            })}
-        </div>
-    )
-}
+const superAdminTabs = [
+    { key: 'all', label: 'All Admins' },
+    { key: 'active', label: 'Active Admins' },
+    { key: 'inactive', label: 'Inactive Admins' }
+] as const
 
 const SuperAdminsPage = () => {
     const { user } = useAuth()
@@ -150,7 +115,7 @@ const SuperAdminsPage = () => {
                 </div>
 
                 {/* Filter Tabs row */}
-                <FilterTabs value={statusFilter} onChange={handleStatusChange} />
+                <FilterTabs tabs={superAdminTabs} value={statusFilter} onChange={handleStatusChange} layoutId="activeSuperAdminTabUnderline" />
 
                 {/* Table */}
                 {loading ? <SuperAdminListSkeleton /> : (

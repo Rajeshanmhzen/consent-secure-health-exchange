@@ -61,4 +61,19 @@ export class RequestController {
         const result = await this.service.listRequests(user.id, user.role);
         return sendSuccess(res, "Data requests list fetched successfully.", result);
     });
+
+    getSharedRecords = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        if (!user || user.role !== "DOCTOR") {
+            throw new AppError("Only licensed clinicians are authorized to access shared records.", 403);
+        }
+
+        const { requestId } = req.params as { requestId: string };
+        if (!requestId) {
+            throw new AppError("Missing required requestId parameter.", 400);
+        }
+
+        const result = await this.service.getSharedRecords(user.id, requestId);
+        return sendSuccess(res, "Decrypted shared records fetched successfully.", result);
+    });
 }

@@ -122,6 +122,8 @@ model Hospital {
   name           String
   email          String?  @unique
   isVerified     Boolean  @default(false)
+  publicKey      String?  @db.Text
+  privateKey     String?  @db.Text
   createdAt      DateTime @default(now())
 
   tenant         Tenant   @relation(fields: [tenantId], references: [id])
@@ -252,14 +254,17 @@ model Patient {
 
 // ================= MEDICAL =================
 model MedicalRecord {
-  id           String   @id @default(uuid())
-  patientId    String
-  doctorId     String
-  diagnosis    String?
-  prescription String?
-  notes        String?
-  deletedAt    DateTime?
-  createdAt    DateTime @default(now())
+  id              String   @id @default(uuid())
+  patientId       String
+  doctorId        String
+  diagnosis       String?
+  prescription    String?
+  notes           String?
+  aesKeyIv        String?
+  aesKeyTag       String?
+  encryptedAesKey String?  @db.Text
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
 
   patient      Patient  @relation(fields: [patientId], references: [id])
   doctor       Doctor   @relation("DoctorRecords", fields: [doctorId], references: [id])
@@ -324,10 +329,11 @@ model Consent {
 }
 
 model SharedRecord {
-  id        String   @id @default(uuid())
-  requestId String
-  recordId  String
-  sharedAt  DateTime @default(now())
+  id              String   @id @default(uuid())
+  requestId       String
+  recordId        String
+  encryptedAesKey String?  @db.Text
+  sharedAt        DateTime @default(now())
 
   request   DataRequest   @relation(fields: [requestId], references: [id])
   record    MedicalRecord @relation(fields: [recordId], references: [id])

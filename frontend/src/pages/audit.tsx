@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../Context/AuthContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import Pagination from '../components/shared/Pagination'
+import FilterTabs from '../components/shared/FilterTabs'
 
 type AuditEvent = {
   id: string
@@ -114,6 +115,16 @@ const INITIAL_EVENTS: AuditEvent[] = [
   }
 ]
 
+const auditTabs = [
+    { key: 'All', label: 'All Actions' },
+    { key: 'LOGIN', label: 'LOGIN' },
+    { key: 'VIEW_RECORD', label: 'VIEW RECORD' },
+    { key: 'APPROVE_CONSENT', label: 'APPROVE CONSENT' },
+    { key: 'EMERGENCY_ACCESS', label: 'EMERGENCY ACCESS' },
+    { key: 'CREATE_REQUEST', label: 'CREATE REQUEST' },
+    { key: 'CREATE_PATIENT', label: 'CREATE PATIENT' }
+] as const
+
 const AuditPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -177,8 +188,8 @@ const AuditPage = () => {
         </div>
 
         {/* Filters Panel */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-2xl animate-fadeIn" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-          <div className="md:col-span-2 flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)' }}>
+        <div className="flex flex-col gap-4 p-4 rounded-2xl animate-fadeIn" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)' }}>
             <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor" style={{ color: 'var(--color-text-secondary)' }}>
               <path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
             </svg>
@@ -192,22 +203,12 @@ const AuditPage = () => {
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <select
+          <FilterTabs
+              tabs={auditTabs}
               value={actionFilter}
-              onChange={e => { setActionFilter(e.target.value); setPage(1); }}
-              className="rounded-xl px-3 py-2 text-sm outline-none w-full"
-              style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-            >
-              <option value="All">All Actions</option>
-              <option value="LOGIN">LOGIN</option>
-              <option value="VIEW_RECORD">VIEW RECORD</option>
-              <option value="APPROVE_CONSENT">APPROVE CONSENT</option>
-              <option value="EMERGENCY_ACCESS">EMERGENCY ACCESS</option>
-              <option value="CREATE_REQUEST">CREATE REQUEST</option>
-              <option value="CREATE_PATIENT">CREATE PATIENT</option>
-            </select>
-          </div>
+              onChange={(val) => { setActionFilter(val); setPage(1); }}
+              layoutId="activeAuditTabUnderline"
+          />
         </div>
 
         {/* Table Listing */}
