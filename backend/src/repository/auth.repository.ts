@@ -9,29 +9,28 @@ import {
     signRefreshToken,
     verifyRefreshToken
 } from "../utils/jwt";
-import { comparePassword } from "../utils/password";
+import { comparePassword, hashPassword } from "../utils/password";
+import { sendForgotPasswordEmail } from "../utils/email";
 
 export class AuthRepository {
     private hashToken(token: string): string {
         return crypto.createHash("sha256").update(token).digest("hex");
     }
 
+    private generateOtp(): string {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
     async login(email: string, password: string): Promise<LoginResult | null> {
         const user = await prisma.user.findFirst({
-            where: {
-                email,
-                deletedAt: null
-            }
+            where: { email, deletedAt: null },
+            include: { patient: true, doctor: true }
         });
 
-        if (!user || !user.isActive) {
-            return null;
-        }
+        if (!user || !user.isActive) return null;
 
         const passwordMatch = await comparePassword(password, user.passwordHash);
-        if (!passwordMatch) {
-            return null;
-        }
+        if (!passwordMatch) return null;
 
         const accessToken = signAccessToken({ sub: user.id, role: user.role });
         const refreshToken = signRefreshToken({ sub: user.id });
@@ -44,13 +43,11 @@ export class AuthRepository {
                 data: { lastLoginAt: new Date() }
             }),
             prisma.refreshToken.create({
-                data: {
-                    userId: user.id,
-                    tokenHash,
-                    expiresAt
-                }
+                data: { userId: user.id, tokenHash, expiresAt }
             })
         ]);
+
+        const name = user.patient?.name ?? user.doctor?.name ?? email.split('@')[0];
 
         return {
             success: true,
@@ -58,6 +55,7 @@ export class AuthRepository {
             user: {
                 id: user.id,
                 email: user.email,
+                name,
                 role: user.role,
                 isActive: user.isActive,
                 isVerified: user.isVerified
@@ -67,22 +65,150 @@ export class AuthRepository {
         };
     }
 
+    async register(data: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        phone?: string;
+        password: string;
+    }): Promise<LoginResult> {
+        const existing = await prisma.user.findFirst({ where: { email: data.email } });
+        if (existing) throw new Error("EMAIL_TAKEN");
+
+        const passwordHash = await hashPassword(data.password);
+
+        const result = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+                data: {
+                    email: data.email,
+                    passwordHash,
+                    phone: data.phone ?? null,
+                    role: "PATIENT",
+                    isActive: true,
+                    isVerified: false,
+                }
+            });
+
+            const patient = await tx.patient.create({
+                data: {
+                    userId: user.id,
+                    name: `${data.firstName} ${data.lastName}`,
+                }
+            });
+
+            await tx.auditLog.create({
+                data: {
+                    userId: user.id,
+                    action: "CREATE_PATIENT",
+                    entityType: "Patient",
+                    entityId: patient.id,
+                    metadata: {
+                        patientName: patient.name,
+                        email: user.email
+                    }
+                }
+            });
+
+            return user;
+        });
+
+        const accessToken = signAccessToken({ sub: result.id, role: result.role });
+        const refreshToken = signRefreshToken({ sub: result.id });
+        const tokenHash = this.hashToken(refreshToken);
+        const expiresAt = getExpiryDate(getRequiredEnv("REFRESH_TOKEN_EXPIRES_IN"));
+
+        await prisma.refreshToken.create({
+            data: { userId: result.id, tokenHash, expiresAt }
+        });
+
+        return {
+            success: true,
+            message: "Registration successful",
+            user: {
+                id: result.id,
+                email: result.email,
+                name: `${data.firstName} ${data.lastName}`,
+                role: result.role,
+                isActive: result.isActive,
+                isVerified: result.isVerified
+            },
+            accessToken,
+            refreshToken
+        };
+    }
+
+    async forgotPassword(email: string): Promise<void> {
+        const user = await prisma.user.findFirst({ where: { email, deletedAt: null } });
+        if (!user) return; // silent — don't reveal if email exists
+
+        const code = this.generateOtp();
+        const codeHash = this.hashToken(code);
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+        await prisma.oTP.deleteMany({ where: { userId: user.id, purpose: "RESET_PASSWORD" } });
+        await prisma.oTP.create({
+            data: { userId: user.id, codeHash, purpose: "RESET_PASSWORD", expiresAt }
+        });
+
+        await sendForgotPasswordEmail(email, code);
+    }
+
+    async verifyOtp(email: string, code: string): Promise<boolean> {
+        const user = await prisma.user.findFirst({ where: { email, deletedAt: null } });
+        if (!user) return false;
+
+        const codeHash = this.hashToken(code);
+        const otp = await prisma.oTP.findFirst({
+            where: {
+                userId: user.id,
+                codeHash,
+                purpose: "RESET_PASSWORD",
+                isUsed: false,
+                expiresAt: { gt: new Date() }
+            }
+        });
+
+        return !!otp;
+    }
+
+    async resetPassword(email: string, code: string, newPassword: string): Promise<boolean> {
+        const user = await prisma.user.findFirst({ where: { email, deletedAt: null } });
+        if (!user) return false;
+
+        const codeHash = this.hashToken(code);
+        const otp = await prisma.oTP.findFirst({
+            where: {
+                userId: user.id,
+                codeHash,
+                purpose: "RESET_PASSWORD",
+                isUsed: false,
+                expiresAt: { gt: new Date() }
+            }
+        });
+
+        if (!otp) return false;
+
+        const passwordHash = await hashPassword(newPassword);
+
+        await prisma.$transaction([
+            prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
+            prisma.oTP.update({ where: { id: otp.id }, data: { isUsed: true } }),
+            prisma.refreshToken.updateMany({
+                where: { userId: user.id, revokedAt: null },
+                data: { revokedAt: new Date() }
+            })
+        ]);
+
+        return true;
+    }
+
     async refresh(refreshToken: string): Promise<LoginResult | null> {
-        try {
-            verifyRefreshToken(refreshToken);
-        } catch {
-            return null;
-        }
+        try { verifyRefreshToken(refreshToken); } catch { return null; }
 
         const tokenHash = this.hashToken(refreshToken);
         const storedToken = await prisma.refreshToken.findFirst({
-            where: {
-                tokenHash,
-                revokedAt: null
-            },
-            include: {
-                user: true
-            }
+            where: { tokenHash, revokedAt: null },
+            include: { user: true }
         });
 
         if (!storedToken || storedToken.expiresAt < new Date()) {
@@ -103,26 +229,14 @@ export class AuthRepository {
             return null;
         }
 
-        const accessToken = signAccessToken({
-            sub: storedToken.userId,
-            role: storedToken.user.role
-        });
+        const accessToken = signAccessToken({ sub: storedToken.userId, role: storedToken.user.role });
         const newRefreshToken = signRefreshToken({ sub: storedToken.userId });
         const newTokenHash = this.hashToken(newRefreshToken);
         const newExpiresAt = getExpiryDate(getRequiredEnv("REFRESH_TOKEN_EXPIRES_IN"));
 
         await prisma.$transaction([
-            prisma.refreshToken.update({
-                where: { id: storedToken.id },
-                data: { revokedAt: new Date() }
-            }),
-            prisma.refreshToken.create({
-                data: {
-                    userId: storedToken.userId,
-                    tokenHash: newTokenHash,
-                    expiresAt: newExpiresAt
-                }
-            })
+            prisma.refreshToken.update({ where: { id: storedToken.id }, data: { revokedAt: new Date() } }),
+            prisma.refreshToken.create({ data: { userId: storedToken.userId, tokenHash: newTokenHash, expiresAt: newExpiresAt } })
         ]);
 
         return {
@@ -131,6 +245,7 @@ export class AuthRepository {
             user: {
                 id: storedToken.user.id,
                 email: storedToken.user.email,
+                name: storedToken.user.email.split('@')[0],
                 role: storedToken.user.role,
                 isActive: storedToken.user.isActive,
                 isVerified: storedToken.user.isVerified
@@ -142,18 +257,10 @@ export class AuthRepository {
 
     async logout(refreshToken: string): Promise<LogoutResponse> {
         const tokenHash = this.hashToken(refreshToken);
-        const result = await prisma.refreshToken.updateMany({
-            where: {
-                tokenHash,
-                revokedAt: null
-            },
-            data: {
-                revokedAt: new Date()
-            }
+        await prisma.refreshToken.updateMany({
+            where: { tokenHash, revokedAt: null },
+            data: { revokedAt: new Date() }
         });
-
-        return {
-            message: `Successfully logged out.`
-        };
+        return { message: "Successfully logged out." };
     }
 }

@@ -189,6 +189,39 @@ const LoginPage = () => {
                 }}
                 onSubmit={handleSubmit}
               />
+
+              {/* Demo Accounts */}
+              <div className="mt-8 pt-6 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                <p className="text-xs font-bold uppercase tracking-wider mb-3 text-center" style={{ color: 'var(--color-text-secondary)' }}>
+                  Demo Accounts
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {[
+                    { label: 'Super Admin', email: 'superadmin@gmail.com', password: 'User@123' },
+                    { label: 'Tenant Admin', email: 'admin@cityhospital.com', password: 'Secret123' },
+                    { label: 'Doctor', email: 'doctor.demo@example.com', password: 'Password123' },
+                    { label: 'Patient', email: 'patient.demo@example.com', password: 'Password123' },
+                    { label: 'Receptionist', email: 'reception.demo@example.com', password: 'Password123' }
+                  ].map((acc) => (
+                    <button
+                      key={acc.label}
+                      type="button"
+                      onClick={() => {
+                        setData({ email: acc.email, password: acc.password })
+                        setFieldErrors({})
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all hover:bg-[rgba(0,0,0,0.02)] dark:hover:bg-[rgba(255,255,255,0.05)] cursor-pointer"
+                      style={{ 
+                        backgroundColor: 'var(--color-surface-elevated)', 
+                        borderColor: 'var(--color-border)',
+                        color: 'var(--color-text)'
+                      }}
+                    >
+                      {acc.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           </div>
         </div>

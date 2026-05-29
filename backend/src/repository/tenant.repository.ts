@@ -1,6 +1,6 @@
 import { Prisma } from "../generated/prisma";
-
 import prisma from "../config/prisma";
+import { generateRsaKeypair } from "../utils/crypto.helper";
 import {
     buildPaginationResult,
     normalizePagination,
@@ -109,11 +109,14 @@ export class TenantRepository {
                 }
             });
 
+            const keys = generateRsaKeypair();
             const hospital = await tx.hospital.create({
                 data: {
                     tenantId: tenant.id,
                     name: data.hospitalName,
-                    email: data.hospitalEmail ?? null
+                    email: data.hospitalEmail ?? null,
+                    publicKey: keys.publicKey,
+                    privateKey: keys.privateKey
                 }
             });
 
@@ -168,6 +171,7 @@ export class TenantRepository {
                         userId: user.id,
                         name: data.name as string,
                         specialization: data.specialization ?? null,
+                        licenseNumber: data.licenseNumber ?? null,
                         hospitalId: data.hospitalId as string
                     }
                 });
@@ -179,6 +183,7 @@ export class TenantRepository {
                 const receptionist = await tx.receptionist.create({
                     data: {
                         userId: user.id,
+                        name: data.name as string,
                         hospitalId: data.hospitalId as string
                     }
                 });
@@ -275,7 +280,8 @@ export class TenantRepository {
                     where: { userId },
                     data: {
                         name: data.name,
-                        specialization: data.specialization ?? null
+                        specialization: data.specialization ?? null,
+                        licenseNumber: data.licenseNumber ?? null
                     }
                 });
             }
@@ -296,7 +302,9 @@ export class TenantRepository {
             if (user.role === "RECEPTIONIST") {
                 await tx.receptionist.update({
                     where: { userId },
-                    data: {}
+                    data: {
+                        name: data.name
+                    }
                 });
             }
 

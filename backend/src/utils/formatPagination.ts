@@ -7,6 +7,6 @@ interface IFormatPagination <T>{
 export function formatPagination<T>({data, pagination, dataKey}: IFormatPagination<T>) {
     return {
         [dataKey]: data,
-        ...pagination
+        pagination
     } as Record<string, unknown>;
 }

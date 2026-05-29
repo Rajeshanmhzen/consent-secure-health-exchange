@@ -97,7 +97,7 @@ const FeaturePage = () => {
 
       <section className="mx-auto w-[82%] max-w-7xl px-6 py-14">
         <div className="space-y-10">
-          {featureSections.map((section, i) => (
+          {featureSections.map((section) => (
             <div
               key={section.title}
               className={`grid items-center gap-14 ${section.reverse ? 'lg:grid-cols-[1.1fr_0.9fr]' : 'lg:grid-cols-[0.9fr_1.1fr]'}`}

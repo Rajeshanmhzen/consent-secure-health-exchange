@@ -1,0 +1,345 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '../Context/AuthContext'
+import DashboardLayout from '../components/layout/DashboardLayout'
+import Pagination from '../components/shared/Pagination'
+import FilterTabs from '../components/shared/FilterTabs'
+
+type AuditEvent = {
+  id: string
+  action: 'LOGIN' | 'VIEW_RECORD' | 'APPROVE_CONSENT' | 'EMERGENCY_ACCESS' | 'CREATE_REQUEST' | 'CREATE_PATIENT'
+  userEmail: string
+  userName: string
+  role: string
+  targetPatientName: string
+  ipAddress: string
+  createdAt: string
+  metadata: Record<string, any>
+}
+
+const INITIAL_EVENTS: AuditEvent[] = [
+  {
+    id: 'log-1',
+    action: 'EMERGENCY_ACCESS',
+    userEmail: 'gregory.house@sebastians.org',
+    userName: 'Dr. Gregory House',
+    role: 'DOCTOR',
+    targetPatientName: 'Marcus Vance',
+    ipAddress: '192.168.10.45',
+    createdAt: '2026-05-15T09:00:00Z',
+    metadata: {
+      overrideReason: 'Cardiac Arrest',
+      clinicalJustification: 'Patient unresponsive in trauma bay. Required drug allergies history.',
+      bypassApprovalStatus: 'SUPER_USER_OVERRIDE',
+      expirationDuration: '1 HOUR'
+    }
+  },
+  {
+    id: 'log-2',
+    action: 'APPROVE_CONSENT',
+    userEmail: 'alexander@example.com',
+    userName: 'Alexander Mercer',
+    role: 'PATIENT',
+    targetPatientName: 'Alexander Mercer',
+    ipAddress: '172.56.21.99',
+    createdAt: '2026-05-12T10:05:00Z',
+    metadata: {
+      requestorDoctor: 'Dr. Allison Cameron',
+      requestorHospital: 'Princeton-Plainsboro Hospital',
+      mfaMethod: 'SMS_OTP',
+      mfaVerificationCode: '489201',
+      blockchainSignatureHash: '0x7f83ad9e1c20ab9d01f8'
+    }
+  },
+  {
+    id: 'log-3',
+    action: 'VIEW_RECORD',
+    userEmail: 'gregory.house@sebastians.org',
+    userName: 'Dr. Gregory House',
+    role: 'DOCTOR',
+    targetPatientName: 'Alexander Mercer',
+    ipAddress: '192.168.10.45',
+    createdAt: '2026-05-12T10:15:00Z',
+    metadata: {
+      medicalRecordId: 'rec-1',
+      diagnosisReviewed: 'Acute Autoimmune Myocarditis',
+      consentVerificationId: 'req-101'
+    }
+  },
+  {
+    id: 'log-4',
+    action: 'CREATE_REQUEST',
+    userEmail: 'allison.cameron@princeton.org',
+    userName: 'Dr. Allison Cameron',
+    role: 'DOCTOR',
+    targetPatientName: 'Alexander Mercer',
+    ipAddress: '10.0.12.18',
+    createdAt: '2026-05-12T09:58:00Z',
+    metadata: {
+      reasonForRequest: 'Follow-up consultation regarding autoimmune myocarditis history.',
+      requestedAccessScope: 'ALL_CLINICAL_FILES'
+    }
+  },
+  {
+    id: 'log-5',
+    action: 'LOGIN',
+    userEmail: 'elena@example.com',
+    userName: 'Elena Rostova',
+    role: 'PATIENT',
+    ipAddress: '103.45.18.2',
+    targetPatientName: '—',
+    createdAt: '2026-05-16T15:00:00Z',
+    metadata: {
+      authStrategy: 'PASSWORD_MFA',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0',
+      geoCountry: 'US'
+    }
+  },
+  {
+    id: 'log-6',
+    action: 'CREATE_PATIENT',
+    userEmail: 'clinic-admin@healthhie.org',
+    userName: 'HIE Clinic Administrator',
+    role: 'HOSPITAL_ADMIN',
+    targetPatientName: 'Elena Rostova',
+    ipAddress: '103.45.18.25',
+    createdAt: '2026-05-16T14:45:00Z',
+    metadata: {
+      action: 'PATIENT_ONBOARD',
+      patientName: 'Elena Rostova',
+      bloodGroup: 'B-Positive',
+      email: 'elena@example.com',
+      assignedHospital: 'St. Sebastian Clinic'
+    }
+  }
+]
+
+const auditTabs = [
+    { key: 'All', label: 'All Actions' },
+    { key: 'LOGIN', label: 'LOGIN' },
+    { key: 'VIEW_RECORD', label: 'VIEW RECORD' },
+    { key: 'APPROVE_CONSENT', label: 'APPROVE CONSENT' },
+    { key: 'EMERGENCY_ACCESS', label: 'EMERGENCY ACCESS' },
+    { key: 'CREATE_REQUEST', label: 'CREATE REQUEST' },
+    { key: 'CREATE_PATIENT', label: 'CREATE PATIENT' }
+] as const
+
+const AuditPage = () => {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  const [events] = useState<AuditEvent[]>(() => {
+    const saved = localStorage.getItem('hie_audit_logs')
+    return saved ? JSON.parse(saved) : INITIAL_EVENTS
+  })
+
+  useEffect(() => {
+    localStorage.setItem('hie_audit_logs', JSON.stringify(events))
+  }, [events])
+
+  const [search, setSearch] = useState('')
+  const [actionFilter, setActionFilter] = useState('All')
+  const [page, setPage] = useState(1)
+  const itemsPerPage = 6
+
+  const [selectedMetadata, setSelectedMetadata] = useState<Record<string, any> | null>(null)
+
+  useEffect(() => {
+    if (!user) navigate('/login')
+  }, [user, navigate])
+
+  if (!user) return null
+
+  // Security Gate
+  const isSuperOrHospitalAdmin = user.role === 'SUPER_ADMIN' || user.role === 'HOSPITAL_ADMIN'
+  if (!isSuperOrHospitalAdmin) {
+    navigate('/dashboard')
+    return null
+  }
+
+  // Filtering
+  const filteredEvents = events.filter(e => {
+    const matchesSearch = e.userName.toLowerCase().includes(search.toLowerCase()) ||
+      e.userEmail.toLowerCase().includes(search.toLowerCase()) ||
+      e.targetPatientName.toLowerCase().includes(search.toLowerCase())
+    const matchesAction = actionFilter === 'All' || e.action === actionFilter
+    return matchesSearch && matchesAction
+  })
+
+  // Pagination
+  const totalPages = Math.ceil(filteredEvents.length / itemsPerPage)
+  const paginatedEvents = filteredEvents.slice((page - 1) * itemsPerPage, page * itemsPerPage)
+
+  return (
+    <DashboardLayout>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="flex flex-col gap-6"
+      >
+        {/* Page header */}
+        <div>
+          <h1 className="text-xl font-extrabold" style={{ color: 'var(--color-text)' }}>Security Audit Trail</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+            Immutable Transaction Registry. Auditing diagnostic accesses, OTP authorizations, and critical overrides.
+          </p>
+        </div>
+
+        {/* Filters Panel */}
+        <div className="flex flex-col gap-4 p-4 rounded-2xl animate-fadeIn" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)' }}>
+            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor" style={{ color: 'var(--color-text-secondary)' }}>
+              <path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by user name, email, or target patient..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              className="flex-1 bg-transparent text-sm outline-none"
+              style={{ color: 'var(--color-text)' }}
+            />
+          </div>
+
+          <FilterTabs
+              tabs={auditTabs}
+              value={actionFilter}
+              onChange={(val) => { setActionFilter(val); setPage(1); }}
+              layoutId="activeAuditTabUnderline"
+          />
+        </div>
+
+        {/* Table Listing */}
+        <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <div className="grid grid-cols-12 px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
+            <span className="col-span-3">User / Role</span>
+            <span className="col-span-3">Action Type</span>
+            <span className="col-span-2">Target Patient</span>
+            <span className="col-span-2">IP Address</span>
+            <span className="col-span-2 text-right">Details</span>
+          </div>
+
+          {paginatedEvents.length === 0 ? (
+            <div className="px-5 py-16 text-center">
+              <svg viewBox="0 0 24 24" className="h-10 w-10 mx-auto mb-3" fill="currentColor" style={{ color: 'var(--color-text-tertiary)' }}>
+                <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z" />
+              </svg>
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No audit events logged</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Activity trail will record transaction triggers</p>
+            </div>
+          ) : paginatedEvents.map((e, index) => {
+            const isEmergency = e.action === 'EMERGENCY_ACCESS'
+            return (
+              <motion.div
+                key={e.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03, duration: 0.25 }}
+                className="grid grid-cols-12 items-center px-5 py-4 text-sm transition-all"
+                style={{
+                  borderTop: '1px solid var(--color-border)',
+                  backgroundColor: isEmergency ? 'rgba(239, 68, 68, 0.02)' : 'transparent'
+                }}
+                onMouseEnter={el => (el.currentTarget.style.backgroundColor = isEmergency ? 'rgba(239, 68, 68, 0.04)' : 'var(--color-table-hover)')}
+                onMouseLeave={el => (el.currentTarget.style.backgroundColor = isEmergency ? 'rgba(239, 68, 68, 0.02)' : 'transparent')}
+              >
+                {/* User */}
+                <div className="col-span-3 flex flex-col pr-2">
+                  <span className="font-semibold text-(--color-text) truncate">{e.userName}</span>
+                  <span className="text-[10px] uppercase font-bold" style={{ color: 'var(--color-primary)' }}>{e.role}</span>
+                </div>
+
+                {/* Action Tag */}
+                <div className="col-span-3">
+                  <span
+                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold"
+                    style={{
+                      backgroundColor: isEmergency ? 'var(--color-error-light)' : e.action === 'APPROVE_CONSENT' ? 'var(--color-success-light)' : 'var(--color-primary-ghost)',
+                      color: isEmergency ? 'var(--color-error)' : e.action === 'APPROVE_CONSENT' ? 'var(--color-success)' : 'var(--color-primary)',
+                    }}
+                  >
+                    {e.action.replace('_', ' ')}
+                  </span>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                    {new Date(e.createdAt).toLocaleString()}
+                  </p>
+                </div>
+
+                {/* Target Patient */}
+                <span className="col-span-2 font-medium" style={{ color: 'var(--color-text)' }}>{e.targetPatientName}</span>
+
+                {/* IP Address */}
+                <span className="col-span-2 font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>{e.ipAddress}</span>
+
+                {/* Details Button */}
+                <div className="col-span-2 flex items-center justify-end">
+                  <button
+                    onClick={() => setSelectedMetadata(e.metadata)}
+                    className="text-xs font-bold text-indigo-400 hover:text-indigo-300 hover:underline"
+                  >
+                    Inspect File
+                  </button>
+                </div>
+              </motion.div>
+            )
+          })}
+
+          {totalPages > 1 && (
+            <div className="px-5 py-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* INSPECTOR PANEL / MODAL */}
+      <AnimatePresence>
+        {selectedMetadata && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedMetadata(null)}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            />
+            {/* Window */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg rounded-2xl p-6 shadow-xl z-10 flex flex-col gap-4 border"
+              style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+            >
+              <div>
+                <h3 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Audit Transaction Envelope</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>Detailed cryptographic parameters stored inside audit databases.</p>
+              </div>
+
+              <div className="rounded-xl p-4 overflow-x-auto max-h-[300px] border" style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)' }}>
+                <pre className="text-xs font-mono" style={{ color: 'var(--color-primary)' }}>
+                  {JSON.stringify(selectedMetadata, null, 2)}
+                </pre>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-1">
+                <button
+                  onClick={() => setSelectedMetadata(null)}
+                  className="px-4 py-2 text-xs font-bold text-white rounded-xl active:scale-97 cursor-pointer"
+                  style={{ backgroundColor: 'var(--color-primary)' }}
+                >
+                  Dismiss Inspector
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </DashboardLayout>
+  )
+}
+
+export default AuditPage

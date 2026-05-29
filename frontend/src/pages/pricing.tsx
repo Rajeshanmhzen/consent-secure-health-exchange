@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react'
 import Button from '../components/shared/Button'
 import TestimonialSlider from '../components/shared/TestimonialSlider'
+import { pricingApi, type Plan } from '../services/pricing.service'
 
-const plans = [
+const staticPlans = [
   {
     name: 'Starter',
     badge: null,
@@ -79,8 +81,53 @@ const testimonials = [
 ]
 
 const Pricing = () => {
+  const [dbPlans, setDbPlans] = useState<Plan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isYearly, setIsYearly] = useState(false)
+
+  useEffect(() => {
+    pricingApi.listPlans({ limit: 100 })
+      .then(res => {
+        setDbPlans(res.data.plans.filter(p => p.isActive))
+      })
+      .catch(() => { })
+      .finally(() => setLoading(false))
+  }, [])
+
+  // Map static plans to uniform structure
+  const staticMapped = staticPlans.map(p => {
+    const isCustom = p.price === 'Custom'
+    const num = isCustom ? 0 : parseFloat(p.price.replace('$', ''))
+    return {
+      id: p.name,
+      name: p.name,
+      badge: p.badge,
+      description: p.description,
+      monthlyPrice: num,
+      yearlyPrice: isCustom ? 0 : Math.round(num * 10), // 2 months free discount
+      currency: 'USD',
+      cta: p.cta,
+      features: p.features
+    }
+  })
+
+  // Unified plans array
+  const activePlans = dbPlans.length > 0
+    ? dbPlans.map((p, idx) => ({
+        id: p.id,
+        name: p.name,
+        badge: idx === 1 ? 'POPULAR' : null,
+        description: p.description ?? '',
+        monthlyPrice: Number(p.monthlyPrice),
+        yearlyPrice: Number(p.yearlyPrice) || Math.round(Number(p.monthlyPrice) * 10),
+        currency: p.currency,
+        cta: 'Get Started',
+        features: p.features ?? []
+      }))
+    : staticMapped
+
   return (
-    <main className="pt-24 pb-16" style={{ backgroundColor: 'var(--color-background)' }}>
+    <main className="pt-24 pb-16 min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
 
       {/* Header */}
       <section className="mx-auto w-[82%] max-w-4xl px-6 text-center">
@@ -94,21 +141,71 @@ const Pricing = () => {
           From single clinics to large hospital networks, find the plan that fits your scale.
           All plans include consent-first workflows and full audit logging.
         </p>
+
+        {/* Billing Switcher Toggle */}
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <span 
+            className="text-sm font-semibold transition-colors duration-200 cursor-pointer select-none"
+            style={{ color: !isYearly ? 'var(--color-primary)' : 'var(--color-text-secondary)' }}
+            onClick={() => setIsYearly(false)}
+          >
+            Monthly Billing
+          </span>
+          <button
+            onClick={() => setIsYearly(!isYearly)}
+            className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+            style={{ backgroundColor: isYearly ? 'var(--color-primary)' : 'var(--color-border)' }}
+          >
+            <span
+              className="pointer-events-none inline-block h-5 w-5 transform rounded-full shadow ring-0 transition duration-200 ease-in-out"
+              style={{
+                backgroundColor: 'var(--color-background)',
+                transform: isYearly ? 'translateX(20px)' : 'translateX(0px)'
+              }}
+            />
+          </button>
+          <span 
+            className="text-sm font-semibold flex items-center gap-1.5 transition-colors duration-200 cursor-pointer select-none"
+            style={{ color: isYearly ? 'var(--color-primary)' : 'var(--color-text-secondary)' }}
+            onClick={() => setIsYearly(true)}
+          >
+            Yearly Billing
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase text-emerald-500 bg-[rgba(16,185,129,0.1)]">
+              Save ~17%
+            </span>
+          </span>
+        </div>
       </section>
 
       {/* Pricing Cards */}
       <section className="mx-auto mt-14 w-[82%] max-w-7xl px-6">
+        {loading && dbPlans.length === 0 && (
+          <div className="flex justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" style={{ color: 'var(--color-primary)' }} />
+          </div>
+        )}
+        
         <div className="grid gap-6 md:grid-cols-3">
-          {plans.map((plan) => {
+          {activePlans.map((plan) => {
             const isPopular = plan.badge === 'POPULAR'
+            const isCustom = plan.monthlyPrice === 0
+            
+            const displayPrice = isCustom 
+              ? 'Custom' 
+              : `${plan.currency === 'USD' ? '$' : plan.currency + ' '}${isYearly ? plan.yearlyPrice : plan.monthlyPrice}`
+            
+            const displayPeriod = isCustom 
+              ? '' 
+              : (isYearly ? '/year' : '/month')
+
             return (
               <article
-                key={plan.name}
-                className="relative flex flex-col rounded-3xl p-7"
+                key={plan.id}
+                className="relative flex flex-col rounded-3xl p-7 transition-all duration-300 hover:translate-y-[-4px]"
                 style={{
                   backgroundColor: isPopular ? 'var(--color-primary)' : 'var(--color-surface)',
                   border: `1px solid ${isPopular ? 'transparent' : 'var(--color-border)'}`,
-                  boxShadow: isPopular ? '0 8px 32px rgba(139,124,246,0.35)' : '0 2px 8px rgba(0,0,0,0.06)',
+                  boxShadow: isPopular ? '0 8px 32px rgba(139,124,246,0.35)' : '0 2px 8px rgba(0,0,0,0.04)',
                 }}
               >
                 {/* Badge */}
@@ -136,19 +233,29 @@ const Pricing = () => {
                 </p>
 
                 {/* Price */}
-                <div className="mt-6 flex items-end gap-1">
-                  <span
-                    className="text-5xl font-black"
-                    style={{ color: isPopular ? 'var(--color-text-on-primary)' : 'var(--color-text)' }}
-                  >
-                    {plan.price}
-                  </span>
-                  {plan.period && (
+                <div className="mt-6 flex flex-col gap-0.5">
+                  <div className="flex items-end gap-1">
                     <span
-                      className="mb-2 text-sm"
-                      style={{ color: isPopular ? 'rgba(255,255,255,0.7)' : 'var(--color-text-secondary)' }}
+                      className="text-5xl font-black"
+                      style={{ color: isPopular ? 'var(--color-text-on-primary)' : 'var(--color-text)' }}
                     >
-                      {plan.period}
+                      {displayPrice}
+                    </span>
+                    {displayPeriod && (
+                      <span
+                        className="mb-2 text-sm"
+                        style={{ color: isPopular ? 'rgba(255,255,255,0.7)' : 'var(--color-text-secondary)' }}
+                      >
+                        {displayPeriod}
+                      </span>
+                    )}
+                  </div>
+                  {isYearly && !isCustom && (
+                    <span 
+                      className="text-xs" 
+                      style={{ color: isPopular ? 'rgba(255,255,255,0.6)' : 'var(--color-text-secondary)' }}
+                    >
+                      Billed annually
                     </span>
                   )}
                 </div>
