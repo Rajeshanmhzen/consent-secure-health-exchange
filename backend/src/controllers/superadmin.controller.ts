@@ -1,22 +1,22 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
 
-import { SuperAdminService } from "@/services/superadmin.service";
+import { SuperAdminService } from "../services/superadmin.service";
 import {
     CreateSuperAdminPayload,
     SuperAdminListParams,
     UpdateSuperAdminPayload
-} from "@/types/superadmin.types";
+} from "../types/superadmin.types";
 import {
     createSuperAdminSchema,
     listSuperAdminSchema,
     superAdminIdParamSchema,
     updateSuperAdminSchema
-} from "@/validation/superadmin.validation";
-import { asyncHandler } from "@/utils/asyncHandler";
-import { sendSuccess } from "@/utils/apiResponse";
-import { AppError } from "@/utils/appError";
-import { formatPagination } from "@/utils/formatPagination";
+} from "../validation/superadmin.validation";
+import { asyncHandler } from "../utils/asyncHandler";
+import { sendSuccess } from "../utils/apiResponse";
+import { AppError } from "../utils/appError";
+import { formatPagination } from "../utils/formatPagination";
 
 export class SuperAdminController {
     private service = new SuperAdminService();
