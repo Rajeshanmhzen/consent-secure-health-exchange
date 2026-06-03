@@ -12,4 +12,5 @@ export type SuperAdminDashboardStats = {
 
 export const dashboardApi = {
     superAdminStats: () => request<ApiResponse<SuperAdminDashboardStats>>('/dashboard/superadmin/stats'),
+    auditLogs: () => request<ApiResponse<any>>('/dashboard/superadmin/audit'),
 }

@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../Context/AuthContext'
+import { useToast } from '../Context/ToastContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import Pagination from '../components/shared/Pagination'
 import FilterTabs from '../components/shared/FilterTabs'
+import { dashboardApi } from '../services/dashboard.service'
 
 type AuditEvent = {
   id: string
@@ -18,102 +20,32 @@ type AuditEvent = {
   metadata: Record<string, any>
 }
 
-const INITIAL_EVENTS: AuditEvent[] = [
-  {
-    id: 'log-1',
-    action: 'EMERGENCY_ACCESS',
-    userEmail: 'gregory.house@sebastians.org',
-    userName: 'Dr. Gregory House',
-    role: 'DOCTOR',
-    targetPatientName: 'Marcus Vance',
-    ipAddress: '192.168.10.45',
-    createdAt: '2026-05-15T09:00:00Z',
-    metadata: {
-      overrideReason: 'Cardiac Arrest',
-      clinicalJustification: 'Patient unresponsive in trauma bay. Required drug allergies history.',
-      bypassApprovalStatus: 'SUPER_USER_OVERRIDE',
-      expirationDuration: '1 HOUR'
-    }
-  },
-  {
-    id: 'log-2',
-    action: 'APPROVE_CONSENT',
-    userEmail: 'alexander@example.com',
-    userName: 'Alexander Mercer',
-    role: 'PATIENT',
-    targetPatientName: 'Alexander Mercer',
-    ipAddress: '172.56.21.99',
-    createdAt: '2026-05-12T10:05:00Z',
-    metadata: {
-      requestorDoctor: 'Dr. Allison Cameron',
-      requestorHospital: 'Princeton-Plainsboro Hospital',
-      mfaMethod: 'SMS_OTP',
-      mfaVerificationCode: '489201',
-      blockchainSignatureHash: '0x7f83ad9e1c20ab9d01f8'
-    }
-  },
-  {
-    id: 'log-3',
-    action: 'VIEW_RECORD',
-    userEmail: 'gregory.house@sebastians.org',
-    userName: 'Dr. Gregory House',
-    role: 'DOCTOR',
-    targetPatientName: 'Alexander Mercer',
-    ipAddress: '192.168.10.45',
-    createdAt: '2026-05-12T10:15:00Z',
-    metadata: {
-      medicalRecordId: 'rec-1',
-      diagnosisReviewed: 'Acute Autoimmune Myocarditis',
-      consentVerificationId: 'req-101'
-    }
-  },
-  {
-    id: 'log-4',
-    action: 'CREATE_REQUEST',
-    userEmail: 'allison.cameron@princeton.org',
-    userName: 'Dr. Allison Cameron',
-    role: 'DOCTOR',
-    targetPatientName: 'Alexander Mercer',
-    ipAddress: '10.0.12.18',
-    createdAt: '2026-05-12T09:58:00Z',
-    metadata: {
-      reasonForRequest: 'Follow-up consultation regarding autoimmune myocarditis history.',
-      requestedAccessScope: 'ALL_CLINICAL_FILES'
-    }
-  },
-  {
-    id: 'log-5',
-    action: 'LOGIN',
-    userEmail: 'elena@example.com',
-    userName: 'Elena Rostova',
-    role: 'PATIENT',
-    ipAddress: '103.45.18.2',
-    targetPatientName: '—',
-    createdAt: '2026-05-16T15:00:00Z',
-    metadata: {
-      authStrategy: 'PASSWORD_MFA',
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0',
-      geoCountry: 'US'
-    }
-  },
-  {
-    id: 'log-6',
-    action: 'CREATE_PATIENT',
-    userEmail: 'clinic-admin@healthhie.org',
-    userName: 'HIE Clinic Administrator',
-    role: 'HOSPITAL_ADMIN',
-    targetPatientName: 'Elena Rostova',
-    ipAddress: '103.45.18.25',
-    createdAt: '2026-05-16T14:45:00Z',
-    metadata: {
-      action: 'PATIENT_ONBOARD',
-      patientName: 'Elena Rostova',
-      bloodGroup: 'B-Positive',
-      email: 'elena@example.com',
-      assignedHospital: 'St. Sebastian Clinic'
-    }
-  }
-]
+const AuditSkeleton = () => (
+  <div className="animate-pulse flex flex-col w-full">
+    {[1, 2, 3, 4, 5, 6].map((i) => (
+      <div key={i} className="grid grid-cols-12 items-center px-5 py-4 transition-all" style={{ borderTop: '1px solid var(--color-border)' }}>
+        <div className="col-span-3 flex flex-col pr-2 gap-1.5">
+          <div className="h-4 w-32 rounded-md bg-slate-500/20"></div>
+          <div className="h-3 w-16 rounded-md bg-slate-500/10"></div>
+        </div>
+        <div className="col-span-3 flex flex-col gap-1.5">
+          <div className="h-5 w-24 rounded-full bg-slate-500/20"></div>
+          <div className="h-3 w-28 rounded-md bg-slate-500/10"></div>
+        </div>
+        <div className="col-span-2">
+          <div className="h-4 w-28 rounded-md bg-slate-500/20"></div>
+        </div>
+        <div className="col-span-2">
+          <div className="h-4 w-24 rounded-md bg-slate-500/10"></div>
+        </div>
+        <div className="col-span-2 flex items-center justify-end">
+          <div className="h-4 w-20 rounded-md bg-indigo-500/20"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+)
+
 
 const auditTabs = [
     { key: 'All', label: 'All Actions' },
@@ -127,16 +59,29 @@ const auditTabs = [
 
 const AuditPage = () => {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const navigate = useNavigate()
 
-  const [events] = useState<AuditEvent[]>(() => {
-    const saved = localStorage.getItem('hie_audit_logs')
-    return saved ? JSON.parse(saved) : INITIAL_EVENTS
-  })
+  const [events, setEvents] = useState<AuditEvent[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true)
+      const res = await dashboardApi.auditLogs() as any
+      setEvents(res.data || [])
+    } catch (e: any) {
+      showToast(e.message || 'Failed to fetch audit logs', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    localStorage.setItem('hie_audit_logs', JSON.stringify(events))
-  }, [events])
+    if (user) {
+      fetchLogs()
+    }
+  }, [user])
 
   const [search, setSearch] = useState('')
   const [actionFilter, setActionFilter] = useState('All')
@@ -150,13 +95,6 @@ const AuditPage = () => {
   }, [user, navigate])
 
   if (!user) return null
-
-  // Security Gate
-  const isSuperOrHospitalAdmin = user.role === 'SUPER_ADMIN' || user.role === 'HOSPITAL_ADMIN'
-  if (!isSuperOrHospitalAdmin) {
-    navigate('/dashboard')
-    return null
-  }
 
   // Filtering
   const filteredEvents = events.filter(e => {
@@ -221,7 +159,9 @@ const AuditPage = () => {
             <span className="col-span-2 text-right">Details</span>
           </div>
 
-          {paginatedEvents.length === 0 ? (
+          {loading ? (
+            <AuditSkeleton />
+          ) : paginatedEvents.length === 0 ? (
             <div className="px-5 py-16 text-center">
               <svg viewBox="0 0 24 24" className="h-10 w-10 mx-auto mb-3" fill="currentColor" style={{ color: 'var(--color-text-tertiary)' }}>
                 <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z" />

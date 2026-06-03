@@ -1,4 +1,4 @@
-import { Inquiry } from "../generated/prisma";
+import { Inquiry } from "@prisma/client";
 
 export const INQUIRY_STATUSES = ["PENDING", "IN_PROGRESS", "RESOLVED"] as const;
 export const INQUIRY_TYPES = ["Sales / Demo", "Implementation Support", "Partnership", "General Question"] as const;

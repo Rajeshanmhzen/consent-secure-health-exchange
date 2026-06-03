@@ -1,6 +1,6 @@
 import prisma from "../config/prisma";
 import { AppError } from "../utils/appError";
-import { AuditAction, NotificationType } from "../generated/prisma";
+import { AuditAction, NotificationType } from "@prisma/client";
 
 export class EmergencyService {
     private async logAudit(userId: string, action: AuditAction, entityType: string, entityId: string, metadata: any) {

@@ -1,4 +1,4 @@
-import { Prisma, TenantType, UserRole } from "../generated/prisma";
+import { Prisma, TenantType, UserRole } from "@prisma/client";
 
 import { PaginationParams } from "../utils/pagination";
 

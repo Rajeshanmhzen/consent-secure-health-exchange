@@ -18,6 +18,12 @@ export const requireRole = (...allowedRoles: string[]) => {
                 return sendError(res, "Forbidden", 403);
             }
 
+            // Inject user credentials so controllers have access
+            (req as any).user = {
+                id: payload.sub as string,
+                role
+            };
+
             return next();
         } catch {
             return sendError(res, "Invalid or expired token", 401);

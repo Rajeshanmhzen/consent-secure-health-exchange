@@ -1,4 +1,4 @@
-import { Inquiry, Prisma } from "../generated/prisma";
+import { Inquiry, Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { buildPaginationResult, normalizePagination, PaginationResult } from "../utils/pagination";
 import { CreateInquiryPayload, InquiryListParams, UpdateInquiryPayload } from "../types/inquiry.types";

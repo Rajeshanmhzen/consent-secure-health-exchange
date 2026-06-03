@@ -1,4 +1,4 @@
-import { Prisma, Plan, Subscription, SubscriptionStatus, BillingCycle } from "../generated/prisma";
+import { Prisma, Plan, Subscription, SubscriptionStatus, BillingCycle } from "@prisma/client";
 import { PaginationParams } from "../utils/pagination";
 
 export type CreatePlanPayload = {
