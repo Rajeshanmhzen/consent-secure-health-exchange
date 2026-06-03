@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import InputField from '../../shared/InputField'
 import PhoneInputField from '../../shared/PhoneInputField'
 import Button from '../../shared/Button'
@@ -188,9 +189,9 @@ const RegisterForm = (props: RegisterFormProps) => {
           </Button>
         </div>
         <div className="mt-4 text-center">
-          <p className="text-xs text-on-surface-variant">
+            <p className="text-xs text-on-surface-variant">
             Have an account?{' '}
-            <a href="/login" className="font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>Login</a>
+            <Link to="/login" className="font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>Login</Link>
           </p>
         </div>
       </div>

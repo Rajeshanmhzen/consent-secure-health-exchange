@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 const footerSections = [
   {
     title: 'Platform',
@@ -40,9 +42,9 @@ const Footer = () => {
                 <ul className="mt-5 space-y-3">
                   {section.links.map((link) => (
                     <li key={link}>
-                      <a href="/" className="text-sm text-slate-300 transition-colors hover:text-white">
+                      <Link to="/" className="text-sm text-slate-300 transition-colors hover:text-white">
                         {link}
-                      </a>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -57,13 +59,13 @@ const Footer = () => {
           </p>
           <div className="flex items-center gap-3">
             {socialItems.map((item) => (
-              <a
+              <Link
                 key={item}
-                href="/"
+                to="/"
                 className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 text-xs text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
               >
                 {item}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
