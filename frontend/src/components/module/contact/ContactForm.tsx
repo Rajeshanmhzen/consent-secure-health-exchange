@@ -1,5 +1,6 @@
 import InputField from '../../shared/InputField'
 import Button from '../../shared/Button'
+import { Link } from 'react-router-dom'
 
 type ContactFormData = {
   firstName: string
@@ -111,13 +112,13 @@ const ContactForm = ({
 
       <p className="text-center text-[11px] leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
         By submitting this form, you agree to our{' '}
-        <a href="/privacy-policy" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
+        <Link to="/privacy-policy" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
           Privacy Policy
-        </a>{' '}
+        </Link>{' '}
         and{' '}
-        <a href="/terms-of-service" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
+        <Link to="/terms-of-service" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
           Terms of Service
-        </a>.
+        </Link>.
       </p>
     </form>
   )

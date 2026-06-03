@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import InputField from '../../shared/InputField'
 import Button from '../../shared/Button'
 
@@ -83,9 +84,9 @@ const LoginForm = (props: LoginFormProps) => {
         </div>
       )}
       <div className="flex justify-end -mt-1">
-        <a href="/forgot-password" className="text-[11px] font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>
+        <Link to="/forgot-password" className="text-[11px] font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>
           Forgot password?
-        </a>
+        </Link>
       </div>
       <Button
         type="submit"
@@ -129,9 +130,9 @@ const LoginForm = (props: LoginFormProps) => {
           </Button>
         </div>
         <div className="mt-4 text-center">
-          <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
             Don't have an account?{' '}
-            <a href="/register" className="font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>Register</a>
+            <Link to="/register" className="font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>Register</Link>
           </p>
         </div>
       </div>

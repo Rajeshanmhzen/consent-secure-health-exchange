@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import PageWrapper from '../../components/shared/PageWrapper'
 import Button from '../../components/shared/Button'
 import { authApi } from '../../services/auth.service'
@@ -106,9 +106,9 @@ const VerifyCodePage = () => {
             </Button>
 
             <div className="text-center">
-              <a href={`/forgot-password`} className="text-xs font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>
+              <Link to="/forgot-password" className="text-xs font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>
                 ← Resend code
-              </a>
+              </Link>
             </div>
           </form>
         </motion.div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 
 import AnimatedButton from './Button'
 
@@ -61,26 +61,26 @@ const Header = () => {
                   : pathname.startsWith(item.link)
 
               return (
-                <a
+                <Link
                   key={item.name}
-                  href={item.link}
+                  to={item.link}
                   className="transition-colors"
                   style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)' }}
                 >
                   {item.name}
-                </a>
+                </Link>
               )
             })}
           </div>
 
           <div className="flex items-center gap-3">
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="hidden text-sm font-semibold md:inline-flex"
               style={{ color: 'var(--color-text-secondary)' }}
             >
               Sign In
-            </a>
+            </Link>
             <AnimatedButton
               type="button"
               onClick={() => {

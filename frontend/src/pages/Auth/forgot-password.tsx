@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import PageWrapper from '../../components/shared/PageWrapper'
 import InputField from '../../components/shared/InputField'
 import Button from '../../components/shared/Button'
@@ -68,9 +68,9 @@ const ForgotPasswordPage = () => {
                 {isLoading ? 'Sending...' : 'Send Reset Email'}
               </Button>
               <div className="text-center">
-                <a href="/login" className="text-xs font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>
+                <Link to="/login" className="text-xs font-semibold hover:underline" style={{ color: 'var(--color-primary)' }}>
                   ← Back to Login
-                </a>
+                </Link>
               </div>
             </form>
           )}
