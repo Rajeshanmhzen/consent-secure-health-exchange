@@ -1,4 +1,4 @@
-import { Prisma, Plan, Subscription, SubscriptionStatus } from "../generated/prisma";
+import { Prisma, Plan, Subscription, SubscriptionStatus } from "@prisma/client";
 import prisma from "../config/prisma";
 import {
     buildPaginationResult,
@@ -135,7 +135,7 @@ export class PricingRepository {
     }
 
     async addSubscription(data: CreateSubscriptionPayload): Promise<SubscriptionWithRelations> {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Cancel existing active subscriptions inside transaction to maintain exclusivity
             await this.cancelActiveSubscriptionsForTenant(data.tenantId, tx);
 

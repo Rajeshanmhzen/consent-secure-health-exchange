@@ -1,4 +1,4 @@
-import { Prisma } from "../generated/prisma";
+import { Prisma } from "@prisma/client";
 import crypto from "crypto";
 import prisma from "../config/prisma";
 import { encryptPacked, encryptAsymmetric } from "../utils/crypto.helper";
@@ -128,7 +128,7 @@ export class MedicalRecordRepository {
     }
 
     async hardDeleteMedicalRecord(recordId: string) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             await tx.recordFile.deleteMany({ where: { recordId } });
             await tx.sharedRecord.deleteMany({ where: { recordId } });
             return await tx.medicalRecord.delete({ where: { id: recordId } });

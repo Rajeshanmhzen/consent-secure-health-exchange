@@ -1,4 +1,4 @@
-import { Prisma } from "../generated/prisma";
+import { Prisma } from "@prisma/client";
 
 import prisma from "../config/prisma";
 import {
@@ -30,7 +30,7 @@ export class SupAdminRepository {
     }
 
     async addSuperAdmin(data: CreateSuperAdminInput) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.create({
                 data: {
                     email: data.email,

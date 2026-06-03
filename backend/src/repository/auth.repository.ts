@@ -1,6 +1,7 @@
 import crypto from "crypto";
 
 import prisma from "../config/prisma";
+import { Prisma } from "@prisma/client";
 import { LoginResult, LogoutResponse } from "../types/auth.types";
 import {
     getExpiryDate,
@@ -77,7 +78,7 @@ export class AuthRepository {
 
         const passwordHash = await hashPassword(data.password);
 
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.create({
                 data: {
                     email: data.email,

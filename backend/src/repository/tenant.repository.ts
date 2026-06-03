@@ -1,4 +1,4 @@
-import { Prisma } from "../generated/prisma";
+import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { generateRsaKeypair } from "../utils/crypto.helper";
 import {
@@ -100,7 +100,7 @@ export class TenantRepository {
         data: CreateHospitalTenantPayload,
         passwordHash: string
     ) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const tenant = await tx.tenant.create({
                 data: {
                     name: data.tenantName,
@@ -152,7 +152,7 @@ export class TenantRepository {
     }
 
     async createTenantUser(data: CreateTenantUserPayload, passwordHash: string) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.create({
                 data: {
                     tenantId: data.tenantId,
@@ -255,7 +255,7 @@ export class TenantRepository {
     }
 
     async updateTenantUser(userId: string, data: UpdateTenantUserInput) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.findUnique({
                 where: { id: userId }
             });
@@ -323,7 +323,7 @@ export class TenantRepository {
     }
 
     async hardDeleteTenantUser(userId: string) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.findUnique({
                 where: { id: userId }
             });

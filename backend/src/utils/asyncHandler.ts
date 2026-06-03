@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
-import { Prisma } from "../generated/prisma";
+import { Prisma } from "@prisma/client";
 import { AppError, isAppError } from "./appError";
 
 export function asyncHandler(fn: Function) {

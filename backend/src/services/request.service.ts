@@ -1,6 +1,6 @@
 import prisma from "../config/prisma";
 import { AppError } from "../utils/appError";
-import { AuditAction, NotificationType } from "../generated/prisma";
+import { AuditAction, NotificationType, Prisma } from "@prisma/client";
 import { decryptAsymmetric, encryptAsymmetric, decryptPacked } from "../utils/crypto.helper";
 
 export class RequestService {
@@ -62,7 +62,7 @@ export class RequestService {
         }
 
         // Create transaction: DataRequest + Consent
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const req = await tx.dataRequest.create({
                 data: {
                     patientId: payload.patientId,
@@ -160,7 +160,7 @@ export class RequestService {
         }
 
         // Approve Consent
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             await tx.consent.update({
                 where: { requestId },
                 data: {
@@ -240,7 +240,7 @@ export class RequestService {
         }
 
         // Approve Consent: Complete state transition to APPROVED & create SharedRecord references
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             await tx.consent.update({
                 where: { requestId },
                 data: {
@@ -463,7 +463,7 @@ export class RequestService {
         const recipientPrivateKey = doctor.hospital.privateKey;
 
         // Decrypt the records!
-        const decryptedRecords = sharedRecords.map(sr => {
+        const decryptedRecords = sharedRecords.map((sr: any) => {
             const record = sr.record;
             let diagnosis = record.diagnosis;
             let prescription = record.prescription;
