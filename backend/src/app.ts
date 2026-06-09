@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { baseUploadPath } from './middleware/fileUpload';
 import routes from './routes';
 
 const app = express();
@@ -13,6 +14,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "20kb" }));
 app.use(express.urlencoded({ extended: true, limit: "20kb" }));
+app.use("/uploads", express.static(baseUploadPath));
 
 app.use('/api/v1', routes);
 

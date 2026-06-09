@@ -5,6 +5,7 @@ export type AuthUserPayload = {
     role: string;
     isActive: boolean;
     isVerified: boolean;
+    profileImageUrl?: string | null;
 };
 
 // ── Request types ──────────────────────────────────────────

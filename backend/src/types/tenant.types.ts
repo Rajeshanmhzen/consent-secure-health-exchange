@@ -12,17 +12,31 @@ export type UpdateTenantPayload = {
 	name?: string;
 	type?: TenantType;
 	isActive?: boolean;
+	hospitalName?: string;
+	hospitalEmail?: string | null;
 };
 
 export type TenantListParams = PaginationParams & {
 	search?: string;
 	type?: TenantType;
 	isActive?: boolean;
+	includeDeleted?: boolean;
+	deletedOnly?: boolean;
 };
 
 export type TenantUpdateData = Prisma.TenantUpdateInput;
 
-export type TenantListItem = Prisma.TenantGetPayload<{}>;
+export type TenantListItem = Prisma.TenantGetPayload<{
+    include: {
+        hospital: {
+            select: {
+                id: true;
+                name: true;
+                email: true;
+            }
+        }
+    }
+}>;
 
 export type CreateHospitalTenantPayload = {
 	tenantName: string;

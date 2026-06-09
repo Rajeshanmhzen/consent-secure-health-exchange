@@ -6,6 +6,8 @@ export type AuthUser = {
     role: string;
     isActive: boolean;
     isVerified: boolean;
+    tenantId?: string;
+    hospitalId?: string | null;
 };
 
 export type ApiResponse<T> = {

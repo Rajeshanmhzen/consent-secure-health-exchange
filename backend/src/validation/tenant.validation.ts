@@ -15,7 +15,9 @@ export const createTenantSchema = z.object({
 export const updateTenantSchema = z.object({
     name: z.string().trim().min(1).optional(),
     type: z.enum(["HOSPITAL"]).optional(),
-    isActive: z.boolean().optional()
+    isActive: z.boolean().optional(),
+    hospitalName: z.string().trim().min(1).optional(),
+    hospitalEmail: z.string().trim().email().nullable().optional()
 });
 
 export const listTenantSchema = z.object({
@@ -37,7 +39,29 @@ export const listTenantSchema = z.object({
             return value;
         },
         z.boolean().optional()
+    ),
+    includeDeleted: z.preprocess(
+        (value) => {
+            if (value === undefined) return undefined;
+            if (value === "true") return true;
+            if (value === "false") return false;
+            return value;
+        },
+        z.boolean().optional()
+    ),
+    deletedOnly: z.preprocess(
+        (value) => {
+            if (value === undefined) return undefined;
+            if (value === "true") return true;
+            if (value === "false") return false;
+            return value;
+        },
+        z.boolean().optional()
     )
+});
+
+export const bulkIdsSchema = z.object({
+    ids: z.array(z.string().trim().min(1)).min(1)
 });
 
 export const createHospitalTenantSchema = z.object({

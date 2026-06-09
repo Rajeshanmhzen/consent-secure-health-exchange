@@ -198,7 +198,8 @@ const LoginPage = () => {
                 <div className="flex flex-wrap justify-center gap-2">
                   {[
                     { label: 'Super Admin', email: 'superadmin@gmail.com', password: 'User@123' },
-                    { label: 'Tenant Admin', email: 'admin@cityhospital.com', password: 'Secret123' },
+                    { label: 'Tenant Admin', email: 'admin@cityhospital.com', password: 'User@123' },
+                    { label: 'Tenant Admin2', email: 'admin@medicity.com', password: 'User@123' },
                     { label: 'Doctor', email: 'doctor.demo@example.com', password: 'Password123' },
                     { label: 'Patient', email: 'patient.demo@example.com', password: 'Password123' },
                     { label: 'Receptionist', email: 'reception.demo@example.com', password: 'Password123' }

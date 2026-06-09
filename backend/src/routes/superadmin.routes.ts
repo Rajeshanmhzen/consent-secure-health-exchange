@@ -7,6 +7,7 @@ const router = Router();
 const controller = new SuperAdminController();
 
 router.post("/add", checkPermission("SUPER_ADMIN_MANAGE"), controller.addSuperAdmin);
+    // router.post("/add", controller.addSuperAdmin);
 router.get("/list", checkPermission("SUPER_ADMIN_MANAGE"), controller.listSuperAdmin);
 router.get("/detail/:id", checkPermission("SUPER_ADMIN_MANAGE"), controller.detailSuperAdmin);
 router.put("/edit/:id", checkPermission("SUPER_ADMIN_MANAGE"), controller.editSuperAdmin);

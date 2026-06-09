@@ -17,7 +17,7 @@ type AuditEvent = {
   targetPatientName: string
   ipAddress: string
   createdAt: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 }
 
 const AuditSkeleton = () => (
@@ -68,10 +68,11 @@ const AuditPage = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true)
-      const res = await dashboardApi.auditLogs() as any
-      setEvents(res.data || [])
-    } catch (e: any) {
-      showToast(e.message || 'Failed to fetch audit logs', 'error')
+      const res = await dashboardApi.auditLogs()
+      setEvents(res.data)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch audit logs'
+      showToast(message, 'error')
     } finally {
       setLoading(false)
     }
@@ -88,7 +89,7 @@ const AuditPage = () => {
   const [page, setPage] = useState(1)
   const itemsPerPage = 6
 
-  const [selectedMetadata, setSelectedMetadata] = useState<Record<string, any> | null>(null)
+  const [selectedMetadata, setSelectedMetadata] = useState<Record<string, unknown> | null>(null)
 
   useEffect(() => {
     if (!user) navigate('/login')

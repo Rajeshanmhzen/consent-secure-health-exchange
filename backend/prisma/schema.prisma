@@ -60,6 +60,7 @@ model User {
   role                 UserRole
   isActive             Boolean  @default(true)
   isVerified           Boolean  @default(false)
+  profileImageUrl      String?
   phone                String?  @unique
   failedLoginAttempts  Int      @default(0)
   lockedUntil          DateTime?
@@ -75,6 +76,8 @@ model User {
   superAdmin           SuperAdmin?
 
   createdPatients      Patient[] @relation("PatientCreator")
+  userFiles            UserFile[] @relation("UserFiles")
+  uploadedUserFiles    UserFile[] @relation("UserFileUploader")
 
   auditLogs            AuditLog[]
   otps                 OTP[]
@@ -139,6 +142,7 @@ model Tenant {
   name          String
   type          TenantType
   isActive      Boolean  @default(true)
+  deletedAt     DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -288,6 +292,23 @@ model RecordFile {
   record     MedicalRecord @relation(fields: [recordId], references: [id])
 
   @@map("record_files")
+}
+
+model UserFile {
+  id           String   @id @default(uuid())
+  userId       String
+  uploadedById String?
+  fileUrl      String
+  fileType     String?
+  fileName     String?
+  createdAt    DateTime @default(now())
+
+  user        User  @relation("UserFiles", fields: [userId], references: [id])
+  uploadedBy  User? @relation("UserFileUploader", fields: [uploadedById], references: [id])
+
+  @@index([userId])
+  @@index([uploadedById])
+  @@map("user_files")
 }
 
 // ================= REQUEST FLOW =================

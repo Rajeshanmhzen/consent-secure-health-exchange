@@ -38,21 +38,66 @@ const TenantsPage = () => {
 
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
-        tenantId: string;
-        tenantName: string;
-    }>({ isOpen: false, tenantId: '', tenantName: '' })
+        tenantId?: string;
+        tenantName?: string;
+        type: 'single' | 'bulk';
+    }>({ isOpen: false, type: 'single' })
+    const [selectedIds, setSelectedIds] = useState<string[]>([])
+    const [viewTenantId, setViewTenantId] = useState<string | null>(null)
+    const [editTenantData, setEditTenantData] = useState<{ id: string; name: string; isActive: boolean } | null>(null)
+    const [isSavingEdit, setIsSavingEdit] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
 
     const handleDeleteConfirm = async () => {
         setIsDeleting(true)
         try {
-            showToast(`Tenant "${confirmDialog.tenantName}" has been successfully deleted`, 'success')
+            if (confirmDialog.type === 'single' && confirmDialog.tenantId) {
+                await tenantApi.deleteTenant(confirmDialog.tenantId)
+                showToast(`Tenant "${confirmDialog.tenantName}" has been successfully deleted`, 'success')
+            } else if (confirmDialog.type === 'bulk' && selectedIds.length > 0) {
+                await tenantApi.bulkSoftDeleteTenants(selectedIds)
+                showToast(`${selectedIds.length} tenants have been successfully deleted`, 'success')
+                setSelectedIds([])
+            }
+
             setConfirmDialog(p => ({ ...p, isOpen: false }))
             setRefreshTrigger(prev => prev + 1)
         } catch (err: any) {
             showToast(err.message ?? 'Failed to delete tenant', 'error')
         } finally {
             setIsDeleting(false)
+        }
+    }
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === tenants.length && tenants.length > 0) {
+            setSelectedIds([])
+        } else {
+            setSelectedIds(tenants.map(t => t.id))
+        }
+    }
+
+    const toggleSelect = (id: string) => {
+        if (selectedIds.includes(id)) {
+            setSelectedIds(selectedIds.filter(i => i !== id))
+        } else {
+            setSelectedIds([...selectedIds, id])
+        }
+    }
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editTenantData) return
+        setIsSavingEdit(true)
+        try {
+            await tenantApi.updateTenant(editTenantData.id, { name: editTenantData.name, isActive: editTenantData.isActive })
+            showToast(`Tenant updated successfully`, 'success')
+            setEditTenantData(null)
+            setRefreshTrigger(prev => prev + 1)
+        } catch (err: any) {
+            showToast(err.message ?? 'Failed to update tenant', 'error')
+        } finally {
+            setIsSavingEdit(false)
         }
     }
 
@@ -113,14 +158,25 @@ const TenantsPage = () => {
                             {total} tenant{total !== 1 ? 's' : ''} registered
                         </p>
                     </div>
-                    <Button
-                        variant="primary"
-                        size="md"
-                        onClick={() => setShowAddModal(true)}
-                        leftIcon={<span className="text-lg font-bold leading-none">+</span>}
-                    >
-                        Tenant
-                    </Button>
+                    <div className="flex gap-2">
+                        {selectedIds.length > 0 && (
+                            <Button
+                                variant="danger"
+                                size="md"
+                                onClick={() => setConfirmDialog({ isOpen: true, type: 'bulk' })}
+                            >
+                                Delete Selected
+                            </Button>
+                        )}
+                        <Button
+                            variant="primary"
+                            size="md"
+                            onClick={() => setShowAddModal(true)}
+                            leftIcon={<span className="text-lg font-bold leading-none">+</span>}
+                        >
+                            Tenant
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Search bar row */}
@@ -153,7 +209,10 @@ const TenantsPage = () => {
                 {/* Table */}
                 {loading ? <TenantListSkeleton /> : (
                     <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                        <div className="grid grid-cols-5 px-5 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
+                        <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
+                            <div className="flex items-center">
+                                <input type="checkbox" checked={selectedIds.length === tenants.length && tenants.length > 0} onChange={toggleSelectAll} className="rounded border-gray-300" />
+                            </div>
                             <span>Name</span>
                             <span>Type</span>
                             <span>Status</span>
@@ -175,11 +234,14 @@ const TenantsPage = () => {
                                 initial={{ opacity: 0, y: 4 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.04, duration: 0.25 }}
-                                className="grid grid-cols-5 items-center px-5 py-3.5 text-sm cursor-pointer transition-colors"
+                                className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-3.5 text-sm cursor-pointer transition-colors"
                                 style={{ borderTop: '1px solid var(--color-border)' }}
                                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')}
                                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                             >
+                                <div className="flex items-center" onClick={e => e.stopPropagation()}>
+                                    <input type="checkbox" checked={selectedIds.includes(t.id)} onChange={() => toggleSelect(t.id)} className="rounded border-gray-300" />
+                                </div>
                                 <div className="flex items-center gap-3">
                                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
                                         {t.name[0].toUpperCase()}
@@ -214,7 +276,7 @@ const TenantsPage = () => {
                                             className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer"
                                             onClick={(e) => {
                                                 e.stopPropagation()
-                                                // Future view detail logic
+                                                setViewTenantId(t.id)
                                             }}
                                             title="View Details"
                                         >
@@ -236,7 +298,7 @@ const TenantsPage = () => {
                                             className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer"
                                             onClick={(e) => {
                                                 e.stopPropagation()
-                                                // Future edit logic
+                                                setEditTenantData({ id: t.id, name: t.name, isActive: t.isActive })
                                             }}
                                             title="Edit Tenant"
                                         >
@@ -260,7 +322,8 @@ const TenantsPage = () => {
                                                 setConfirmDialog({
                                                     isOpen: true,
                                                     tenantId: t.id,
-                                                    tenantName: t.name
+                                                    tenantName: t.name,
+                                                    type: 'single'
                                                 })
                                             }}
                                             title="Delete Tenant"
@@ -302,12 +365,70 @@ const TenantsPage = () => {
                 onClose={() => setConfirmDialog(p => ({ ...p, isOpen: false }))}
                 onConfirm={handleDeleteConfirm}
                 type="danger"
-                title="Delete Tenant Account"
-                description={`Are you sure you want to delete the tenant "${confirmDialog.tenantName}"? This action is permanent and all associated hospital records and administrative accounts will be permanently deleted.`}
-                confirmLabel="Delete Tenant"
+                title="Delete Tenant"
+                description={confirmDialog.type === 'bulk' ? `Are you sure you want to soft delete ${selectedIds.length} tenants? They will be moved to the Recycle Bin.` : `Are you sure you want to delete the tenant "${confirmDialog.tenantName}"? They will be moved to the Recycle Bin.`}
+                confirmLabel="Delete"
                 cancelLabel="Cancel"
                 isLoading={isDeleting}
             />
+
+            {/* View Modal */}
+            {viewTenantId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ backgroundColor: 'rgba(0, 0, 0, 0.45)' }}>
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl p-6 shadow-xl border flex flex-col gap-4" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
+                        <button type="button" onClick={() => setViewTenantId(null)} className="absolute right-4 top-4 p-1.5 rounded-full hover:bg-gray-100 text-gray-500">
+                            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                        </button>
+                        <h3 className="text-xl font-bold">Tenant Details</h3>
+                        {(() => {
+                            const t = tenants.find(x => x.id === viewTenantId)
+                            if (!t) return null
+                            return (
+                                <div className="flex flex-col gap-3 text-sm">
+                                    <div className="grid grid-cols-2 gap-y-3">
+                                        <div><strong className="text-xs uppercase opacity-70 block mb-0.5">ID</strong>{t.id}</div>
+                                        <div><strong className="text-xs uppercase opacity-70 block mb-0.5">Name</strong>{t.name}</div>
+                                        <div><strong className="text-xs uppercase opacity-70 block mb-0.5">Type</strong>{t.type}</div>
+                                        <div><strong className="text-xs uppercase opacity-70 block mb-0.5">Status</strong>{t.isActive ? 'Active' : 'Inactive'}</div>
+                                        <div><strong className="text-xs uppercase opacity-70 block mb-0.5">Created</strong>{new Date(t.createdAt).toLocaleDateString()}</div>
+                                        {t.hospital?.name && <div><strong className="text-xs uppercase opacity-70 block mb-0.5">Hospital Name</strong>{t.hospital.name}</div>}
+                                        {t.hospital?.email && <div><strong className="text-xs uppercase opacity-70 block mb-0.5">Contact Email</strong>{t.hospital.email}</div>}
+                                    </div>
+                                </div>
+                            )
+                        })()}
+                        <div className="flex justify-end mt-4">
+                            <Button variant="default" onClick={() => setViewTenantId(null)}>Close</Button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {editTenantData && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ backgroundColor: 'rgba(0, 0, 0, 0.45)' }}>
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl p-6 shadow-xl border flex flex-col gap-4" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
+                        <button type="button" onClick={() => setEditTenantData(null)} className="absolute right-4 top-4 p-1.5 rounded-full hover:bg-gray-100 text-gray-500">
+                            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                        </button>
+                        <h3 className="text-xl font-bold">Edit Tenant</h3>
+                        <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Tenant Name</label>
+                                <input type="text" value={editTenantData.name} onChange={e => setEditTenantData(p => p ? { ...p, name: e.target.value } : null)} className="rounded-xl px-3 py-2 text-sm outline-none bg-transparent" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
+                            </div>
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox" checked={editTenantData.isActive} onChange={e => setEditTenantData(p => p ? { ...p, isActive: e.target.checked } : null)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Active Status</span>
+                            </label>
+                            <div className="flex justify-end gap-3 mt-4">
+                                <Button type="button" variant="default" onClick={() => setEditTenantData(null)}>Cancel</Button>
+                                <Button type="submit" variant="primary" isLoading={isSavingEdit}>Update</Button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
         </DashboardLayout>
     )
 }

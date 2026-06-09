@@ -34,6 +34,26 @@ export class TenantService {
         return await this.repository.deleteTenant(tenantId);
     }
 
+    async hardDeleteTenant(tenantId: string) {
+        return await this.repository.hardDeleteTenant(tenantId);
+    }
+
+    async restoreTenant(tenantId: string) {
+        return await this.repository.restoreTenant(tenantId);
+    }
+
+    async bulkSoftDeleteTenants(tenantIds: string[]) {
+        return await this.repository.bulkSoftDeleteTenants(tenantIds);
+    }
+
+    async bulkHardDeleteTenants(tenantIds: string[]) {
+        return await this.repository.bulkHardDeleteTenants(tenantIds);
+    }
+
+    async bulkRestoreTenants(tenantIds: string[]) {
+        return await this.repository.bulkRestoreTenants(tenantIds);
+    }
+
     async addHospitalTenant(data: CreateHospitalTenantPayload) {
         const existing = await this.repository.findUserByEmail(data.adminEmail);
         if (existing) {
@@ -117,5 +137,21 @@ export class TenantService {
 
     async hardDeleteTenantUser(userId: string) {
         return await this.repository.hardDeleteTenantUser(userId);
+    }
+
+    async restoreTenantUser(userId: string) {
+        return await this.repository.restoreTenantUser(userId);
+    }
+
+    async bulkSoftDeleteTenantUsers(userIds: string[]) {
+        return await this.repository.bulkSoftDeleteTenantUsers(userIds);
+    }
+
+    async bulkHardDeleteTenantUsers(userIds: string[]) {
+        return await this.repository.bulkHardDeleteTenantUsers(userIds);
+    }
+
+    async bulkRestoreTenantUsers(userIds: string[]) {
+        return await this.repository.bulkRestoreTenantUsers(userIds);
     }
 }

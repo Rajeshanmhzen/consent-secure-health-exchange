@@ -25,7 +25,7 @@ export class AuthRepository {
     async login(email: string, password: string): Promise<LoginResult | null> {
         const user = await prisma.user.findFirst({
             where: { email, deletedAt: null },
-            include: { patient: true, doctor: true }
+            include: { patient: true, doctor: true, receptionist: true, superAdmin: true }
         });
 
         if (!user || !user.isActive) return null;
@@ -48,7 +48,7 @@ export class AuthRepository {
             })
         ]);
 
-        const name = user.patient?.name ?? user.doctor?.name ?? email.split('@')[0];
+        const name = user.superAdmin?.fullName ?? user.patient?.name ?? user.doctor?.name ?? user.receptionist?.name ?? email.split('@')[0];
 
         return {
             success: true,
@@ -59,7 +59,8 @@ export class AuthRepository {
                 name,
                 role: user.role,
                 isActive: user.isActive,
-                isVerified: user.isVerified
+                isVerified: user.isVerified,
+                profileImageUrl: user.profileImageUrl ?? null
             },
             accessToken,
             refreshToken
@@ -131,7 +132,8 @@ export class AuthRepository {
                 name: `${data.firstName} ${data.lastName}`,
                 role: result.role,
                 isActive: result.isActive,
-                isVerified: result.isVerified
+                isVerified: result.isVerified,
+                profileImageUrl: null
             },
             accessToken,
             refreshToken
@@ -249,7 +251,8 @@ export class AuthRepository {
                 name: storedToken.user.email.split('@')[0],
                 role: storedToken.user.role,
                 isActive: storedToken.user.isActive,
-                isVerified: storedToken.user.isVerified
+                isVerified: storedToken.user.isVerified,
+                profileImageUrl: storedToken.user.profileImageUrl ?? null
             },
             accessToken,
             refreshToken: newRefreshToken

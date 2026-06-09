@@ -1,11 +1,22 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../Context/AuthContext'
 import { useToast } from '../Context/ToastContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { ConsentSkeleton } from '../components/skeletons/PageSkeletons'
 import Button from '../components/shared/Button'
 import { requestApi } from '../services/request.service'
+
+type ConsentLocationState = {
+  requestId?: string
+}
+
+type ConsentListResponse = {
+  data: {
+    requests: ConsentRequest[]
+  }
+}
 
 type ConsentRequest = {
   id: string
@@ -48,38 +59,42 @@ const ConsentPage = () => {
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', ''])
   const [isVerifying, setIsVerifying] = useState(false)
 
-  const fetchConsents = async () => {
+  const fetchConsents = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await requestApi.list() as any
-      setConsents(data.data || [])
-    } catch (e: any) {
-      showToast(e.message || 'Failed to fetch active consents ledger', 'error')
+      const data = await requestApi.list<ConsentListResponse>()
+      setConsents(data.data.requests || [])
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch active consents ledger'
+      showToast(message, 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
 
   useEffect(() => {
     if (!user) {
       navigate('/login')
       return
     }
-    fetchConsents()
-  }, [user])
+    void fetchConsents()
+  }, [user, navigate, fetchConsents])
 
   useEffect(() => {
-    if (location.state && (location.state as any).requestId && consents.length > 0) {
-      const reqId = (location.state as any).requestId
+    const state = location.state as ConsentLocationState | null
+    if (state?.requestId && consents.length > 0) {
+      const reqId = state.requestId
       const found = consents.find(c => c.id === reqId)
       if (found && found.status === 'PENDING') {
-        setSelectedRequest(found)
-        setWizardStep('review')
+        queueMicrotask(() => {
+          setSelectedRequest(found)
+          setWizardStep('review')
+        })
       }
       // clear navigation state to prevent re-opening on manual refreshes
       window.history.replaceState({}, document.title)
     }
-  }, [location, consents])
+  }, [location.state, consents])
 
   if (!user) return null
 
@@ -122,9 +137,10 @@ const ConsentPage = () => {
       await requestApi.patientConsent({ requestId: selectedRequest.id, action: 'APPROVE' })
       showToast('CRYPTOGRAPHIC DIGITAL SIGNATURE ATTACHED!', 'success')
       setWizardStep('success')
-      fetchConsents()
-    } catch (e: any) {
-      showToast(e.message || 'Signature verification failed. Confirm OTP code.', 'error')
+      void fetchConsents()
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Signature verification failed. Confirm OTP code.'
+      showToast(message, 'error')
     } finally {
       setIsVerifying(false)
     }
@@ -137,9 +153,10 @@ const ConsentPage = () => {
     try {
       await requestApi.patientConsent({ requestId, action: 'REJECT' })
       showToast('Exchange consent revoked. Access locked.', 'error')
-      fetchConsents()
-    } catch (e: any) {
-      showToast(e.message || 'Failed to revoke consent.', 'error')
+      void fetchConsents()
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to revoke consent.'
+      showToast(message, 'error')
     }
   }
 
@@ -183,9 +200,7 @@ const ConsentPage = () => {
           </div>
 
           {loading ? (
-            <div className="px-5 py-16 text-center text-xs text-(--color-text-secondary) animate-pulse">
-              Loading active consents...
-            </div>
+            <ConsentSkeleton />
           ) : consents.length === 0 ? (
             <div className="px-5 py-16 text-center">
               <svg viewBox="0 0 24 24" className="h-10 w-10 mx-auto mb-3 text-(--color-text-tertiary)" fill="currentColor">

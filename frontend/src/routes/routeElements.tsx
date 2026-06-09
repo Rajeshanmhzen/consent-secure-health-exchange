@@ -41,3 +41,4 @@ export const emergencyRouteElement = createLazyRouteElement(() => import('../pag
 export const scheduleRouteElement = createLazyRouteElement(() => import('../pages/schedule'))
 export const auditRouteElement = createLazyRouteElement(() => import('../pages/audit'))
 export const staffRouteElement = createLazyRouteElement(() => import('../pages/staff'))
+export const trashRouteElement = createLazyRouteElement(() => import('../pages/superadmin/trash'))
