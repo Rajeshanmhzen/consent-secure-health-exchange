@@ -15,7 +15,7 @@ import {
     TenantUserWithProfile,
     TenantListItem,
     TenantListParams,
-    TenantUpdateData
+    UpdateTenantPayload
 } from "../types/tenant.types";
 
 export class TenantRepository {
@@ -29,10 +29,29 @@ export class TenantRepository {
         });
     }
 
-    async updateTenant(tenantId: string, data: TenantUpdateData) {
-        return await prisma.tenant.update({
-            where: { id: tenantId },
-            data
+    async updateTenant(tenantId: string, data: UpdateTenantPayload) {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const tenant = await tx.tenant.update({
+                where: { id: tenantId },
+                data: {
+                    name: data.name,
+                    type: data.type,
+                    isActive: data.isActive
+                }
+            });
+
+            if (data.hospitalName !== undefined || data.hospitalEmail !== undefined) {
+                const updateData: any = {};
+                if (data.hospitalName !== undefined) updateData.name = data.hospitalName;
+                if (data.hospitalEmail !== undefined) updateData.email = data.hospitalEmail;
+
+                await tx.hospital.updateMany({
+                    where: { tenantId },
+                    data: updateData
+                });
+            }
+
+            return tenant;
         });
     }
 
@@ -62,13 +81,27 @@ export class TenantRepository {
                   }
                 : {}),
             ...(params.type ? { type: params.type } : {}),
-            ...(params.isActive === undefined ? {} : { isActive: params.isActive })
+            ...(params.isActive === undefined ? {} : { isActive: params.isActive }),
+            ...(params.deletedOnly
+                ? { deletedAt: { not: null } }
+                : params.includeDeleted
+                  ? {}
+                  : { deletedAt: null })
         };
 
         const [total, data] = (await prisma.$transaction([
             prisma.tenant.count({ where }),
             prisma.tenant.findMany({
                 where,
+                include: {
+                    hospital: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        }
+                    }
+                },
                 skip,
                 take,
                 orderBy: { createdAt: "desc" }
@@ -79,8 +112,54 @@ export class TenantRepository {
     }
 
     async deleteTenant(tenantId: string) {
+        return await prisma.tenant.update({
+            where: { id: tenantId },
+            data: {
+                deletedAt: new Date(),
+                isActive: false
+            }
+        });
+    }
+
+    async hardDeleteTenant(tenantId: string) {
         return await prisma.tenant.delete({
             where: { id: tenantId }
+        });
+    }
+
+    async restoreTenant(tenantId: string) {
+        return await prisma.tenant.update({
+            where: { id: tenantId },
+            data: {
+                deletedAt: null,
+                isActive: true
+            }
+        });
+    }
+
+    async bulkSoftDeleteTenants(tenantIds: string[]) {
+        return await prisma.tenant.updateMany({
+            where: { id: { in: tenantIds } },
+            data: {
+                deletedAt: new Date(),
+                isActive: false
+            }
+        });
+    }
+
+    async bulkHardDeleteTenants(tenantIds: string[]) {
+        return await prisma.tenant.deleteMany({
+            where: { id: { in: tenantIds } }
+        });
+    }
+
+    async bulkRestoreTenants(tenantIds: string[]) {
+        return await prisma.tenant.updateMany({
+            where: { id: { in: tenantIds } },
+            data: {
+                deletedAt: null,
+                isActive: true
+            }
         });
     }
 
@@ -351,6 +430,53 @@ export class TenantRepository {
             await tx.auditLog.deleteMany({ where: { userId } });
 
             return await tx.user.delete({ where: { id: userId } });
+        });
+    }
+
+    async restoreTenantUser(userId: string) {
+        return await prisma.user.update({
+            where: { id: userId },
+            data: {
+                deletedAt: null,
+                isActive: true
+            }
+        });
+    }
+
+    async bulkSoftDeleteTenantUsers(userIds: string[]) {
+        return await prisma.user.updateMany({
+            where: { id: { in: userIds } },
+            data: {
+                deletedAt: new Date(),
+                isActive: false
+            }
+        });
+    }
+
+    async bulkHardDeleteTenantUsers(userIds: string[]) {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const users = await tx.user.findMany({ where: { id: { in: userIds } } });
+            
+            await tx.doctor.deleteMany({ where: { userId: { in: userIds } } });
+            await tx.patient.deleteMany({ where: { userId: { in: userIds } } });
+            await tx.receptionist.deleteMany({ where: { userId: { in: userIds } } });
+            await tx.refreshToken.deleteMany({ where: { userId: { in: userIds } } });
+            await tx.notificationPreference.deleteMany({ where: { userId: { in: userIds } } });
+            await tx.notification.deleteMany({ where: { userId: { in: userIds } } });
+            await tx.oTP.deleteMany({ where: { userId: { in: userIds } } });
+            await tx.auditLog.deleteMany({ where: { userId: { in: userIds } } });
+
+            return await tx.user.deleteMany({ where: { id: { in: userIds } } });
+        });
+    }
+
+    async bulkRestoreTenantUsers(userIds: string[]) {
+        return await prisma.user.updateMany({
+            where: { id: { in: userIds } },
+            data: {
+                deletedAt: null,
+                isActive: true
+            }
         });
     }
 }

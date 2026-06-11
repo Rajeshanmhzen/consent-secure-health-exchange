@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import App from '../App'
-import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement, forgotPasswordRouteElement, verifyCodeRouteElement, resetPasswordRouteElement, dashboardRouteElement, tenantsRouteElement, superadminsRouteElement, plansRouteElement, subscriptionsRouteElement, inquiriesRouteElement, settingsRouteElement, patientsRouteElement, recordsRouteElement, requestsRouteElement, consentRouteElement, emergencyRouteElement, scheduleRouteElement, auditRouteElement, staffRouteElement } from './routeElements'
+import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement, forgotPasswordRouteElement, verifyCodeRouteElement, resetPasswordRouteElement, dashboardRouteElement, tenantsRouteElement, superadminsRouteElement, plansRouteElement, subscriptionsRouteElement, inquiriesRouteElement, settingsRouteElement, patientsRouteElement, recordsRouteElement, requestsRouteElement, consentRouteElement, emergencyRouteElement, scheduleRouteElement, auditRouteElement, staffRouteElement, profileRouteElement, changePasswordRouteElement, trashRouteElement } from './routeElements'
 
 const router = createBrowserRouter([
   {
@@ -34,6 +34,9 @@ const router = createBrowserRouter([
   { path: '/dashboard/schedule', element: scheduleRouteElement },
   { path: '/dashboard/audit', element: auditRouteElement },
   { path: '/dashboard/staff', element: staffRouteElement },
+  { path: '/dashboard/profile', element: profileRouteElement },
+  { path: '/dashboard/change-password', element: changePasswordRouteElement },
+  { path: '/dashboard/trash', element: trashRouteElement },
 ])
 
 export default router

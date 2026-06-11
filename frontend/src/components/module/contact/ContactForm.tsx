@@ -1,4 +1,5 @@
 import InputField from '../../shared/InputField'
+import PhoneInputField from '../../shared/PhoneInputField'
 import Button from '../../shared/Button'
 import { Link } from 'react-router-dom'
 
@@ -62,12 +63,11 @@ const ContactForm = ({
         onChange={(value) => onChange('workEmail', value)}
       />
 
-      <InputField
+      <PhoneInputField
         label="Phone Number"
-        name="contact-phone-number"
-        type="tel"
         value={phoneNumber}
         onChange={(value) => onChange('phoneNumber', value)}
+        required={false}
       />
 
       <InputField

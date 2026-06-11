@@ -7,6 +7,7 @@ import { authApi } from '../../services/auth.service'
 import Avatar from '../shared/Avatar'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import PreferencesModal from '../shared/PreferencesModal'
+import ProfileDropdown from '../shared/ProfileDropdown'
 
 type NavLink = { label: string; to: string; icon: React.ReactNode }
 
@@ -24,6 +25,7 @@ const ICONS = {
     audit:      <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>,
     schedule:   <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" /></svg>,
     settings:   <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.01 7.01 0 0 0-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54a7.3 7.3 0 0 0-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7.3 7.3 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z" /></svg>,
+    trash:      <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>,
 }
 
 const ROLE_NAV: Record<string, { label: string; to: string; icon: React.ReactNode }[]> = {
@@ -35,14 +37,13 @@ const ROLE_NAV: Record<string, { label: string; to: string; icon: React.ReactNod
         { label: 'Subscriptions', to: '/dashboard/subscriptions', icon: ICONS.subscriptions },
         { label: 'Audit Logs',    to: '/dashboard/audit',     icon: ICONS.audit },
         { label: 'Inquiries',     to: '/dashboard/inquiries', icon: ICONS.consent },
-        { label: 'Settings',      to: '/dashboard/settings',  icon: ICONS.settings },
+        { label: 'Recycle Bin',   to: '/dashboard/trash',  icon: ICONS.trash },
     ],
     HOSPITAL_ADMIN: [
         { label: 'Dashboard',     to: '/dashboard',           icon: ICONS.dashboard },
         { label: 'Staff',         to: '/dashboard/staff',     icon: ICONS.staff },
         { label: 'Patients',      to: '/dashboard/patients',  icon: ICONS.patients },
         { label: 'Audit Logs',    to: '/dashboard/audit',     icon: ICONS.audit },
-        { label: 'Settings',      to: '/dashboard/settings',  icon: ICONS.settings },
     ],
     DOCTOR: [
         { label: 'Dashboard',     to: '/dashboard',           icon: ICONS.dashboard },
@@ -50,20 +51,17 @@ const ROLE_NAV: Record<string, { label: string; to: string; icon: React.ReactNod
         { label: 'Data Requests', to: '/dashboard/requests',  icon: ICONS.requests },
         { label: 'Patients',      to: '/dashboard/patients',  icon: ICONS.patients },
         { label: 'Emergency',     to: '/dashboard/emergency', icon: ICONS.emergency },
-        { label: 'Settings',      to: '/dashboard/settings',  icon: ICONS.settings },
     ],
     RECEPTIONIST: [
         { label: 'Dashboard',     to: '/dashboard',           icon: ICONS.dashboard },
         { label: 'Patients',      to: '/dashboard/patients',  icon: ICONS.patients },
         { label: 'Schedule',      to: '/dashboard/schedule',  icon: ICONS.schedule },
-        { label: 'Settings',      to: '/dashboard/settings',  icon: ICONS.settings },
     ],
     PATIENT: [
         { label: 'Dashboard',     to: '/dashboard',           icon: ICONS.dashboard },
         { label: 'My Records',    to: '/dashboard/records',   icon: ICONS.records },
         { label: 'Consent',       to: '/dashboard/consent',   icon: ICONS.consent },
         { label: 'Data Requests', to: '/dashboard/requests',  icon: ICONS.requests },
-        { label: 'Settings',      to: '/dashboard/settings',  icon: ICONS.settings },
     ],
 }
 
@@ -85,6 +83,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     const navigate = useNavigate()
     const [collapsed, setCollapsed] = useState(false)
     const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
+    const [showProfileMenu, setShowProfileMenu] = useState(false)
     const [showPrefModal, setShowPrefModal] = useState(false)
     const [notificationsCount, setNotificationsCount] = useState(3)
     const [layoutLoading, setLayoutLoading] = useState(true)
@@ -181,68 +180,49 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 {/* User info + logout */}
                 <div className="px-2 py-3 flex flex-col gap-2 shrink-0" style={{ borderTop: '1px solid var(--color-border)' }}>
                     {/* User row */}
-                    <div
-                        className="flex items-center gap-3 rounded-xl px-2 py-2 overflow-hidden"
-                        style={{ backgroundColor: 'var(--color-surface-elevated)' }}
-                        title={collapsed ? `${displayName}\n${user?.email}` : undefined}
-                    >
-                        <Avatar name={displayName} size="md" />
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setShowProfileMenu(prev => !prev)}
+                            className="flex w-full items-center gap-3 rounded-xl px-2 py-2 overflow-hidden text-left cursor-pointer"
+                            style={{ backgroundColor: 'var(--color-surface-elevated)' }}
+                            title={collapsed ? `${displayName}\n${user?.email}` : undefined}
+                        >
+                            <Avatar name={displayName} size="md" image={user?.profileImageUrl} />
+                            <AnimatePresence>
+                                {!collapsed && (
+                                    <motion.div
+                                        initial={{ opacity: 0, width: 0 }}
+                                        animate={{ opacity: 1, width: 'auto' }}
+                                        exit={{ opacity: 0, width: 0 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="flex-1 min-w-0 overflow-hidden"
+                                    >
+                                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text)' }}>
+                                            {displayName}
+                                        </p>
+                                        <p className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>
+                                            {user?.email}
+                                        </p>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </button>
+
                         <AnimatePresence>
-                            {!collapsed && (
-                                <motion.div
-                                    initial={{ opacity: 0, width: 0 }}
-                                    animate={{ opacity: 1, width: 'auto' }}
-                                    exit={{ opacity: 0, width: 0 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="flex-1 min-w-0 overflow-hidden"
-                                >
-                                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text)' }}>
-                                        {displayName}
-                                    </p>
-                                    <p className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>
-                                        {user?.email}
-                                    </p>
-                                </motion.div>
+                            {showProfileMenu && user && (
+                                <ProfileDropdown
+                                    user={user}
+                                    onClose={() => setShowProfileMenu(false)}
+                                    onLogout={handleLogout}
+                                    onOpenPreferences={() => {
+                                        setShowPrefModal(true)
+                                        setShowProfileMenu(false)
+                                    }}
+                                />
                             )}
                         </AnimatePresence>
                     </div>
-
-                    {/* Preferences row */}
-                    <button
-                        onClick={() => setShowPrefModal(true)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 w-full cursor-pointer"
-                        style={{ color: 'var(--color-text-secondary)' }}
-                        onMouseEnter={e => {
-                            e.currentTarget.style.backgroundColor = 'var(--color-primary-ghost)'
-                            e.currentTarget.style.color = 'var(--color-primary)'
-                        }}
-                        onMouseLeave={e => {
-                            e.currentTarget.style.backgroundColor = 'transparent'
-                            e.currentTarget.style.color = 'var(--color-text-secondary)'
-                        }}
-                        title={collapsed ? 'Preferences' : undefined}
-                    >
-                        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-                            <path d="M7.5 10.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
-                            <path d="M11.5 7.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
-                            <path d="M16.5 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
-                            <path d="M15.5 14.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
-                        </svg>
-                        <AnimatePresence>
-                            {!collapsed && (
-                                <motion.span
-                                    initial={{ opacity: 0, width: 0 }}
-                                    animate={{ opacity: 1, width: 'auto' }}
-                                    exit={{ opacity: 0, width: 0 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="whitespace-nowrap overflow-hidden"
-                                >
-                                    Preferences
-                                </motion.span>
-                            )}
-                        </AnimatePresence>
-                    </button>
 
                     {/* Logout row */}
                     <button
@@ -373,7 +353,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 cancelLabel="Cancel"
             />
 
-            {/* Custom Preferences Modal */}
             <PreferencesModal
                 isOpen={showPrefModal}
                 onClose={() => setShowPrefModal(false)}

@@ -5,6 +5,9 @@ export type AuthUserPayload = {
     role: string;
     isActive: boolean;
     isVerified: boolean;
+    tenantId?: string | null;
+    hospitalId?: string | null;
+    profileImageUrl?: string | null;
 };
 
 // ── Request types ──────────────────────────────────────────

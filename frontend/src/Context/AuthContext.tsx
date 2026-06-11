@@ -5,6 +5,7 @@ type AuthContextType = {
     user: AuthUser | null
     accessToken: string | null
     login: (user: AuthUser, accessToken: string, refreshToken: string) => void
+    updateUser: (patch: Partial<AuthUser>) => void
     logout: () => void
 }
 
@@ -30,6 +31,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('refreshToken', refreshToken)
     }
 
+    const updateUser = (patch: Partial<AuthUser>) => {
+        setUser(prev => {
+            if (!prev) return prev
+            const nextUser = { ...prev, ...patch }
+            localStorage.setItem('user', JSON.stringify(nextUser))
+            return nextUser
+        })
+    }
+
     const logout = () => {
         setUser(null)
         setAccessToken(null)
@@ -48,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [])
 
     return (
-        <AuthContext.Provider value={{ user, accessToken, login, logout }}>
+        <AuthContext.Provider value={{ user, accessToken, login, updateUser, logout }}>
             {children}
         </AuthContext.Provider>
     )

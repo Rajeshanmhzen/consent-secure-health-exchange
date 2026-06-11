@@ -25,7 +25,7 @@ export class AuthRepository {
     async login(email: string, password: string): Promise<LoginResult | null> {
         const user = await prisma.user.findFirst({
             where: { email, deletedAt: null },
-            include: { patient: true, doctor: true }
+            include: { patient: true, doctor: true, receptionist: true, superAdmin: true }
         });
 
         if (!user || !user.isActive) return null;
@@ -48,7 +48,12 @@ export class AuthRepository {
             })
         ]);
 
-        const name = user.patient?.name ?? user.doctor?.name ?? email.split('@')[0];
+        const name = user.superAdmin?.fullName ?? user.patient?.name ?? user.doctor?.name ?? user.receptionist?.name ?? email.split('@')[0];
+        const hospitalId = user.doctor?.hospitalId
+            ?? user.receptionist?.hospitalId
+            ?? (user.role === "HOSPITAL_ADMIN" && user.tenantId
+                ? (await prisma.hospital.findUnique({ where: { tenantId: user.tenantId }, select: { id: true } }))?.id ?? null
+                : null);
 
         return {
             success: true,
@@ -59,7 +64,10 @@ export class AuthRepository {
                 name,
                 role: user.role,
                 isActive: user.isActive,
-                isVerified: user.isVerified
+                isVerified: user.isVerified,
+                tenantId: user.tenantId ?? null,
+                hospitalId,
+                profileImageUrl: user.profileImageUrl ?? null
             },
             accessToken,
             refreshToken
@@ -131,7 +139,8 @@ export class AuthRepository {
                 name: `${data.firstName} ${data.lastName}`,
                 role: result.role,
                 isActive: result.isActive,
-                isVerified: result.isVerified
+                isVerified: result.isVerified,
+                profileImageUrl: null
             },
             accessToken,
             refreshToken
@@ -209,7 +218,11 @@ export class AuthRepository {
         const tokenHash = this.hashToken(refreshToken);
         const storedToken = await prisma.refreshToken.findFirst({
             where: { tokenHash, revokedAt: null },
-            include: { user: true }
+            include: {
+                user: {
+                    include: { patient: true, doctor: true, receptionist: true, superAdmin: true }
+                }
+            }
         });
 
         if (!storedToken || storedToken.expiresAt < new Date()) {
@@ -240,16 +253,26 @@ export class AuthRepository {
             prisma.refreshToken.create({ data: { userId: storedToken.userId, tokenHash: newTokenHash, expiresAt: newExpiresAt } })
         ]);
 
+        const name = storedToken.user.superAdmin?.fullName ?? storedToken.user.patient?.name ?? storedToken.user.doctor?.name ?? storedToken.user.receptionist?.name ?? storedToken.user.email.split('@')[0];
+        const hospitalId = storedToken.user.doctor?.hospitalId
+            ?? storedToken.user.receptionist?.hospitalId
+            ?? (storedToken.user.role === "HOSPITAL_ADMIN" && storedToken.user.tenantId
+                ? (await prisma.hospital.findUnique({ where: { tenantId: storedToken.user.tenantId }, select: { id: true } }))?.id ?? null
+                : null);
+
         return {
             success: true,
             message: "Token refreshed successfully",
             user: {
                 id: storedToken.user.id,
                 email: storedToken.user.email,
-                name: storedToken.user.email.split('@')[0],
+                name,
                 role: storedToken.user.role,
                 isActive: storedToken.user.isActive,
-                isVerified: storedToken.user.isVerified
+                isVerified: storedToken.user.isVerified,
+                tenantId: storedToken.user.tenantId ?? null,
+                hospitalId,
+                profileImageUrl: storedToken.user.profileImageUrl ?? null
             },
             accessToken,
             refreshToken: newRefreshToken

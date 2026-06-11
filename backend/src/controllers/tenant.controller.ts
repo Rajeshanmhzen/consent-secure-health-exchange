@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import prisma from "../config/prisma";
 
 import { TenantService } from "../services/tenant.service";
 import {
@@ -20,7 +21,8 @@ import {
     updateTenantUserSchema,
     listTenantSchema,
     tenantIdParamSchema,
-    updateTenantSchema
+    updateTenantSchema,
+    bulkIdsSchema
 } from "../validation/tenant.validation";
 import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
@@ -70,7 +72,37 @@ export class TenantController {
     deleteTenant = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
         const { id } = tenantIdParamSchema.parse(req.params);
         const result = await this.service.deleteTenant(id);
-        return sendSuccess(res, "Tenant deleted successfully", result);
+        return sendSuccess(res, "Tenant soft deleted successfully", result);
+    });
+
+    hardDeleteTenant = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
+        const { id } = tenantIdParamSchema.parse(req.params);
+        const result = await this.service.hardDeleteTenant(id);
+        return sendSuccess(res, "Tenant hard deleted successfully", result);
+    });
+
+    restoreTenant = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
+        const { id } = tenantIdParamSchema.parse(req.params);
+        const result = await this.service.restoreTenant(id);
+        return sendSuccess(res, "Tenant restored successfully", result);
+    });
+
+    bulkSoftDeleteTenants = asyncHandler(async (req: Request, res: Response) => {
+        const { ids } = bulkIdsSchema.parse(req.body);
+        const result = await this.service.bulkSoftDeleteTenants(ids);
+        return sendSuccess(res, "Tenants soft deleted successfully", result);
+    });
+
+    bulkHardDeleteTenants = asyncHandler(async (req: Request, res: Response) => {
+        const { ids } = bulkIdsSchema.parse(req.body);
+        const result = await this.service.bulkHardDeleteTenants(ids);
+        return sendSuccess(res, "Tenants hard deleted successfully", result);
+    });
+
+    bulkRestoreTenants = asyncHandler(async (req: Request, res: Response) => {
+        const { ids } = bulkIdsSchema.parse(req.body);
+        const result = await this.service.bulkRestoreTenants(ids);
+        return sendSuccess(res, "Tenants restored successfully", result);
     });
 
     addHospitalTenant = asyncHandler(async (req: Request, res: Response) => {
@@ -102,6 +134,19 @@ export class TenantController {
 
     listTenantUsers = asyncHandler(async (req: Request, res: Response) => {
         const params = listTenantUserSchema.parse(req.query) as TenantUserListParams;
+
+        // Security Check: enforce tenant isolation
+        const authUser = (req as any).user;
+        if (authUser && authUser.role !== "SUPER_ADMIN") {
+            const dbUser = await prisma.user.findUnique({
+                where: { id: authUser.id },
+                select: { tenantId: true }
+            });
+            if (dbUser?.tenantId) {
+                params.tenantId = dbUser.tenantId;
+            }
+        }
+
         const result = await this.service.listTenantUsers(params);
         const formattedResult = formatPagination({
             data: result.data,
@@ -144,4 +189,30 @@ export class TenantController {
             return sendSuccess(res, "Tenant user hard deleted successfully", result);
         }
     );
+
+    restoreTenantUser = asyncHandler(
+        async (req: Request<{ id: string }>, res: Response) => {
+            const { id } = tenantUserIdParamSchema.parse(req.params);
+            const result = await this.service.restoreTenantUser(id);
+            return sendSuccess(res, "Tenant user restored successfully", result);
+        }
+    );
+
+    bulkSoftDeleteTenantUsers = asyncHandler(async (req: Request, res: Response) => {
+        const { ids } = bulkIdsSchema.parse(req.body);
+        const result = await this.service.bulkSoftDeleteTenantUsers(ids);
+        return sendSuccess(res, "Tenant users soft deleted successfully", result);
+    });
+
+    bulkHardDeleteTenantUsers = asyncHandler(async (req: Request, res: Response) => {
+        const { ids } = bulkIdsSchema.parse(req.body);
+        const result = await this.service.bulkHardDeleteTenantUsers(ids);
+        return sendSuccess(res, "Tenant users hard deleted successfully", result);
+    });
+
+    bulkRestoreTenantUsers = asyncHandler(async (req: Request, res: Response) => {
+        const { ids } = bulkIdsSchema.parse(req.body);
+        const result = await this.service.bulkRestoreTenantUsers(ids);
+        return sendSuccess(res, "Tenant users restored successfully", result);
+    });
 }
