@@ -12,13 +12,20 @@ function onRefreshed(token: string) {
     refreshSubscribers = []
 }
 
-export async function request<T>(path: string, options?: RequestInit): Promise<T> {
+export type RequestOptions = RequestInit & { rawBody?: boolean }
+
+export async function request<T>(path: string, options?: RequestOptions): Promise<T> {
     const getHeaders = () => {
         const token = localStorage.getItem('accessToken')
-        return {
-            'Content-Type': 'application/json',
+        const base: Record<string, string> = {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(options?.headers || {})
+        }
+        if (!options?.rawBody) {
+            base['Content-Type'] = 'application/json'
+        }
+        return {
+            ...base,
+            ...(options?.headers as Record<string, string> || {})
         } as HeadersInit
     }
 
@@ -70,12 +77,17 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
         return new Promise<T>((resolve, reject) => {
             subscribeTokenRefresh(async (newToken) => {
                 try {
+                    const retryHeaders: Record<string, string> = {
+                            Authorization: `Bearer ${newToken}`,
+                        }
+                        if (!options?.rawBody) {
+                            retryHeaders['Content-Type'] = 'application/json'
+                        }
                     const retryRes = await fetch(`${BASE}${path}`, {
                         ...options,
                         headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${newToken}`,
-                            ...(options?.headers || {})
+                            ...retryHeaders,
+                            ...((options?.headers as Record<string, string>) || {})
                         } as HeadersInit
                     })
                     const json = await retryRes.json()

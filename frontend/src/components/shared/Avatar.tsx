@@ -1,13 +1,21 @@
+const resolveImageUrl = (path?: string | null) => {
+    if (!path) return undefined
+    if (path.startsWith('http')) return path
+    const base = (import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1').replace(/\/api\/v\d+$/, '')
+    return `${base}${path}`
+}
+
 type AvatarProps = {
     name?: string
-    image?: string
-    size?: 'sm' | 'md' | 'lg'
+    image?: string | null
+    size?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
 const sizeMap = {
     sm: { box: 'h-7 w-7', text: 'text-xs' },
     md: { box: 'h-9 w-9', text: 'text-sm' },
     lg: { box: 'h-11 w-11', text: 'text-base' },
+    xl: { box: 'h-20 w-20', text: 'text-2xl' },
 }
 
 const getInitials = (name?: string) => {
@@ -19,11 +27,12 @@ const getInitials = (name?: string) => {
 
 const Avatar = ({ name, image, size = 'md' }: AvatarProps) => {
     const { box, text } = sizeMap[size]
+    const resolvedImage = resolveImageUrl(image)
 
-    if (image) {
+    if (resolvedImage) {
         return (
             <img
-                src={image}
+                src={resolvedImage}
                 alt={name ?? 'avatar'}
                 className={`${box} rounded-full object-cover shrink-0`}
             />
@@ -41,3 +50,4 @@ const Avatar = ({ name, image, size = 'md' }: AvatarProps) => {
 }
 
 export default Avatar
+export { resolveImageUrl }

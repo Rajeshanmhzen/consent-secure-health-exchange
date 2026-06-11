@@ -2,9 +2,11 @@ import { Request, Response } from "express";
 import prisma from "../config/prisma";
 import { sendSuccess, sendError } from "../utils/apiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
-import { updateNotificationPreferenceSchema, updateProfileSchema } from "../validation/user.validation";
+import { changePasswordSchema, updateNotificationPreferenceSchema, updateProfileSchema } from "../validation/user.validation";
 import { publishRealtimeEvent } from "../socket.io/realtime";
 import { AppError } from "../utils/appError";
+import { comparePassword, hashPassword } from "../utils/password";
+import { verifyAccessToken } from "../utils/jwt";
 
 type AuthenticatedRequest = Request & {
     user?: {
@@ -197,6 +199,44 @@ export class UserController {
             profileImageUrl: updatedUser.profileImageUrl
         });
     });
+
+    changePassword = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const authUser = req.user;
+        if (!authUser) {
+            throw new AppError("Unauthorized", 401);
+        }
+
+        const { oldPassword, newPassword } = changePasswordSchema.parse(req.body);
+
+        const user = await prisma.user.findUnique({
+            where: { id: authUser.id },
+        });
+
+        if (!user) {
+            throw new AppError("User not found", 404);
+        }
+
+        const isMatch = await comparePassword(oldPassword, user.passwordHash);
+        if (!isMatch) {
+            throw new AppError("Current password is incorrect", 400);
+        }
+
+        const passwordHash = await hashPassword(newPassword);
+
+        await prisma.$transaction([
+            prisma.user.update({
+                where: { id: authUser.id },
+                data: { passwordHash },
+            }),
+            prisma.refreshToken.updateMany({
+                where: { userId: authUser.id, revokedAt: null },
+                data: { revokedAt: new Date() },
+            }),
+        ]);
+
+        return sendSuccess(res, "Password changed successfully", 200);
+    });
+
 
     uploadDoctorFile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         const authUser = req.user;

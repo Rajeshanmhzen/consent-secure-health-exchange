@@ -20,6 +20,11 @@ router.put(
 	uploadProfileImage.single("profileImage"),
 	controller.updateProfileImage
 );
+router.put(
+	"/change-password",
+	requireRole("SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT"),
+	controller.changePassword
+);
 router.post(
 	"/doctor/file",
 	requireRole("DOCTOR"),

@@ -8,6 +8,7 @@ export type AuthUser = {
     isVerified: boolean;
     tenantId?: string;
     hospitalId?: string | null;
+    profileImageUrl?: string | null;
 };
 
 export type ApiResponse<T> = {

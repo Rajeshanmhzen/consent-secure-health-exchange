@@ -2,6 +2,18 @@ import { z } from "zod";
 
 const optionalTrimmedString = z.string().trim().min(1).optional();
 
+export const changePasswordSchema = z.object({
+    oldPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "New password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your new password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+}).refine((data) => data.oldPassword !== data.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
+});
+
 export const updateNotificationPreferenceSchema = z.object({
     emailEnabled: z.boolean().optional(),
     smsEnabled: z.boolean().optional(),

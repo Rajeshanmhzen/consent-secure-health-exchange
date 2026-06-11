@@ -12,6 +12,7 @@ import PhoneInputField from '../components/shared/PhoneInputField'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import Pagination from '../components/shared/Pagination'
 import { tenantApi, type TenantUserRole } from '../services/tenant.service'
+import { validateStaffForm, type StaffFormErrors } from '../validation/staff.validation'
 
 type StaffMember = {
   id: string
@@ -142,6 +143,7 @@ const StaffPage = () => {
   const [allergies, setAllergies] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [isVerified, setIsVerified] = useState(true)
+  const [errors, setErrors] = useState<StaffFormErrors>({})
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string; name: string }>({ isOpen: false, id: '', name: '' })
   const [viewStaffId, setViewStaffId] = useState<string | null>(null)
@@ -179,25 +181,32 @@ const StaffPage = () => {
     setAllergies('')
     setIsActive(true)
     setIsVerified(true)
+    setErrors({})
   }
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!editStaffId && (!user?.tenantId || !user?.hospitalId || !name || !email || !password || !phone)) {
-      showToast('Tenant, hospital, and login details are required', 'warning')
+    const validationErrors = validateStaffForm({
+      role,
+      name,
+      email,
+      password,
+      phone,
+      specialty,
+      dob,
+      tenantId: user?.tenantId,
+      hospitalId: user?.hospitalId,
+      isEditMode: Boolean(editStaffId),
+    })
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
+      showToast(validationErrors.form ?? Object.values(validationErrors).find(Boolean) ?? 'Please correct the form errors', 'warning')
       return
     }
 
-    if (role === 'DOCTOR' && !specialty) {
-      showToast('Please specify the doctor specialization', 'warning')
-      return
-    }
-
-    if (role === 'PATIENT' && !dob) {
-      showToast('Please add the patient date of birth', 'warning')
-      return
-    }
+    setErrors({})
 
     setSaving(true)
     try {
@@ -220,7 +229,7 @@ const StaffPage = () => {
       } else {
         await tenantApi.addUser({
           tenantId: user!.tenantId!,
-          hospitalId: user!.hospitalId!,
+          hospitalId: role === 'DOCTOR' || role === 'RECEPTIONIST' ? user!.hospitalId! : undefined,
           email,
           password,
           role,
@@ -528,13 +537,14 @@ const StaffPage = () => {
               </div>
 
               <form onSubmit={handleAddStaff} className="flex flex-col gap-4">
-                <div className="rounded-2xl border px-4 py-3 text-xs flex flex-wrap gap-3" style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
-                  <span><strong style={{ color: 'var(--color-text)' }}>Tenant:</strong> {user?.tenantId ?? 'Unavailable'}</span>
-                  <span><strong style={{ color: 'var(--color-text)' }}>Hospital:</strong> {user?.hospitalId ?? 'Unavailable'}</span>
-                </div>
+                {errors.form && (
+                  <div className="rounded-xl border px-3 py-2 text-xs font-medium text-amber-600" style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)' }}>
+                    {errors.form}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputField label="Full Name" value={name} onChange={setName} placeholder="Dr. Gregory House" />
+                  <InputField label="Full Name" value={name} onChange={setName} placeholder="Dr. Gregory House" error={errors.name} />
                   
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Security Key Role</label>
@@ -552,13 +562,14 @@ const StaffPage = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputField label="Hospital Email" type="email" value={email} onChange={setEmail} placeholder="house@hospital.org" />
+                  <InputField label="Hospital Email" type="email" value={email} onChange={setEmail} placeholder="house@hospital.org" error={errors.email} />
                   <InputField
-                    label="Login Password"
+                    label="Password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={setPassword}
                     placeholder="Create a temporary password"
+                    error={errors.password}
                     rightAdornment={
                       <div className="flex items-center gap-1">
                         <Button
@@ -570,14 +581,14 @@ const StaffPage = () => {
                           aria-label="Generate random password"
                         >
                           <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 2v4" />
-                            <path d="M12 18v4" />
-                            <path d="M4.93 4.93l2.83 2.83" />
-                            <path d="M16.24 16.24l2.83 2.83" />
-                            <path d="M2 12h4" />
-                            <path d="M18 12h4" />
-                            <path d="M4.93 19.07l2.83-2.83" />
-                            <path d="M16.24 7.76l2.83-2.83" />
+                            <path d="M15 4V2" />
+                            <path d="M15 16v-2" />
+                            <path d="M8 9h2" />
+                            <path d="M20 9h2" />
+                            <path d="M17.8 6.2 19 5" />
+                            <path d="M17.8 11.8 19 13" />
+                            <path d="M3 21l9-9" />
+                            <path d="M14.5 6.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z" />
                           </svg>
                         </Button>
                         <Button
@@ -607,7 +618,7 @@ const StaffPage = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <PhoneInputField label="Phone Number" value={phone} onChange={setPhone} />
+                  <PhoneInputField label="Phone Number" value={phone} onChange={setPhone} error={errors.phone} />
                   <div className="grid grid-cols-2 gap-4">
                     <InputField
                       label="Active"
@@ -635,6 +646,7 @@ const StaffPage = () => {
                       value={specialty}
                       onChange={setSpecialty}
                       placeholder="e.g. Diagnostic Medicine, Neurology"
+                      error={errors.specialty}
                     />
                     <InputField
                       label="Medical License Number"
@@ -647,9 +659,36 @@ const StaffPage = () => {
 
                 {role === 'PATIENT' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Date of Birth" type="date" value={dob} onChange={setDob} />
-                    <InputField label="Gender" value={gender} onChange={setGender} placeholder="Male / Female / Other" />
-                    <InputField label="Blood Group" value={bloodGroup} onChange={setBloodGroup} placeholder="O+" />
+                    <InputField label="Date of Birth" type="date" value={dob} onChange={setDob} error={errors.dob} />
+                    <InputField
+                      label="Gender"
+                      as="select"
+                      value={gender}
+                      onChange={setGender}
+                      options={[
+                        { label: 'Select Gender', value: '' },
+                        { label: 'Male', value: 'Male' },
+                        { label: 'Female', value: 'Female' },
+                        { label: 'Other', value: 'Other' },
+                      ]}
+                    />
+                    <InputField
+                      label="Blood Group"
+                      as="select"
+                      value={bloodGroup}
+                      onChange={setBloodGroup}
+                      options={[
+                        { label: 'Select Blood Group', value: '' },
+                        { label: 'A+', value: 'A+' },
+                        { label: 'A-', value: 'A-' },
+                        { label: 'B+', value: 'B+' },
+                        { label: 'B-', value: 'B-' },
+                        { label: 'AB+', value: 'AB+' },
+                        { label: 'AB-', value: 'AB-' },
+                        { label: 'O+', value: 'O+' },
+                        { label: 'O-', value: 'O-' },
+                      ]}
+                    />
                     <InputField label="Allergies" value={allergies} onChange={setAllergies} placeholder="Penicillin, dust, etc." required={false} />
                   </div>
                 )}
