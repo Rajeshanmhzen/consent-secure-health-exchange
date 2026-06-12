@@ -7,7 +7,7 @@ import Pagination from '../../components/shared/Pagination'
 import Button from '../../components/shared/Button'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { useToast } from '../../Context/ToastContext'
-import { tenantApi, type Tenant } from '../../services/tenant.service'
+import { tenantApi } from '../../services/tenant.service'
 import FilterTabs from '../../components/shared/FilterTabs'
 
 const trashTabs = [
@@ -56,10 +56,6 @@ const TrashPage = () => {
                 .catch(() => {})
                 .finally(() => setLoading(false))
         } else {
-            // For users, need a tenantId if not super_admin, but here we assume super admin can see all deleted users
-            // Wait, listUsers requires tenantId in the api signature. We might have a problem if it's required for SUPER_ADMIN.
-            // But let's pass a dummy or change backend. Wait, backend allows SUPER_ADMIN to see all if tenantId is bypassed.
-            // Let's assume we pass an empty tenantId or it's required. We'll pass '' and see.
             tenantApi.listUsers({ tenantId: '', page, limit: 10, deletedOnly: true })
                 .then(res => {
                     setItems(res.data.users)
@@ -133,7 +129,7 @@ const TrashPage = () => {
                     </div>
                     {selectedIds.length > 0 && (
                         <div className="flex gap-2">
-                            <Button variant="secondary" onClick={() => setConfirmDialog({ isOpen: true, action: 'restore', type: 'bulk' })}>Restore Selected</Button>
+                            <Button variant="outline" onClick={() => setConfirmDialog({ isOpen: true, action: 'restore', type: 'bulk' })}>Restore Selected</Button>
                             <Button variant="danger" onClick={() => setConfirmDialog({ isOpen: true, action: 'hardDelete', type: 'bulk' })}>Delete Selected</Button>
                         </div>
                     )}
@@ -158,7 +154,7 @@ const TrashPage = () => {
                         <div className="px-5 py-16 text-center">
                             <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No deleted items found</p>
                         </div>
-                    ) : items.map((item, i) => (
+                    ) : items.map((item) => (
                         <motion.div key={item.id} className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-3.5 text-sm" style={{ borderTop: '1px solid var(--color-border)' }}>
                             <div className="flex items-center">
                                 <input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleSelect(item.id)} className="rounded border-gray-300" />

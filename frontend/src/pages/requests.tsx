@@ -7,6 +7,7 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import Button from '../components/shared/Button'
 import InputField from '../components/shared/InputField'
 import { requestApi } from '../services/request.service'
+import { tenantApi } from '../services/tenant.service'
 
 type HieRequest = {
   id: string
@@ -48,19 +49,8 @@ const RequestsPage = () => {
   const [targetDoctorId, setTargetDoctorId] = useState('')
   const [reason, setReason] = useState('')
 
-  // Mock candidates from LocalStorage registry
-  const [localPatients] = useState<any[]>(() => {
-    const saved = localStorage.getItem('hie_patients')
-    return saved ? JSON.parse(saved) : []
-  })
-
-  // Mock doctors in HIE network to choose from
-  const networkDoctors = [
-    { id: "doc-house-101", name: "Dr. Gregory House", hospital: "St. Sebastian Clinic" },
-    { id: "doc-foreman-102", name: "Dr. Eric Foreman", hospital: "Princeton-Plainsboro Hospital" },
-    { id: "doc-cuddy-103", name: "Dr. Lisa Cuddy", hospital: "Mercy General Hospital" },
-    { id: "doc-cameron-104", name: "Dr. Allison Cameron", hospital: "St. Sebastian Clinic" }
-  ]
+  const [localPatients, setLocalPatients] = useState<any[]>([])
+  const [networkDoctors, setNetworkDoctors] = useState<{ id: string; name: string; hospital: string }[]>([])
 
   const fetchRequests = async () => {
     try {
@@ -80,6 +70,23 @@ const RequestsPage = () => {
       return
     }
     fetchRequests()
+    if (user.tenantId) {
+      tenantApi.listUsers({ tenantId: user.tenantId, role: 'PATIENT' }).then(res => {
+        const patients = (res.data?.users || []).map((u: any) => ({
+          id: u.patient?.id || u.id,
+          name: u.patient?.name || u.name || '—',
+        }))
+        setLocalPatients(patients)
+      }).catch(() => {})
+      tenantApi.listUsers({ tenantId: user.tenantId, role: 'DOCTOR' }).then(res => {
+        const docs = (res.data?.users || []).map((u: any) => ({
+          id: u.doctor?.id || u.id,
+          name: u.doctor?.name || u.name || '—',
+          hospital: u.doctor?.hospital?.name || '—',
+        }))
+        setNetworkDoctors(docs)
+      }).catch(() => {})
+    }
   }, [user])
 
   useEffect(() => {

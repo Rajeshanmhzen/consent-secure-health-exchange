@@ -10,7 +10,7 @@ import { dashboardApi } from '../services/dashboard.service'
 
 type AuditEvent = {
   id: string
-  action: 'LOGIN' | 'VIEW_RECORD' | 'APPROVE_CONSENT' | 'EMERGENCY_ACCESS' | 'CREATE_REQUEST' | 'CREATE_PATIENT'
+  action: string
   userEmail: string
   userName: string
   role: string

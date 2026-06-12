@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import { sendError } from "../utils/apiResponse";
 import { verifyAccessToken } from "../utils/jwt";
 
-// ================= RBAC PERMISSIONS =================
 export type Permission =
     | "SUPER_ADMIN_MANAGE"
     
@@ -26,7 +25,9 @@ export type Permission =
     | "DATA_REQUEST_CREATE"
     | "DATA_REQUEST_LIST"
     | "CONSENT_MANAGE"
-    | "EMERGENCY_OVERRIDE";
+    | "EMERGENCY_OVERRIDE"
+    | "RECORD_CREATE"
+    | "RECORD_LIST";
 
 // ================= ROLE TO PERMISSIONS MAP =================
 const ROLE_PERMISSIONS: Record<string, Permission[]> = {
@@ -60,7 +61,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         "USER_DELETE",
         "PLAN_VIEW",
         "PREFERENCES_MANAGE",
-        "DATA_REQUEST_LIST"
+        "DATA_REQUEST_LIST",
+        "RECORD_LIST"
     ],
     DOCTOR: [
         "USER_LIST",
@@ -68,16 +70,20 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         "PREFERENCES_MANAGE",
         "DATA_REQUEST_CREATE",
         "DATA_REQUEST_LIST",
-        "EMERGENCY_OVERRIDE"
+        "EMERGENCY_OVERRIDE",
+        "RECORD_CREATE",
+        "RECORD_LIST"
     ],
     RECEPTIONIST: [
         "USER_LIST",
-        "PREFERENCES_MANAGE"
+        "PREFERENCES_MANAGE",
+        "RECORD_LIST"
     ],
     PATIENT: [
         "PREFERENCES_MANAGE",
         "DATA_REQUEST_LIST",
-        "CONSENT_MANAGE"
+        "CONSENT_MANAGE",
+        "RECORD_LIST"
     ]
 };
 

@@ -6,6 +6,8 @@ import { useToast } from '../Context/ToastContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import Button from '../components/shared/Button'
 import InputField from '../components/shared/InputField'
+import { recordApi, type MedicalRecord as ApiMedicalRecord } from '../services/record.service'
+import { tenantApi } from '../services/tenant.service'
 
 type RecordFile = {
   name: string
@@ -13,7 +15,7 @@ type RecordFile = {
   type: string
 }
 
-type MedicalRecord = {
+type DisplayRecord = {
   id: string
   patientId: string
   patientName: string
@@ -24,50 +26,8 @@ type MedicalRecord = {
   prescription: string
   notes: string
   createdAt: string
-  files: RecordFile[]
+  files: { id: string; name: string; size: string; type: string }[]
 }
-
-const INITIAL_RECORDS: MedicalRecord[] = [
-  {
-    id: 'rec-1',
-    patientId: '1',
-    patientName: 'Alexander Mercer',
-    doctorId: 'doc-1',
-    doctorName: 'Dr. Gregory House',
-    specialty: 'Diagnostic Medicine',
-    diagnosis: 'Acute Autoimmune Myocarditis',
-    prescription: 'Methylprednisolone 24mg daily, Lisinopril 5mg daily',
-    notes: 'Patient presented with sudden-onset chest pain and dyspnea. Cardiac enzymes were elevated. Initial echo showed mild left ventricular hypokinesis. Steroid therapy initiated with good clinical response.',
-    createdAt: '2026-05-10T14:30:00Z',
-    files: [{ name: 'cardiac_mri_report.pdf', size: '2.4 MB', type: 'application/pdf' }, { name: 'blood_panel_may.xlsx', size: '150 KB', type: 'spreadsheet' }]
-  },
-  {
-    id: 'rec-2',
-    patientId: '1',
-    patientName: 'Alexander Mercer',
-    doctorId: 'doc-2',
-    doctorName: 'Dr. Allison Cameron',
-    specialty: 'Immunology',
-    diagnosis: 'Seasonal Asthma Exacerbation',
-    prescription: 'Albuterol HFA Inhaler 90mcg (1-2 puffs q4h prn), Fluticasone propionate',
-    notes: 'Triggered by spring allergens. Spirometry reveals moderate reversible obstructive defect. Instructed on proper inhaler technique.',
-    createdAt: '2026-04-18T09:15:00Z',
-    files: [{ name: 'spirometry_results.pdf', size: '1.1 MB', type: 'application/pdf' }]
-  },
-  {
-    id: 'rec-3',
-    patientId: '2',
-    patientName: 'Elena Rostova',
-    doctorId: 'doc-3',
-    doctorName: 'Dr. Eric Foreman',
-    specialty: 'Neurology',
-    diagnosis: 'Vestibular Migraine',
-    prescription: 'Propranolol 40mg twice daily, Rizatriptan 10mg prn at onset',
-    notes: 'Recurring vertigo spells associated with unilateral pulsatile headache. Avoid triggers (tyramine, sleep deprivation). Response to prophylactic beta-blocker will be reviewed in 6 weeks.',
-    createdAt: '2026-05-02T11:00:00Z',
-    files: [{ name: 'brain_mri_clear.pdf', size: '4.8 MB', type: 'application/pdf' }]
-  }
-]
 
 const RecordsPage = () => {
   const { user } = useAuth()
@@ -75,102 +35,111 @@ const RecordsPage = () => {
   const location = useLocation()
   const { showToast } = useToast()
 
-  const [records, setRecords] = useState<MedicalRecord[]>(() => {
-    const saved = localStorage.getItem('hie_records')
-    return saved ? JSON.parse(saved) : INITIAL_RECORDS
-  })
+  const [records, setRecords] = useState<DisplayRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState(() => (location.state as any)?.filterPatientName ?? '')
 
-  useEffect(() => {
-    localStorage.setItem('hie_records', JSON.stringify(records))
-  }, [records])
-
-  const [search, setSearch] = useState(() => {
-    return (location.state as any)?.filterPatientName ?? ''
-  })
-  
   const [showAddModal, setShowAddModal] = useState(false)
-  const [selectedPatientId, setSelectedPatientId] = useState('1')
+  const [patientsList, setPatientsList] = useState<{ id: string; name: string }[]>([])
+  const [selectedPatientId, setSelectedPatientId] = useState('')
   const [diagnosis, setDiagnosis] = useState('')
   const [prescription, setPrescription] = useState('')
   const [notes, setNotes] = useState('')
-  const [attachedFiles, setAttachedFiles] = useState<RecordFile[]>([])
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
-    if (!user) navigate('/login')
+    if (!user) { navigate('/login'); return }
   }, [user, navigate])
 
-  if (!user) return null
+  useEffect(() => {
+    const fetchRecords = async () => {
+      setLoading(true)
+      try {
+        const res = await recordApi.list(search || undefined)
+        const mapped: DisplayRecord[] = (res.data || []).map((r: ApiMedicalRecord) => ({
+          id: r.id,
+          patientId: r.patientId,
+          patientName: r.patient?.name || '—',
+          doctorId: r.doctorId,
+          doctorName: r.doctor?.name || '—',
+          specialty: r.doctor?.specialization || '—',
+          diagnosis: r.diagnosis || '—',
+          prescription: r.prescription || '—',
+          notes: r.notes || '—',
+          createdAt: r.createdAt,
+          files: (r.files || []).map(f => ({
+            id: f.id,
+            name: f.fileName || 'file',
+            size: '—',
+            type: f.fileType || '—',
+          })),
+        }))
+        setRecords(mapped)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load records'
+        showToast(message, 'error')
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (user) fetchRecords()
+  }, [user, search])
+
+  useEffect(() => {
+    if (showAddModal && user?.tenantId) {
+      tenantApi.listUsers({ tenantId: user.tenantId, role: 'PATIENT' }).then(res => {
+        const list = (res.data?.users || []).map((u: any) => ({ id: u.id, name: u.patient?.name || u.name || '—' }))
+        setPatientsList(list)
+        if (list.length > 0) setSelectedPatientId(list[0].id)
+      }).catch(() => {})
+    }
+  }, [showAddModal, user])
 
   const isDoctor = user.role === 'DOCTOR'
   const isPatient = user.role === 'PATIENT'
 
-  // Simulated patients list for creation dropdown
-  const patientsList = [
-    { id: '1', name: 'Alexander Mercer' },
-    { id: '2', name: 'Elena Rostova' },
-    { id: '3', name: 'Marcus Vance' },
-    { id: '4', name: 'Sophia Lin' },
-    { id: '5', name: 'David Kim' },
-  ]
-
-  const handleCreateRecord = (e: React.FormEvent) => {
+  const handleCreateRecord = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!diagnosis || !prescription) {
-      showToast('Please fill out Diagnosis and Prescription fields', 'warning')
+    if (!diagnosis) {
+      showToast('Please fill out the Diagnosis field', 'warning')
       return
     }
 
-    const patientName = patientsList.find(p => p.id === selectedPatientId)?.name || 'Unknown Patient'
-
-    const newRecord: MedicalRecord = {
-      id: `rec-${Date.now()}`,
-      patientId: selectedPatientId,
-      patientName,
-      doctorId: 'doc-current',
-      doctorName: user.name || 'Dr. Self',
-      specialty: 'Clinical Practitioner',
-      diagnosis,
-      prescription,
-      notes: notes || 'No additional notes provided.',
-      createdAt: new Date().toISOString(),
-      files: attachedFiles.length > 0 ? attachedFiles : [{ name: 'clinical_encounter.pdf', size: '420 KB', type: 'application/pdf' }]
+    setCreating(true)
+    try {
+      await recordApi.create({
+        patientId: selectedPatientId,
+        diagnosis,
+        prescription: prescription || undefined,
+        notes: notes || undefined,
+      })
+      showToast('Medical record created successfully!', 'success')
+      setShowAddModal(false)
+      setDiagnosis('')
+      setPrescription('')
+      setNotes('')
+      const res = await recordApi.list()
+      const mapped: DisplayRecord[] = (res.data || []).map((r: ApiMedicalRecord) => ({
+        id: r.id,
+        patientId: r.patientId,
+        patientName: r.patient?.name || '—',
+        doctorId: r.doctorId,
+        doctorName: r.doctor?.name || '—',
+        specialty: r.doctor?.specialization || '—',
+        diagnosis: r.diagnosis || '—',
+        prescription: r.prescription || '—',
+        notes: r.notes || '—',
+        createdAt: r.createdAt,
+        files: (r.files || []).map(f => ({ id: f.id, name: f.fileName || 'file', size: '—', type: f.fileType || '—' })),
+      }))
+      setRecords(mapped)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create record'
+      showToast(message, 'error')
+    } finally {
+      setCreating(false)
     }
-
-    setRecords(prev => [newRecord, ...prev])
-    showToast('Medical record created successfully!', 'success')
-    setShowAddModal(false)
-
-    // Reset Form
-    setDiagnosis('')
-    setPrescription('')
-    setNotes('')
-    setAttachedFiles([])
   }
-
-  const handleSimulatedFileUpload = () => {
-    const names = ['lab_blood_report.pdf', 'xray_chest_scan.jpg', 'ekg_waveform.pdf', 'discharge_summary.docx']
-    const randomName = names[Math.floor(Math.random() * names.length)]
-    const randomSize = `${(Math.random() * 3 + 0.5).toFixed(1)} MB`
-    const type = randomName.endsWith('.pdf') ? 'application/pdf' : randomName.endsWith('.jpg') ? 'image/jpeg' : 'document'
-
-    setAttachedFiles(prev => [...prev, { name: randomName, size: randomSize, type }])
-    showToast(`Attached ${randomName} successfully`, 'info')
-  }
-
-  // Filter records based on role and search criteria
-  const filteredRecords = records.filter(r => {
-    if (isPatient) {
-      // Patients only see their own records.
-      // In a real system we would filter by patient's registered user id.
-      // Here we show records matching a mock patient setup or all if not specific.
-      return r.patientName.toLowerCase().includes(user.name?.toLowerCase() || 'alexander') &&
-             (r.diagnosis.toLowerCase().includes(search.toLowerCase()) || 
-              r.doctorName.toLowerCase().includes(search.toLowerCase()))
-    }
-    // Doctors and Admins see records matching search
-    return r.patientName.toLowerCase().includes(search.toLowerCase()) ||
-           r.diagnosis.toLowerCase().includes(search.toLowerCase())
-  })
 
   return (
     <DashboardLayout>
@@ -219,13 +188,17 @@ const RecordsPage = () => {
 
         {/* Layout content depends on Patient vs Doctor/Admin */}
         {isPatient ? (
-          /* ================= PATIENT TIMELINE ================= */
           <div className="relative border-l-2 pl-6 ml-4 flex flex-col gap-8 mt-2" style={{ borderColor: 'var(--color-primary-ghost)' }}>
-            {filteredRecords.length === 0 ? (
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="h-10 w-10 mx-auto rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                <p className="text-sm mt-3" style={{ color: 'var(--color-text-secondary)' }}>Loading records...</p>
+              </div>
+            ) : records.length === 0 ? (
               <div className="p-8 text-center rounded-2xl" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No records found in your clinical file</p>
               </div>
-            ) : filteredRecords.map((r, i) => (
+            ) : records.map((r, i) => (
               <motion.div
                 key={r.id}
                 initial={{ opacity: 0, x: -16 }}
@@ -289,13 +262,17 @@ const RecordsPage = () => {
             ))}
           </div>
         ) : (
-          /* ================= DOCTOR/ADMIN GRID LIST ================= */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredRecords.length === 0 ? (
+            {loading ? (
+              <div className="md:col-span-2 p-12 text-center">
+                <div className="h-10 w-10 mx-auto rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                <p className="text-sm mt-3" style={{ color: 'var(--color-text-secondary)' }}>Loading records...</p>
+              </div>
+            ) : records.length === 0 ? (
               <div className="md:col-span-2 p-12 text-center rounded-2xl" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No patient records match search parameters</p>
               </div>
-            ) : filteredRecords.map((r, i) => (
+            ) : records.map((r, i) => (
               <motion.div
                 key={r.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -396,41 +373,9 @@ const RecordsPage = () => {
                 
                 <InputField label="Encounter Notes" as="textarea" rows={3} value={notes} onChange={setNotes} placeholder="Describe clinical symptoms, examination findings, and follow-up directives..." required={false} />
 
-                {/* File Upload Trigger */}
-                <div className="flex flex-col gap-2 p-4 rounded-xl border-dashed border-2" style={{ borderColor: 'var(--color-border)' }}>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
-                      Diagnostic Files & Scans ({attachedFiles.length} attached)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleSimulatedFileUpload}
-                      className="text-xs font-bold text-indigo-400 hover:underline"
-                    >
-                      + Add File Attachment
-                    </button>
-                  </div>
-                  {attachedFiles.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {attachedFiles.map((f, i) => (
-                        <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-                          <span className="truncate max-w-[120px]">{f.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => setAttachedFiles(prev => prev.filter((_, idx) => idx !== i))}
-                            className="text-rose-500 font-bold ml-1 hover:text-rose-400"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 <div className="flex justify-end gap-3 mt-3">
                   <Button variant="default" size="md" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button variant="primary" size="md" type="submit">Sign & Save Record</Button>
+                  <Button variant="primary" size="md" type="submit" isLoading={creating} loadingText="Saving...">Sign & Save Record</Button>
                 </div>
               </form>
             </motion.div>
