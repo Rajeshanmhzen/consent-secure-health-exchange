@@ -12,12 +12,6 @@ type ConsentLocationState = {
   requestId?: string
 }
 
-type ConsentListResponse = {
-  data: {
-    requests: ConsentRequest[]
-  }
-}
-
 type ConsentRequest = {
   id: string
   patientId: string
@@ -62,8 +56,8 @@ const ConsentPage = () => {
   const fetchConsents = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await requestApi.list<ConsentListResponse>()
-      setConsents(data.data.requests || [])
+      const data = await requestApi.list() as any
+      setConsents(data.data?.requests || data.data || [])
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to fetch active consents ledger'
       showToast(message, 'error')

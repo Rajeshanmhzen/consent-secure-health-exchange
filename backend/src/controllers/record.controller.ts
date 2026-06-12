@@ -18,7 +18,7 @@ export class RecordController {
         if (user.role === "PATIENT") {
             const patient = await prisma.patient.findUnique({ where: { userId: user.id } });
             if (!patient) {
-                return sendSuccess(res, "Records fetched", []);
+                throw new AppError("Patient profile not found", 404);
             }
 
             const where: any = { patientId: patient.id, deletedAt: null };
