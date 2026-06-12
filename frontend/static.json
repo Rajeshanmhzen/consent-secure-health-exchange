@@ -1,0 +1,19 @@
+{
+  "headers": {
+    "/assets/*": {
+      "Cache-Control": "public, max-age=31536000, immutable"
+    },
+    "/*.js": {
+      "Cache-Control": "public, max-age=31536000, immutable"
+    },
+    "/*.css": {
+      "Cache-Control": "public, max-age=31536000, immutable"
+    },
+    "/**": {
+      "Cache-Control": "public, max-age=0, must-revalidate"
+    }
+  },
+  "rewrites": [
+    { "source": "/**", "destination": "/index.html" }
+  ]
+}
