@@ -78,15 +78,22 @@ const ChangePasswordPage = () => {
     setSaving(true)
 
     try {
-      await userApi.changePassword({
+      const res = await userApi.changePassword({
         oldPassword,
         newPassword: password,
         confirmPassword,
       })
 
-      showToast('Password changed successfully. Please sign in again.', 'success')
-      logout()
-      navigate('/login')
+      if (res.data?.accessToken && res.data?.refreshToken) {
+        localStorage.setItem('accessToken', res.data.accessToken)
+        localStorage.setItem('refreshToken', res.data.refreshToken)
+        showToast('Password changed successfully.', 'success')
+        navigate(-1)
+      } else {
+        showToast('Password changed successfully. Please sign in again.', 'success')
+        logout()
+        navigate('/login')
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to change password'
       showToast(message, 'error')

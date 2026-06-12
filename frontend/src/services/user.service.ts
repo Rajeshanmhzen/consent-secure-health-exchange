@@ -44,7 +44,7 @@ export const userApi = {
         })
     },
     changePassword: (payload: ChangePasswordPayload) => {
-        return request<ApiResponse<null>>('/users/change-password', {
+        return request<ApiResponse<{ accessToken: string; refreshToken: string }>>('/users/change-password', {
             method: 'PUT',
             body: JSON.stringify(payload)
         })

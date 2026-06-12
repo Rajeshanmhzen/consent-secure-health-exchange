@@ -7,6 +7,8 @@ import { publishRealtimeEvent } from "../socket.io/realtime";
 import { AppError } from "../utils/appError";
 import { comparePassword, hashPassword } from "../utils/password";
 import { verifyAccessToken } from "../utils/jwt";
+import crypto from "crypto";
+import { signAccessToken, signRefreshToken, getExpiryDate, getRequiredEnv } from "../utils/jwt";
 
 type AuthenticatedRequest = Request & {
     user?: {
@@ -223,6 +225,11 @@ export class UserController {
 
         const passwordHash = await hashPassword(newPassword);
 
+        const accessToken = signAccessToken({ sub: authUser.id, role: user.role });
+        const refreshToken = signRefreshToken({ sub: authUser.id });
+        const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
+        const expiresAt = getExpiryDate(getRequiredEnv("REFRESH_TOKEN_EXPIRES_IN"));
+
         await prisma.$transaction([
             prisma.user.update({
                 where: { id: authUser.id },
@@ -232,9 +239,15 @@ export class UserController {
                 where: { userId: authUser.id, revokedAt: null },
                 data: { revokedAt: new Date() },
             }),
+            prisma.refreshToken.create({
+                data: { userId: authUser.id, tokenHash, expiresAt },
+            }),
         ]);
 
-        return sendSuccess(res, "Password changed successfully", 200);
+        return sendSuccess(res, "Password changed successfully", {
+            accessToken,
+            refreshToken,
+        });
     });
 
 

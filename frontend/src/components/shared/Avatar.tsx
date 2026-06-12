@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const resolveImageUrl = (path?: string | null) => {
     if (!path) return undefined
     if (path.startsWith('http')) return path
@@ -28,13 +30,15 @@ const getInitials = (name?: string) => {
 const Avatar = ({ name, image, size = 'md' }: AvatarProps) => {
     const { box, text } = sizeMap[size]
     const resolvedImage = resolveImageUrl(image)
+    const [imgError, setImgError] = useState(false)
 
-    if (resolvedImage) {
+    if (resolvedImage && !imgError) {
         return (
             <img
                 src={resolvedImage}
                 alt={name ?? 'avatar'}
                 className={`${box} rounded-full object-cover shrink-0`}
+                onError={() => setImgError(true)}
             />
         )
     }

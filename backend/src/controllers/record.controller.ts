@@ -65,6 +65,31 @@ export class RecordController {
             return sendSuccess(res, "Records fetched", records);
         }
 
+        if (user.role === "RECEPTIONIST") {
+            const receptionist = await prisma.receptionist.findUnique({ where: { userId: user.id } });
+            if (!receptionist) throw new AppError("Receptionist profile not found", 404);
+
+            const where: any = { deletedAt: null, doctor: { hospitalId: receptionist.hospitalId } };
+            if (search) {
+                where.OR = [
+                    { patient: { name: { contains: search, mode: "insensitive" } } },
+                    { diagnosis: { contains: search, mode: "insensitive" } },
+                ];
+            }
+
+            const records = await prisma.medicalRecord.findMany({
+                where,
+                include: {
+                    patient: { select: { name: true } },
+                    doctor: { select: { name: true, specialization: true } },
+                    files: true,
+                },
+                orderBy: { createdAt: "desc" },
+            });
+
+            return sendSuccess(res, "Records fetched", records);
+        }
+
         const where: any = { deletedAt: null };
         if (search) {
             where.OR = [
