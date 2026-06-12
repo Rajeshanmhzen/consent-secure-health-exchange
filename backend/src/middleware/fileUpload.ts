@@ -1,13 +1,9 @@
 import fs from "fs";
-import path, { dirname } from "path";
-import { fileURLToPath } from "url";
+import path from "path";
 import multer, { type FileFilterCallback, type StorageEngine } from "multer";
 import type { Request } from "express";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-export const baseUploadPath = path.join(__dirname, "../uploads");
+export const baseUploadPath = path.join(process.cwd(), "uploads");
 
 if (!fs.existsSync(baseUploadPath)) {
 	fs.mkdirSync(baseUploadPath, { recursive: true });

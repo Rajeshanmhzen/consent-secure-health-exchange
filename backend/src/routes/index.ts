@@ -9,6 +9,7 @@ import inquiryRoutes from "./inquiry.routes";
 import dashboardRoutes from "./dashboard.routes";
 import requestRoutes from "./request.routes";
 import emergencyRoutes from "./emergency.routes";
+import recordRoutes from "./record.routes";
 
 const routes = express.Router();
 routes.use("/auth", authRoutes);
@@ -20,5 +21,6 @@ routes.use("/inquiries", inquiryRoutes);
 routes.use("/dashboard", dashboardRoutes);
 routes.use("/requests", requestRoutes);
 routes.use("/emergency", emergencyRoutes);
+routes.use("/records", recordRoutes);
 
 export default routes;

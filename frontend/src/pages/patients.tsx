@@ -8,6 +8,7 @@ import Button from '../components/shared/Button'
 import InputField from '../components/shared/InputField'
 import PhoneInputField from '../components/shared/PhoneInputField'
 import Pagination from '../components/shared/Pagination'
+import { tenantApi } from '../services/tenant.service'
 
 type Patient = {
   id: string
@@ -21,28 +22,13 @@ type Patient = {
   createdAt: string
 }
 
-const INITIAL_PATIENTS: Patient[] = [
-  { id: '1', name: 'Alexander Mercer', dob: '1988-04-12', gender: 'Male', phone: '+1 (555) 019-2834', email: 'alexander@example.com', bloodGroup: 'O+', allergies: 'Penicillin', createdAt: '2026-01-15T08:30:00Z' },
-  { id: '2', name: 'Elena Rostova', dob: '1995-09-24', gender: 'Female', phone: '+1 (555) 014-9821', email: 'elena@example.com', bloodGroup: 'A-', allergies: 'Peanuts', createdAt: '2026-02-10T10:15:00Z' },
-  { id: '3', name: 'Marcus Vance', dob: '1974-11-03', gender: 'Male', phone: '+1 (555) 017-4839', email: 'marcus@example.com', bloodGroup: 'B+', allergies: 'None', createdAt: '2026-03-05T14:45:00Z' },
-  { id: '4', name: 'Sophia Lin', dob: '2001-07-19', gender: 'Female', phone: '+1 (555) 012-3029', email: 'sophia@example.com', bloodGroup: 'AB+', allergies: 'Sulfa Drugs', createdAt: '2026-04-12T09:00:00Z' },
-  { id: '5', name: 'David Kim', dob: '1982-12-30', gender: 'Male', phone: '+1 (555) 015-7721', email: 'david.kim@example.com', bloodGroup: 'O-', allergies: 'Shellfish', createdAt: '2026-04-20T11:20:00Z' },
-  { id: '6', name: 'Clara Oswald', dob: '1992-05-08', gender: 'Female', phone: '+1 (555) 011-8899', email: 'clara@example.com', bloodGroup: 'A+', allergies: 'None', createdAt: '2026-05-01T16:00:00Z' },
-]
-
 const PatientsPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { showToast } = useToast()
 
-  const [patients, setPatients] = useState<Patient[]>(() => {
-    const saved = localStorage.getItem('hie_patients')
-    return saved ? JSON.parse(saved) : INITIAL_PATIENTS
-  })
-
-  useEffect(() => {
-    localStorage.setItem('hie_patients', JSON.stringify(patients))
-  }, [patients])
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [loading, setLoading] = useState(true)
 
   const [search, setSearch] = useState('')
   const [genderFilter, setGenderFilter] = useState('All')
@@ -50,7 +36,6 @@ const PatientsPage = () => {
   const [page, setPage] = useState(1)
   const itemsPerPage = 5
 
-  // Form registration state
   const [showModal, setShowModal] = useState(false)
   const [name, setName] = useState('')
   const [dob, setDob] = useState('')
@@ -61,44 +46,87 @@ const PatientsPage = () => {
   const [allergies, setAllergies] = useState('')
 
   useEffect(() => {
-    if (!user) navigate('/login')
+    if (!user) { navigate('/login'); return }
   }, [user, navigate])
+
+  useEffect(() => {
+    const fetchPatients = async () => {
+      setLoading(true)
+      try {
+        const res = await tenantApi.listUsers({ tenantId: user.tenantId!, role: 'PATIENT' })
+        const mapped: Patient[] = (res.data?.users || []).map((u: any) => ({
+          id: u.id,
+          name: u.patient?.name || u.name || '—',
+          dob: u.patient?.dob || '',
+          gender: u.patient?.gender || '—',
+          phone: u.phone || '—',
+          email: u.email || '—',
+          bloodGroup: u.patient?.bloodGroup || '—',
+          allergies: u.patient?.allergies || 'None',
+          createdAt: u.createdAt,
+        }))
+        setPatients(mapped)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load patients'
+        showToast(message, 'error')
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (user?.tenantId) fetchPatients()
+    else setLoading(false)
+  }, [user])
 
   if (!user) return null
 
   const isAllowedToRegister = user.role === 'HOSPITAL_ADMIN' || user.role === 'RECEPTIONIST'
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !dob || !phone || !email) {
       showToast('Please fill out all required fields', 'warning')
       return
     }
 
-    const newPatient: Patient = {
-      id: String(Date.now()),
-      name,
-      dob,
-      gender,
-      phone,
-      email,
-      bloodGroup,
-      allergies: allergies || 'None',
-      createdAt: new Date().toISOString(),
+    try {
+      await tenantApi.addUser({
+        tenantId: user.tenantId!,
+        name,
+        email,
+        password: 'Patient@123',
+        role: 'PATIENT',
+        phone,
+        dob,
+        gender,
+        bloodGroup,
+        allergies: allergies || null,
+      })
+      showToast(`Patient ${name} registered successfully!`, 'success')
+      setShowModal(false)
+      setName('')
+      setDob('')
+      setGender('Male')
+      setPhone('')
+      setEmail('')
+      setBloodGroup('O+')
+      setAllergies('')
+      const res = await tenantApi.listUsers({ tenantId: user.tenantId!, role: 'PATIENT' })
+      const mapped: Patient[] = (res.data?.users || []).map((u: any) => ({
+        id: u.id,
+        name: u.patient?.name || u.name || '—',
+        dob: u.patient?.dob || '',
+        gender: u.patient?.gender || '—',
+        phone: u.phone || '—',
+        email: u.email || '—',
+        bloodGroup: u.patient?.bloodGroup || '—',
+        allergies: u.patient?.allergies || 'None',
+        createdAt: u.createdAt,
+      }))
+      setPatients(mapped)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to register patient'
+      showToast(message, 'error')
     }
-
-    setPatients(prev => [newPatient, ...prev])
-    showToast(`Patient ${name} registered successfully!`, 'success')
-    setShowModal(false)
-
-    // Reset Form
-    setName('')
-    setDob('')
-    setGender('Male')
-    setPhone('')
-    setEmail('')
-    setBloodGroup('O+')
-    setAllergies('')
   }
 
   // Filter logic
@@ -203,7 +231,14 @@ const PatientsPage = () => {
             <span className="col-span-1 text-right">Actions</span>
           </div>
 
-          {paginatedPatients.length === 0 ? (
+          {loading ? (
+            <div className="px-5 py-16 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-10 w-10 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Loading patients...</p>
+              </div>
+            </div>
+          ) : paginatedPatients.length === 0 ? (
             <div className="px-5 py-16 text-center">
               <svg viewBox="0 0 24 24" className="h-10 w-10 mx-auto mb-3" fill="currentColor" style={{ color: 'var(--color-text-tertiary)' }}>
                 <path d="M12 12c2.7 0 8 1.34 8 4v2H4v-2c0-2.66 5.3-4 8-4zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />

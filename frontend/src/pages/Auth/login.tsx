@@ -198,11 +198,12 @@ const LoginPage = () => {
                 <div className="flex flex-wrap justify-center gap-2">
                   {[
                     { label: 'Super Admin', email: 'superadmin@gmail.com', password: 'User@123' },
-                    { label: 'Tenant Admin', email: 'admin@cityhospital.com', password: 'User@123' },
-                    { label: 'Tenant Admin2', email: 'admin@medicity.com', password: 'User@123' },
-                    { label: 'Doctor', email: 'doctor.demo@example.com', password: 'Password123' },
-                    { label: 'Patient', email: 'patient.demo@example.com', password: 'Password123' },
-                    { label: 'Receptionist', email: 'reception.demo@example.com', password: 'Password123' }
+                    { label: 'City Admin', email: 'admin@cityhospital.com', password: 'User@123' },
+                    { label: 'City Doctor', email: 'johnsmith@cityhospital.com', password: 'User@123' },
+                    { label: 'City Receptionist', email: 'riyashrestha@cityhospital.com', password: 'User@123' },
+                    { label: 'City Patient', email: 'haritamang@gmail.com', password: 'User@123' },
+                    { label: 'Medicity Admin', email: 'admin@medicity.com', password: 'User@123' },
+                    { label: 'Medicity Doctor', email: 'johndoe@medicity.com', password: 'User@123' },
                   ].map((acc) => (
                     <button
                       key={acc.label}

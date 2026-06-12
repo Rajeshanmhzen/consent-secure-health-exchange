@@ -51,8 +51,8 @@ const ChangePasswordPage = () => {
     }
     if (!password) {
       errs.password = 'New password is required'
-    } else if (password.length < 6) {
-      errs.password = 'Password must be at least 6 characters'
+    } else if (password.length < 8) {
+      errs.password = 'Password must be at least 8 characters'
     } else if (password === oldPassword) {
       errs.password = 'New password must be different from current password'
     }
