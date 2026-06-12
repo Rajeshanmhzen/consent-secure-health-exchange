@@ -82,7 +82,12 @@ const ProfilePage = () => {
     setUploading(true)
     try {
       const res = await userApi.updateProfileImage(file)
-      updateUser({ profileImageUrl: res.data.profileImageUrl })
+      const imageUrl = res?.data?.profileImageUrl
+      if (!imageUrl) {
+        showToast('Upload succeeded but no image URL returned', 'warning')
+        return
+      }
+      updateUser({ profileImageUrl: imageUrl })
       showToast('Profile image updated', 'success')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to upload image'

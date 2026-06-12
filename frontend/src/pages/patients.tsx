@@ -53,7 +53,7 @@ const PatientsPage = () => {
     const fetchPatients = async () => {
       setLoading(true)
       try {
-        const res = await tenantApi.listUsers({ tenantId: user.tenantId!, role: 'PATIENT' })
+        const res = await tenantApi.listUsers({ tenantId: user!.tenantId!, role: 'PATIENT' })
         const mapped: Patient[] = (res.data?.users || []).map((u: any) => ({
           id: u.id,
           name: u.patient?.name || u.name || '—',

@@ -9,12 +9,6 @@ import InputField from '../components/shared/InputField'
 import { recordApi, type MedicalRecord as ApiMedicalRecord } from '../services/record.service'
 import { tenantApi } from '../services/tenant.service'
 
-type RecordFile = {
-  name: string
-  size: string
-  type: string
-}
-
 type DisplayRecord = {
   id: string
   patientId: string
@@ -95,8 +89,8 @@ const RecordsPage = () => {
     }
   }, [showAddModal, user])
 
-  const isDoctor = user.role === 'DOCTOR'
-  const isPatient = user.role === 'PATIENT'
+  const isDoctor = user?.role === 'DOCTOR'
+  const isPatient = user?.role === 'PATIENT'
 
   const handleCreateRecord = async (e: React.FormEvent) => {
     e.preventDefault()
