@@ -44,8 +44,13 @@ const VerifyCodePage = () => {
     setError('')
     setIsLoading(true)
     try {
-      await authApi.verifyOtp({ email, code })
-      navigate(`/reset-password?email=${encodeURIComponent(email)}&code=${code}`)
+      const res = await authApi.verifyOtp({ email, code })
+      const resetToken = res.data?.resetToken
+      if (!resetToken) {
+        setError('Verification succeeded but no reset token was returned')
+        return
+      }
+      navigate(`/reset-password?token=${encodeURIComponent(resetToken)}`)
     } catch (err: any) {
       setError(err.message ?? 'Invalid or expired code')
       setDigits(['', '', '', '', '', ''])
