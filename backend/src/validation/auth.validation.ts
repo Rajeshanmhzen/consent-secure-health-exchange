@@ -23,7 +23,10 @@ export const verifyOtpSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-    email: z.string().trim().email(),
-    code: z.string().trim().length(6),
-    newPassword: z.string().min(6),
+    token: z.string().trim().min(1, "Reset token is required"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
 });

@@ -26,8 +26,7 @@ const ResetPasswordPage = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { showToast } = useToast()
-  const email = searchParams.get('email') ?? ''
-  const code = searchParams.get('code') ?? ''
+  const token = searchParams.get('token') ?? ''
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -52,7 +51,7 @@ const ResetPasswordPage = () => {
 
     setIsLoading(true)
     try {
-      await authApi.resetPassword({ email, code, newPassword: password })
+      await authApi.resetPassword({ token, newPassword: password, confirmPassword })
       showToast('Password reset successfully!', 'success')
       setSuccess(true)
       setTimeout(() => navigate('/login'), 2000)

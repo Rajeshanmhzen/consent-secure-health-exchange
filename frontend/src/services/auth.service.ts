@@ -3,6 +3,7 @@ import type {
     RegisterRequest,
     ForgotPasswordRequest,
     VerifyOtpRequest,
+    VerifyOtpResponse,
     ResetPasswordRequest,
     RefreshRequest,
     LogoutRequest,
@@ -43,15 +44,15 @@ export const authApi = {
         }),
 
     verifyOtp: ({ email, code }: VerifyOtpRequest) =>
-        request<MessageResponse>('/auth/verify-otp', {
+        request<VerifyOtpResponse>('/auth/verify-otp', {
             method: 'POST',
             body: JSON.stringify({ email, code }),
         }),
 
-    resetPassword: ({ email, code, newPassword }: ResetPasswordRequest) =>
+    resetPassword: ({ token, newPassword, confirmPassword }: ResetPasswordRequest) =>
         request<MessageResponse>('/auth/reset-password', {
             method: 'POST',
-            body: JSON.stringify({ email, code, newPassword }),
+            body: JSON.stringify({ token, newPassword, confirmPassword }),
         }),
 
     refresh: ({ refreshToken }: RefreshRequest) =>

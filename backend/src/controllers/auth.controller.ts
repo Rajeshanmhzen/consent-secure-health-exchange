@@ -47,15 +47,15 @@ export class AuthController {
 
     verifyOtp = asyncHandler(async (req: Request, res: Response) => {
         const { email, code } = verifyOtpSchema.parse(req.body);
-        const valid = await repo.verifyOtp(email, code);
-        if (!valid) return sendError(res, "Invalid or expired code", 400);
-        return sendSuccess(res, "Code verified", null);
+        const resetToken = await repo.verifyOtp(email, code);
+        if (!resetToken) return sendError(res, "Invalid or expired code", 400);
+        return sendSuccess(res, "Code verified", { resetToken });
     });
 
     resetPassword = asyncHandler(async (req: Request, res: Response) => {
-        const { email, code, newPassword } = resetPasswordSchema.parse(req.body);
-        const success = await repo.resetPassword(email, code, newPassword);
-        if (!success) return sendError(res, "Invalid or expired code", 400);
+        const { token, newPassword } = resetPasswordSchema.parse(req.body);
+        const success = await repo.resetPassword(token, newPassword);
+        if (!success) return sendError(res, "Invalid or expired reset token", 400);
         return sendSuccess(res, "Password reset successfully", null);
     });
 

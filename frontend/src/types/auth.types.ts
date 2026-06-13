@@ -39,10 +39,12 @@ export type VerifyOtpRequest = {
     code: string;
 };
 
+export type VerifyOtpResponse = ApiResponse<{ resetToken: string }>;
+
 export type ResetPasswordRequest = {
-    email: string;
-    code: string;
+    token: string;
     newPassword: string;
+    confirmPassword: string;
 };
 
 export type RefreshRequest = {

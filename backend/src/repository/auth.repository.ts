@@ -163,9 +163,9 @@ export class AuthRepository {
         await sendForgotPasswordEmail(email, code);
     }
 
-    async verifyOtp(email: string, code: string): Promise<boolean> {
+    async verifyOtp(email: string, code: string): Promise<string | null> {
         const user = await prisma.user.findFirst({ where: { email, deletedAt: null } });
-        if (!user) return false;
+        if (!user) return null;
 
         const codeHash = this.hashToken(code);
         const otp = await prisma.oTP.findFirst({
@@ -178,19 +178,27 @@ export class AuthRepository {
             }
         });
 
-        return !!otp;
+        if (!otp) return null;
+
+        await prisma.oTP.update({ where: { id: otp.id }, data: { isUsed: true } });
+
+        const resetToken = crypto.randomUUID();
+        const resetTokenHash = this.hashToken(resetToken);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+        await prisma.oTP.create({
+            data: { userId: user.id, codeHash: resetTokenHash, purpose: "RESET_TOKEN", expiresAt }
+        });
+
+        return resetToken;
     }
 
-    async resetPassword(email: string, code: string, newPassword: string): Promise<boolean> {
-        const user = await prisma.user.findFirst({ where: { email, deletedAt: null } });
-        if (!user) return false;
-
-        const codeHash = this.hashToken(code);
+    async resetPassword(resetToken: string, newPassword: string): Promise<boolean> {
+        const resetTokenHash = this.hashToken(resetToken);
         const otp = await prisma.oTP.findFirst({
             where: {
-                userId: user.id,
-                codeHash,
-                purpose: "RESET_PASSWORD",
+                codeHash: resetTokenHash,
+                purpose: "RESET_TOKEN",
                 isUsed: false,
                 expiresAt: { gt: new Date() }
             }
@@ -201,10 +209,10 @@ export class AuthRepository {
         const passwordHash = await hashPassword(newPassword);
 
         await prisma.$transaction([
-            prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
+            prisma.user.update({ where: { id: otp.userId }, data: { passwordHash } }),
             prisma.oTP.update({ where: { id: otp.id }, data: { isUsed: true } }),
             prisma.refreshToken.updateMany({
-                where: { userId: user.id, revokedAt: null },
+                where: { userId: otp.userId, revokedAt: null },
                 data: { revokedAt: new Date() }
             })
         ]);
