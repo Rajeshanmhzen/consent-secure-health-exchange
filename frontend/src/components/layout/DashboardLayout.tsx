@@ -42,19 +42,16 @@ const ROLE_NAV: Record<string, { label: string; to: string; icon: React.ReactNod
     HOSPITAL_ADMIN: [
         { label: 'Dashboard',     to: '/dashboard',           icon: ICONS.dashboard },
         { label: 'Staff',         to: '/dashboard/staff',     icon: ICONS.staff },
-        { label: 'Patients',      to: '/dashboard/patients',  icon: ICONS.patients },
         { label: 'Audit Logs',    to: '/dashboard/audit',     icon: ICONS.audit },
     ],
     DOCTOR: [
         { label: 'Dashboard',     to: '/dashboard',           icon: ICONS.dashboard },
         { label: 'Medical Records', to: '/dashboard/records', icon: ICONS.records },
         { label: 'Data Requests', to: '/dashboard/requests',  icon: ICONS.requests },
-        { label: 'Patients',      to: '/dashboard/patients',  icon: ICONS.patients },
         { label: 'Emergency',     to: '/dashboard/emergency', icon: ICONS.emergency },
     ],
     RECEPTIONIST: [
         { label: 'Dashboard',     to: '/dashboard',           icon: ICONS.dashboard },
-        { label: 'Patients',      to: '/dashboard/patients',  icon: ICONS.patients },
         { label: 'Schedule',      to: '/dashboard/schedule',  icon: ICONS.schedule },
     ],
     PATIENT: [

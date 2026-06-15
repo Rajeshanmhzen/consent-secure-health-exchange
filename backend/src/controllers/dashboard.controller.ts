@@ -31,6 +31,78 @@ export class DashboardController {
         });
     });
 
+    hospitalAdminStats = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        if (!user.tenantId) return sendSuccess(res, "Stats fetched", { 'Total Staff': 0, 'Total Patients': 0, 'Active Doctors': 0, 'Audit Events': 0 });
+
+        const [totalStaff, totalPatients, activeDoctors, auditEvents] = await prisma.$transaction([
+            prisma.user.count({ where: { tenantId: user.tenantId, deletedAt: null } }),
+            prisma.patient.count(), // We just show all patients for now or ones linked to this hospital if we had a link.
+            prisma.doctor.count({ where: { user: { tenantId: user.tenantId, isActive: true } } }),
+            prisma.auditLog.count({ where: { user: { tenantId: user.tenantId } } })
+        ]);
+
+        return sendSuccess(res, "Stats fetched", { 
+            'Total Staff': totalStaff, 
+            'Total Patients': totalPatients, 
+            'Active Doctors': activeDoctors, 
+            'Audit Events': auditEvents 
+        });
+    });
+
+    doctorStats = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        const doctor = await prisma.doctor.findFirst({ where: { userId: user.id } });
+        if (!doctor) return sendSuccess(res, "Stats fetched", { 'Medical Records': 0, 'Pending Requests': 0, 'Shared Records': 0, 'Emergency Access': 0 });
+
+        const [medicalRecords, pendingRequests, sharedRecords, emergencyAccess] = await prisma.$transaction([
+            prisma.medicalRecord.count({ where: { doctorId: doctor.id, deletedAt: null } }),
+            prisma.dataRequest.count({ where: { targetDoctorId: doctor.id, status: 'PENDING' } }),
+            prisma.sharedRecord.count({ where: { request: { requestingDoctorId: doctor.id } } }),
+            prisma.emergencyAccess.count({ where: { requestingDoctorId: doctor.id, isUsed: false } })
+        ]);
+
+        return sendSuccess(res, "Stats fetched", { 
+            'Medical Records': medicalRecords, 
+            'Pending Requests': pendingRequests, 
+            'Shared Records': sharedRecords, 
+            'Emergency Access': emergencyAccess 
+        });
+    });
+
+    receptionistStats = asyncHandler(async (req: Request, res: Response) => {
+        // Since we don't have schedule/appointments schema yet, returning dummy values or partial counts
+        const [totalPatients] = await prisma.$transaction([
+            prisma.patient.count()
+        ]);
+        return sendSuccess(res, "Stats fetched", { 
+            'Total Patients': totalPatients, 
+            'Scheduled Today': 0, 
+            'Pending Check-in': 0,
+            'New Registrations': 0
+        });
+    });
+
+    patientStats = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        const patient = await prisma.patient.findFirst({ where: { userId: user.id } });
+        if (!patient) return sendSuccess(res, "Stats fetched", { 'My Records': 0, 'Pending Consents': 0, 'Shared With': 0, 'Data Requests': 0 });
+
+        const [myRecords, pendingConsents, sharedWith, dataRequests] = await prisma.$transaction([
+            prisma.medicalRecord.count({ where: { patientId: patient.id, deletedAt: null } }),
+            prisma.dataRequest.count({ where: { patientId: patient.id, status: 'PENDING' } }),
+            prisma.sharedRecord.count({ where: { record: { patientId: patient.id } } }),
+            prisma.dataRequest.count({ where: { patientId: patient.id } })
+        ]);
+
+        return sendSuccess(res, "Stats fetched", { 
+            'My Records': myRecords, 
+            'Pending Consents': pendingConsents, 
+            'Shared With': sharedWith, 
+            'Data Requests': dataRequests 
+        });
+    });
+
     getAuditLogs = asyncHandler(async (req: Request, res: Response) => {
         const user = (req as any).user;
         if (!user) {

@@ -11,6 +11,8 @@ import InputField from '../components/shared/InputField'
 import PhoneInputField from '../components/shared/PhoneInputField'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import Pagination from '../components/shared/Pagination'
+import Checkbox from '../components/shared/Checkbox'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { tenantApi, type TenantUserRole } from '../services/tenant.service'
 import { validateStaffForm, type StaffFormErrors } from '../validation/staff.validation'
 
@@ -69,7 +71,7 @@ function generateRandomPassword(length = PASSWORD_LENGTH) {
   const chars = [...required, ...remaining]
   for (let index = chars.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1))
-    ;[chars[index], chars[swapIndex]] = [chars[swapIndex], chars[index]]
+      ;[chars[index], chars[swapIndex]] = [chars[swapIndex], chars[index]]
   }
 
   return chars.join('')
@@ -127,7 +129,7 @@ const StaffPage = () => {
     fetchStaff()
   }, [user, page, search, roleFilter])
 
-  
+
   // Modals state
   const [showModal, setShowModal] = useState(false)
   const [name, setName] = useState('')
@@ -156,7 +158,6 @@ const StaffPage = () => {
 
   if (!user) return null
 
-  // Security Gate
   if (user.role !== 'HOSPITAL_ADMIN') {
     navigate('/dashboard')
     return null
@@ -213,7 +214,6 @@ const StaffPage = () => {
       if (editStaffId) {
         await tenantApi.updateUser(editStaffId, {
           email,
-          password: password || undefined,
           phone,
           isActive,
           isVerified,
@@ -305,7 +305,6 @@ const StaffPage = () => {
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="flex flex-col gap-6"
       >
-        {/* Page header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-xl font-extrabold" style={{ color: 'var(--color-text)' }}>Clinic Staff Directory</h1>
@@ -323,7 +322,6 @@ const StaffPage = () => {
           </Button>
         </div>
 
-        {/* Small Statistics row */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="p-4 rounded-xl flex flex-col justify-between border" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-secondary)' }}>Total Staff</span>
@@ -363,7 +361,6 @@ const StaffPage = () => {
           />
         </div>
 
-        {/* Staff Table */}
         <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left">
@@ -446,8 +443,9 @@ const StaffPage = () => {
                           type="button"
                           onClick={() => setViewStaffId(s.id)}
                           className="text-xs font-bold text-indigo-400 hover:text-indigo-300"
+                          title="View"
                         >
-                          View
+                          <Eye className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
@@ -470,15 +468,17 @@ const StaffPage = () => {
                             }
                           }}
                           className="text-xs font-bold text-amber-500 hover:text-amber-400"
+                          title="Edit"
                         >
-                          Edit
+                          <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeleteConfirm({ isOpen: true, id: s.id, name: s.name })}
                           className="text-xs font-bold text-rose-500 hover:text-rose-400"
+                          title="De-authorize"
                         >
-                          De-authorize
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -498,24 +498,20 @@ const StaffPage = () => {
         </div>
       </motion.div>
 
-      {/* Onboarding Drawer/Modal */}
       <AnimatePresence>
         {(showModal || editStaffId) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => { setShowModal(false); setEditStaffId(null); resetForm() }}
-              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-            />
-            {/* Window */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">            <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => { setShowModal(false); setEditStaffId(null); resetForm() }}
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+          />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full sm:w-[55vw] max-h-[90vh] overflow-y-auto max-w-4xl rounded-2xl p-6 shadow-xl z-10 flex flex-col gap-5 border"
+              className="relative w-full sm:w-[55vw] min-h-[70vh] max-h-[90vh] overflow-y-auto max-w-4xl rounded-2xl p-6 shadow-xl z-10 flex flex-col gap-5 border"
               style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
             >
               <button
@@ -543,9 +539,9 @@ const StaffPage = () => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-4">
                   <InputField label="Full Name" value={name} onChange={setName} placeholder="Dr. Gregory House" error={errors.name} />
-                  
+
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Security Key Role</label>
                     <select
@@ -561,86 +557,74 @@ const StaffPage = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-4">
                   <InputField label="Hospital Email" type="email" value={email} onChange={setEmail} placeholder="house@hospital.org" error={errors.email} />
-                  <InputField
-                    label="Password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={setPassword}
-                    placeholder="Create a temporary password"
-                    error={errors.password}
-                    rightAdornment={
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setPassword(generateRandomPassword())}
-                          className="rounded-full"
-                          aria-label="Generate random password"
-                        >
-                          <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M15 4V2" />
-                            <path d="M15 16v-2" />
-                            <path d="M8 9h2" />
-                            <path d="M20 9h2" />
-                            <path d="M17.8 6.2 19 5" />
-                            <path d="M17.8 11.8 19 13" />
-                            <path d="M3 21l9-9" />
-                            <path d="M14.5 6.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z" />
-                          </svg>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setShowPassword(prev => !prev)}
-                          className="rounded-full"
-                          aria-label={showPassword ? 'Hide password' : 'Show password'}
-                        >
-                          {showPassword ? (
-                            <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
-                              <path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c5.5 0 9.6 3.6 11 8-0.5 1.6-1.4 3-2.5 4.1" />
-                              <path d="M6.1 6.1C4 7.6 2.5 9.7 2 12c1.4 4.4 5.5 8 10 8 1.2 0 2.3-0.2 3.4-0.6" />
-                            </svg>
-                          ) : (
-                            <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M1.9 12C3.3 7.6 7.4 4 12 4s8.7 3.6 10.1 8c-1.4 4.4-5.5 8-10.1 8S3.3 16.4 1.9 12Z" />
-                              <circle cx="12" cy="12" r="3.5" />
-                            </svg>
-                          )}
-                        </Button>
+                  {!editStaffId && (
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1">
+                        <InputField
+                          label="Password"
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={setPassword}
+                          placeholder="Create a temporary password"
+                          error={errors.password}
+                          rightAdornment={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setShowPassword(prev => !prev)}
+                              className="rounded-full"
+                              aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            >
+                              {showPassword ? (
+                                <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                                  <path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c5.5 0 9.6 3.6 11 8-0.5 1.6-1.4 3-2.5 4.1" />
+                                  <path d="M6.1 6.1C4 7.6 2.5 9.7 2 12c1.4 4.4 5.5 8 10 8 1.2 0 2.3-0.2 3.4-0.6" />
+                                </svg>
+                              ) : (
+                                <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M1.9 12C3.3 7.6 7.4 4 12 4s8.7 3.6 10.1 8c-1.4 4.4-5.5 8-10.1 8S3.3 16.4 1.9 12Z" />
+                                  <circle cx="12" cy="12" r="3.5" />
+                                </svg>
+                              )}
+                            </Button>
+                          }
+                        />
                       </div>
-                    }
-                  />
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="md"
+                        onClick={() => setPassword(generateRandomPassword())}
+                        className="mb-[2px] px-3 border"
+                        aria-label="Generate random password"
+                        style={{ height: '42px', borderColor: 'var(--color-border)' }}
+                        title="Generate Secure Password"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-primary)' }}>
+                          <path d="M15 4V2" />
+                          <path d="M15 16v-2" />
+                          <path d="M8 9h2" />
+                          <path d="M20 9h2" />
+                          <path d="M17.8 6.2 19 5" />
+                          <path d="M17.8 11.8 19 13" />
+                          <path d="M3 21l9-9" />
+                          <path d="M14.5 6.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z" />
+                        </svg>
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-4">
                   <PhoneInputField label="Phone Number" value={phone} onChange={setPhone} error={errors.phone} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <InputField
-                      label="Active"
-                      as="select"
-                      value={isActive ? 'true' : 'false'}
-                      onChange={value => setIsActive(value === 'true')}
-                      options={[{ label: 'Active', value: 'true' }, { label: 'Inactive', value: 'false' }]}
-                      required={false}
-                    />
-                    <InputField
-                      label="Verified"
-                      as="select"
-                      value={isVerified ? 'true' : 'false'}
-                      onChange={value => setIsVerified(value === 'true')}
-                      options={[{ label: 'Verified', value: 'true' }, { label: 'Unverified', value: 'false' }]}
-                      required={false}
-                    />
-                  </div>
                 </div>
 
                 {role === 'DOCTOR' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-4">
                     <InputField
                       label="Clinical Specialization / Department"
                       value={specialty}
@@ -658,7 +642,7 @@ const StaffPage = () => {
                 )}
 
                 {role === 'PATIENT' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-4">
                     <InputField label="Date of Birth" type="date" value={dob} onChange={setDob} error={errors.dob} />
                     <InputField
                       label="Gender"
@@ -692,6 +676,19 @@ const StaffPage = () => {
                     <InputField label="Allergies" value={allergies} onChange={setAllergies} placeholder="Penicillin, dust, etc." required={false} />
                   </div>
                 )}
+
+                <div className="flex items-center gap-6 px-1 pt-2 border-t mt-1" style={{ borderColor: 'var(--color-border)' }}>
+                  <Checkbox
+                    label="Active Account"
+                    checked={isActive}
+                    onChange={setIsActive}
+                  />
+                  <Checkbox
+                    label="Verified Profile"
+                    checked={isVerified}
+                    onChange={setIsVerified}
+                  />
+                </div>
 
                 <div className="flex justify-end gap-3 mt-3">
                   <Button variant="default" size="md" type="button" onClick={() => { setShowModal(false); setEditStaffId(null); resetForm() }}>Cancel</Button>
@@ -738,7 +735,6 @@ const StaffPage = () => {
         )}
       </AnimatePresence>
 
-      {/* Confirm De-authorize dialog */}
       <ConfirmDialog
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ isOpen: false, id: '', name: '' })}

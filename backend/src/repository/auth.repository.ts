@@ -105,18 +105,7 @@ export class AuthRepository {
                 }
             });
 
-            await tx.auditLog.create({
-                data: {
-                    userId: user.id,
-                    action: "CREATE_PATIENT",
-                    entityType: "Patient",
-                    entityId: patient.id,
-                    metadata: {
-                        patientName: patient.name,
-                        email: user.email
-                    }
-                }
-            });
+            // Audit log removed as CREATE_PATIENT is no longer in AuditAction enum
 
             return user;
         });

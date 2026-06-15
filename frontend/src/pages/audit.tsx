@@ -49,12 +49,10 @@ const AuditSkeleton = () => (
 
 const auditTabs = [
     { key: 'All', label: 'All Actions' },
-    { key: 'LOGIN', label: 'LOGIN' },
     { key: 'VIEW_RECORD', label: 'VIEW RECORD' },
     { key: 'APPROVE_CONSENT', label: 'APPROVE CONSENT' },
     { key: 'EMERGENCY_ACCESS', label: 'EMERGENCY ACCESS' },
-    { key: 'CREATE_REQUEST', label: 'CREATE REQUEST' },
-    { key: 'CREATE_PATIENT', label: 'CREATE PATIENT' }
+    { key: 'CREATE_REQUEST', label: 'CREATE REQUEST' }
 ] as const
 
 const AuditPage = () => {
