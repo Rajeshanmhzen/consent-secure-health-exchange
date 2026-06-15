@@ -46,6 +46,20 @@ export const requestApi = {
         });
     },
 
+    sendConsentOtp: (requestId: string) => {
+        return request("/requests/consent/send-otp", {
+            method: "POST",
+            body: JSON.stringify({ requestId })
+        });
+    },
+
+    verifyConsentOtp: (requestId: string, otpCode: string) => {
+        return request("/requests/consent/verify-otp", {
+            method: "POST",
+            body: JSON.stringify({ requestId, otpCode })
+        });
+    },
+
     hospitalConsent: (payload: { requestId: string; action: "APPROVE" | "REJECT" }) => {
         return request("/requests/hospital-consent", {
             method: "POST",
@@ -55,6 +69,26 @@ export const requestApi = {
 
     list: () => {
         return request("/requests/list", {
+            method: "GET"
+        });
+    },
+
+    listAllPatients: (hospitalId?: string) => {
+        const q = hospitalId ? `?hospitalId=${encodeURIComponent(hospitalId)}` : ''
+        return request(`/requests/all-patients${q}`, {
+            method: "GET"
+        });
+    },
+
+    listAllDoctors: (hospitalId?: string) => {
+        const q = hospitalId ? `?hospitalId=${encodeURIComponent(hospitalId)}` : ''
+        return request(`/requests/all-doctors${q}`, {
+            method: "GET"
+        });
+    },
+
+    listAllHospitals: () => {
+        return request("/requests/all-hospitals", {
             method: "GET"
         });
     }

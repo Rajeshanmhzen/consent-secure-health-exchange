@@ -7,7 +7,6 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import Button from '../components/shared/Button'
 import InputField from '../components/shared/InputField'
 import { requestApi } from '../services/request.service'
-import { tenantApi } from '../services/tenant.service'
 
 type HieRequest = {
   id: string
@@ -45,12 +44,19 @@ const RequestsPage = () => {
 
   // Creation State
   const [showModal, setShowModal] = useState(false)
+  const [hospitalId, setHospitalId] = useState('')
   const [patientId, setPatientId] = useState('')
   const [targetDoctorId, setTargetDoctorId] = useState('')
   const [reason, setReason] = useState('')
 
-  const [localPatients, setLocalPatients] = useState<any[]>([])
-  const [networkDoctors, setNetworkDoctors] = useState<{ id: string; name: string; hospital: string }[]>([])
+  const [hospitals, setHospitals] = useState<{ id: string; name: string }[]>([])
+  const [localPatients, setLocalPatients] = useState<{ id: string; name: string }[]>([])
+  const [networkDoctors, setNetworkDoctors] = useState<{ id: string; name: string; specialization?: string | null }[]>([])
+  const [loadingDropdowns, setLoadingDropdowns] = useState(false)
+  const [activeTab, setActiveTab] = useState<'sent' | 'received'>(user?.role === 'DOCTOR' ? 'sent' : 'received')
+
+  const isDoctor = user?.role === 'DOCTOR'
+  const isPatient = user?.role === 'PATIENT'
 
   const fetchRequests = async () => {
     try {
@@ -70,24 +76,47 @@ const RequestsPage = () => {
       return
     }
     fetchRequests()
-    if (user.tenantId) {
-      tenantApi.listUsers({ tenantId: user.tenantId, role: 'PATIENT' }).then(res => {
-        const patients = (res.data?.users || []).map((u: any) => ({
-          id: u.patient?.id || u.id,
-          name: u.patient?.name || u.name || '—',
-        }))
-        setLocalPatients(patients)
-      }).catch(() => {})
-      tenantApi.listUsers({ tenantId: user.tenantId, role: 'DOCTOR' }).then(res => {
-        const docs = (res.data?.users || []).map((u: any) => ({
-          id: u.doctor?.id || u.id,
-          name: u.doctor?.name || u.name || '—',
-          hospital: u.doctor?.hospital?.name || '—',
-        }))
-        setNetworkDoctors(docs)
-      }).catch(() => {})
+    if (isDoctor) {
+      requestApi.listAllHospitals().then(res => {
+        setHospitals(((res as any).data || []).map((h: any) => ({ id: h.id, name: h.name })))
+      }).catch(() => { })
     }
   }, [user])
+
+  const fetchDropdownData = async (selectedHospitalId: string) => {
+    setLoadingDropdowns(true)
+    try {
+      const [docsRes, patientsRes] = await Promise.all([
+        requestApi.listAllDoctors(selectedHospitalId),
+        requestApi.listAllPatients(selectedHospitalId)
+      ])
+      setNetworkDoctors(((docsRes as any).data || []).map((d: any) => ({
+        id: d.id,
+        name: d.name || '—',
+        specialization: d.specialization
+      })))
+      setLocalPatients(((patientsRes as any).data || []).map((p: any) => ({
+        id: p.id,
+        name: p.name || '—'
+      })).filter((p: { id: string; name: string }) => p.name !== '—'))
+    } catch {
+      setNetworkDoctors([])
+      setLocalPatients([])
+    } finally {
+      setLoadingDropdowns(false)
+    }
+  }
+
+  const handleHospitalChange = (newHospitalId: string) => {
+    setHospitalId(newHospitalId)
+    setTargetDoctorId('')
+    setPatientId('')
+    setNetworkDoctors([])
+    setLocalPatients([])
+    if (newHospitalId) {
+      fetchDropdownData(newHospitalId)
+    }
+  }
 
   useEffect(() => {
     if (location.state && (location.state as any).requestPatientId) {
@@ -99,12 +128,6 @@ const RequestsPage = () => {
   }, [location])
 
   if (!user) return null
-
-  const isDoctor = user.role === 'DOCTOR'
-  const isPatient = user.role === 'PATIENT'
-
-  // active tab state: 'sent' | 'received'
-  const [activeTab, setActiveTab] = useState<'sent' | 'received'>(isDoctor ? 'sent' : 'received')
 
   const filteredRequests = requests.filter(r => {
     if (isPatient) return true // Patients see requests pertaining to them
@@ -141,6 +164,7 @@ const RequestsPage = () => {
       })
       showToast('Data Request registered successfully! Awaiting Patient OTP Signature.', 'success')
       setShowModal(false)
+      setHospitalId('')
       setPatientId('')
       setTargetDoctorId('')
       setReason('')
@@ -330,16 +354,16 @@ const RequestsPage = () => {
 
               <form onSubmit={handleCreateRequest} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Select Target Patient</label>
+                  <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Select Hospital</label>
                   <select
-                    value={patientId}
-                    onChange={e => setPatientId(e.target.value)}
+                    value={hospitalId}
+                    onChange={e => handleHospitalChange(e.target.value)}
                     className="rounded-xl px-3 py-2 text-sm outline-none w-full bg-transparent border cursor-pointer"
                     style={{ borderColor: 'var(--color-border)', height: '42px', color: 'var(--color-text)' }}
                   >
-                    <option value="" style={{ background: 'var(--color-surface)' }}>-- Choose Target Patient --</option>
-                    {localPatients.map(p => (
-                      <option key={p.id} value={p.id} style={{ background: 'var(--color-surface)' }}>{p.name}</option>
+                    <option value="" style={{ background: 'var(--color-surface)' }}>-- Choose Hospital --</option>
+                    {hospitals.map(h => (
+                      <option key={h.id} value={h.id} style={{ background: 'var(--color-surface)' }}>{h.name}</option>
                     ))}
                   </select>
                 </div>
@@ -349,12 +373,35 @@ const RequestsPage = () => {
                   <select
                     value={targetDoctorId}
                     onChange={e => setTargetDoctorId(e.target.value)}
-                    className="rounded-xl px-3 py-2 text-sm outline-none w-full bg-transparent border cursor-pointer"
+                    disabled={!hospitalId || loadingDropdowns}
+                    className="rounded-xl px-3 py-2 text-sm outline-none w-full bg-transparent border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ borderColor: 'var(--color-border)', height: '42px', color: 'var(--color-text)' }}
                   >
-                    <option value="" style={{ background: 'var(--color-surface)' }}>-- Choose Holding Clinician --</option>
+                    <option value="" style={{ background: 'var(--color-surface)' }}>
+                      {loadingDropdowns ? 'Loading doctors...' : !hospitalId ? 'Select hospital first' : '-- Choose Holding Clinician --'}
+                    </option>
                     {networkDoctors.map(d => (
-                      <option key={d.id} value={d.id} style={{ background: 'var(--color-surface)' }}>{d.name} ({d.hospital})</option>
+                      <option key={d.id} value={d.id} style={{ background: 'var(--color-surface)' }}>
+                        {d.name}{d.specialization ? ` (${d.specialization})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Select Target Patient</label>
+                  <select
+                    value={patientId}
+                    onChange={e => setPatientId(e.target.value)}
+                    disabled={!targetDoctorId || loadingDropdowns}
+                    className="rounded-xl px-3 py-2 text-sm outline-none w-full bg-transparent border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ borderColor: 'var(--color-border)', height: '42px', color: 'var(--color-text)' }}
+                  >
+                    <option value="" style={{ background: 'var(--color-surface)' }}>
+                      {loadingDropdowns ? 'Loading patients...' : !targetDoctorId ? 'Select physician first' : '-- Choose Target Patient --'}
+                    </option>
+                    {localPatients.map(p => (
+                      <option key={p.id} value={p.id} style={{ background: 'var(--color-surface)' }}>{p.name}</option>
                     ))}
                   </select>
                 </div>

@@ -2,6 +2,8 @@ import prisma from "../config/prisma";
 import { AppError } from "../utils/appError";
 import { AuditAction, NotificationType, Prisma } from "@prisma/client";
 import { decryptAsymmetric, encryptAsymmetric, decryptPacked } from "../utils/crypto.helper";
+import crypto from "crypto";
+import { sendConsentOtpEmail } from "../utils/email";
 
 export class RequestService {
     // Helper to log audit events easily
@@ -36,6 +38,75 @@ export class RequestService {
         }
     }
 
+    async listAllHospitals() {
+        const hospitals = await prisma.hospital.findMany({
+            where: {
+                tenant: {
+                    isActive: true,
+                    deletedAt: null
+                }
+            },
+            select: { id: true, name: true },
+            orderBy: { name: "asc" }
+        });
+        return hospitals;
+    }
+
+    async listAllDoctors(excludeUserId: string, hospitalId?: string) {
+        const doctors = await prisma.doctor.findMany({
+            where: {
+                user: {
+                    id: { not: excludeUserId },
+                    deletedAt: null,
+                    isActive: true
+                },
+                ...(hospitalId ? { hospitalId } : {})
+            },
+            select: {
+                id: true,
+                name: true,
+                specialization: true,
+                hospitalId: true,
+                hospital: { select: { name: true } }
+            },
+            orderBy: { name: "asc" }
+        });
+        return doctors;
+    }
+
+    async listAllPatients(hospitalId?: string) {
+        const patients = await prisma.patient.findMany({
+            where: {
+                user: {
+                    deletedAt: null,
+                    isActive: true,
+                    ...(hospitalId ? { tenant: { hospital: { id: hospitalId } } } : {})
+                }
+            },
+            select: {
+                id: true,
+                name: true,
+                user: {
+                    select: {
+                        tenant: {
+                            select: {
+                                hospital: {
+                                    select: { name: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { name: "asc" }
+        });
+        return patients.map(p => ({
+            id: p.id,
+            name: p.name,
+            hospital: p.user?.tenant?.hospital ? { name: p.user.tenant.hospital.name } : null
+        }));
+    }
+
     async createRequest(doctorId: string, payload: { patientId: string; targetDoctorId: string; reason: string }) {
         const requestingDoctor = await prisma.doctor.findFirst({
             where: { userId: doctorId },
@@ -60,7 +131,6 @@ export class RequestService {
         if (!targetDoctor) {
             throw new AppError("Target/Custodian doctor not found.", 404);
         }
-
         // Create transaction: DataRequest + Consent
         const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const req = await tx.dataRequest.create({
@@ -107,6 +177,78 @@ export class RequestService {
             "DATA_REQUEST",
             `Dr. ${requestingDoctor.name} from ${requestingDoctor.hospital.name} has requested access to your medical records. Please review and manage consent.`
         );
+
+        return result;
+    }
+
+    async sendConsentOtp(userId: string, requestId: string) {
+        const patient = await prisma.patient.findFirst({
+            where: { userId },
+            include: { user: true }
+        });
+        if (!patient) {
+            throw new AppError("Only the patient can authorize consent.", 403);
+        }
+
+        const request = await prisma.dataRequest.findUnique({ where: { id: requestId } });
+        if (!request) {
+            throw new AppError("Data request not found.", 404);
+        }
+        if (request.patientId !== patient.id) {
+            throw new AppError("You do not own this request.", 403);
+        }
+        if (request.status !== "PENDING") {
+            throw new AppError("This request is no longer pending.", 400);
+        }
+
+        const code = crypto.randomInt(100000, 1000000).toString();
+        const codeHash = crypto.createHash("sha256").update(code).digest("hex");
+
+        await prisma.oTP.deleteMany({
+            where: { userId, purpose: "CONSENT_APPROVAL" }
+        });
+
+        await prisma.oTP.create({
+            data: {
+                userId,
+                codeHash,
+                purpose: "CONSENT_APPROVAL",
+                expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+            }
+        });
+
+        await sendConsentOtpEmail(patient.user.email, code);
+
+        return { sent: true };
+    }
+
+    async verifyConsentOtp(userId: string, requestId: string, otpCode: string) {
+        const patient = await prisma.patient.findFirst({
+            where: { userId },
+            include: { user: true }
+        });
+        if (!patient) {
+            throw new AppError("Only the patient can authorize consent.", 403);
+        }
+
+        const codeHash = crypto.createHash("sha256").update(otpCode).digest("hex");
+        const otp = await prisma.oTP.findFirst({
+            where: {
+                userId,
+                codeHash,
+                purpose: "CONSENT_APPROVAL",
+                isUsed: false,
+                expiresAt: { gt: new Date() }
+            }
+        });
+
+        if (!otp) {
+            throw new AppError("Invalid or expired verification code.", 400);
+        }
+
+        await prisma.oTP.update({ where: { id: otp.id }, data: { isUsed: true } });
+
+        const result = await this.processPatientConsent(userId, requestId, "APPROVE");
 
         return result;
     }
