@@ -75,15 +75,18 @@ const RequestsPage = () => {
         const patients = (res.data?.users || []).map((u: any) => ({
           id: u.patient?.id || u.id,
           name: u.patient?.name || u.name || '—',
-        }))
+        })).filter(p => p.id && p.name !== '—')
         setLocalPatients(patients)
       }).catch(() => {})
       tenantApi.listUsers({ tenantId: user.tenantId, role: 'DOCTOR' }).then(res => {
-        const docs = (res.data?.users || []).map((u: any) => ({
-          id: u.doctor?.id || u.id,
-          name: u.doctor?.name || u.name || '—',
-          hospital: u.doctor?.hospital?.name || '—',
-        }))
+        const docs = (res.data?.users || [])
+          .filter((u: any) => u.id !== user.id)
+          .map((u: any) => ({
+            id: u.doctor?.id || u.id,
+            name: u.doctor?.name || u.name || '—',
+            hospital: u.doctor?.hospital?.name || '—',
+          }))
+          .filter(d => d.id)
         setNetworkDoctors(docs)
       }).catch(() => {})
     }

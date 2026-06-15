@@ -46,6 +46,20 @@ export const requestApi = {
         });
     },
 
+    sendConsentOtp: (requestId: string) => {
+        return request("/requests/consent/send-otp", {
+            method: "POST",
+            body: JSON.stringify({ requestId })
+        });
+    },
+
+    verifyConsentOtp: (requestId: string, otpCode: string) => {
+        return request("/requests/consent/verify-otp", {
+            method: "POST",
+            body: JSON.stringify({ requestId, otpCode })
+        });
+    },
+
     hospitalConsent: (payload: { requestId: string; action: "APPROVE" | "REJECT" }) => {
         return request("/requests/hospital-consent", {
             method: "POST",

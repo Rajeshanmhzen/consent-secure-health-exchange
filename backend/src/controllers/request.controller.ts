@@ -37,6 +37,36 @@ export class RequestController {
         return sendSuccess(res, `Request successfully ${action.toLowerCase()}ed by patient.`, result);
     });
 
+    sendConsentOtp = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        if (!user || user.role !== "PATIENT") {
+            throw new AppError("Only the patient can request consent verification.", 403);
+        }
+
+        const { requestId } = req.body;
+        if (!requestId) {
+            throw new AppError("Missing requestId.", 400);
+        }
+
+        await this.service.sendConsentOtp(user.id, requestId);
+        return sendSuccess(res, "Verification code sent to your registered email.", null);
+    });
+
+    verifyConsentOtp = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        if (!user || user.role !== "PATIENT") {
+            throw new AppError("Only the patient can authorize consent.", 403);
+        }
+
+        const { requestId, otpCode } = req.body;
+        if (!requestId || !otpCode) {
+            throw new AppError("Missing requestId or otpCode.", 400);
+        }
+
+        const result = await this.service.verifyConsentOtp(user.id, requestId, otpCode);
+        return sendSuccess(res, "Consent authorized successfully via OTP verification.", result);
+    });
+
     hospitalConsent = asyncHandler(async (req: Request, res: Response) => {
         const user = (req as any).user;
         if (!user || user.role !== "DOCTOR") {

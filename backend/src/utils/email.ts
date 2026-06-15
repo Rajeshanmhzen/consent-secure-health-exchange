@@ -10,6 +10,24 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+export async function sendConsentOtpEmail(email: string, code: string): Promise<void> {
+    await transporter.sendMail({
+        from: `"Health Exchange" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: "Your Consent Verification Code",
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f9f9ff; border-radius: 12px;">
+                <h2 style="color: #8B5CF6; margin-bottom: 8px;">Consent Authorization Code</h2>
+                <p style="color: #374151; margin-bottom: 24px;">Use this code to authorize the release of your medical records.</p>
+                <div style="background: #fff; border: 2px solid #8B5CF6; border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                    <p style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #8B5CF6; margin: 0;">${code}</p>
+                </div>
+                <p style="color: #6B7280; font-size: 13px;">This code expires in 10 minutes. If you did not request this, please ignore this email.</p>
+            </div>
+        `,
+    });
+}
+
 export async function sendForgotPasswordEmail(email: string, code: string): Promise<void> {
     const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?email=${encodeURIComponent(email)}&code=${code}`;
 
