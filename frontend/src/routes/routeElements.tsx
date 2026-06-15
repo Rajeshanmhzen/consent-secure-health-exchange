@@ -33,7 +33,6 @@ export const plansRouteElement = createLazyRouteElement(() => import('../pages/s
 export const subscriptionsRouteElement = createLazyRouteElement(() => import('../pages/superadmin/subscriptions'))
 export const inquiriesRouteElement = createLazyRouteElement(() => import('../pages/superadmin/inquiries'))
 export const settingsRouteElement = createLazyRouteElement(() => import('../pages/settings'))
-export const patientsRouteElement = createLazyRouteElement(() => import('../pages/patients'))
 export const recordsRouteElement = createLazyRouteElement(() => import('../pages/records'))
 export const requestsRouteElement = createLazyRouteElement(() => import('../pages/requests'))
 export const consentRouteElement = createLazyRouteElement(() => import('../pages/consent'))
