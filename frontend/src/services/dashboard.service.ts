@@ -57,6 +57,10 @@ export type RecordListItem = {
 
 export const dashboardApi = {
     superAdminStats: () => request<ApiResponse<SuperAdminDashboardStats>>('/dashboard/superadmin/stats'),
+    hospitalAdminStats: () => request<ApiResponse<Record<string, number>>>('/dashboard/hospitaladmin/stats'),
+    doctorStats: () => request<ApiResponse<Record<string, number>>>('/dashboard/doctor/stats'),
+    receptionistStats: () => request<ApiResponse<Record<string, number>>>('/dashboard/receptionist/stats'),
+    patientStats: () => request<ApiResponse<Record<string, number>>>('/dashboard/patient/stats'),
     auditLogs: () => request<ApiResponse<AuditLogItem[]>>('/dashboard/superadmin/audit'),
     listPatients: () => request<ApiResponse<{ patients: PatientListItem[] }>>('/dashboard/patients'),
     createPatient: (payload: CreatePatientPayload) =>

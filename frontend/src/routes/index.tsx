@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import App from '../App'
-import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement, forgotPasswordRouteElement, verifyCodeRouteElement, resetPasswordRouteElement, dashboardRouteElement, tenantsRouteElement, superadminsRouteElement, plansRouteElement, subscriptionsRouteElement, inquiriesRouteElement, settingsRouteElement, patientsRouteElement, recordsRouteElement, requestsRouteElement, consentRouteElement, emergencyRouteElement, scheduleRouteElement, auditRouteElement, staffRouteElement, profileRouteElement, changePasswordRouteElement, trashRouteElement } from './routeElements'
+import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement, forgotPasswordRouteElement, verifyCodeRouteElement, resetPasswordRouteElement, dashboardRouteElement, tenantsRouteElement, superadminsRouteElement, plansRouteElement, subscriptionsRouteElement, inquiriesRouteElement, settingsRouteElement, recordsRouteElement, requestsRouteElement, consentRouteElement, emergencyRouteElement, scheduleRouteElement, auditRouteElement, staffRouteElement, profileRouteElement, changePasswordRouteElement, trashRouteElement } from './routeElements'
 
 const router = createBrowserRouter([
   {
@@ -26,7 +26,6 @@ const router = createBrowserRouter([
   { path: '/dashboard/subscriptions', element: subscriptionsRouteElement },
   { path: '/dashboard/inquiries', element: inquiriesRouteElement },
   { path: '/dashboard/settings', element: settingsRouteElement },
-  { path: '/dashboard/patients', element: patientsRouteElement },
   { path: '/dashboard/records', element: recordsRouteElement },
   { path: '/dashboard/requests', element: requestsRouteElement },
   { path: '/dashboard/consent', element: consentRouteElement },

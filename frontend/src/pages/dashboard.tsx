@@ -149,15 +149,33 @@ const DashboardPage = () => {
     }, [user, page])
 
     useEffect(() => {
-        if (!user || user.role !== 'SUPER_ADMIN') return
+        if (!user) return
 
         let isMounted = true
         const fetchStats = () => {
-            dashboardApi.superAdminStats()
-                .then(res => {
-                    if (isMounted) applySuperAdminStats(res.data)
-                })
-                .catch(() => {})
+            if (user.role === 'SUPER_ADMIN') {
+                dashboardApi.superAdminStats()
+                    .then(res => {
+                        if (isMounted) applySuperAdminStats(res.data)
+                    })
+                    .catch(() => {})
+            } else if (user.role === 'HOSPITAL_ADMIN') {
+                dashboardApi.hospitalAdminStats().then(res => {
+                    if (isMounted) setStats(prev => prev.map(s => res.data[s.label] !== undefined ? { ...s, value: String(res.data[s.label]) } : s))
+                }).catch(() => {})
+            } else if (user.role === 'DOCTOR') {
+                dashboardApi.doctorStats().then(res => {
+                    if (isMounted) setStats(prev => prev.map(s => res.data[s.label] !== undefined ? { ...s, value: String(res.data[s.label]) } : s))
+                }).catch(() => {})
+            } else if (user.role === 'RECEPTIONIST') {
+                dashboardApi.receptionistStats().then(res => {
+                    if (isMounted) setStats(prev => prev.map(s => res.data[s.label] !== undefined ? { ...s, value: String(res.data[s.label]) } : s))
+                }).catch(() => {})
+            } else if (user.role === 'PATIENT') {
+                dashboardApi.patientStats().then(res => {
+                    if (isMounted) setStats(prev => prev.map(s => res.data[s.label] !== undefined ? { ...s, value: String(res.data[s.label]) } : s))
+                }).catch(() => {})
+            }
         }
 
         fetchStats()
