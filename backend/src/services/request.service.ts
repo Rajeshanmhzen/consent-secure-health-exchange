@@ -38,6 +38,75 @@ export class RequestService {
         }
     }
 
+    async listAllHospitals() {
+        const hospitals = await prisma.hospital.findMany({
+            where: {
+                tenant: {
+                    isActive: true,
+                    deletedAt: null
+                }
+            },
+            select: { id: true, name: true },
+            orderBy: { name: "asc" }
+        });
+        return hospitals;
+    }
+
+    async listAllDoctors(excludeUserId: string, hospitalId?: string) {
+        const doctors = await prisma.doctor.findMany({
+            where: {
+                user: {
+                    id: { not: excludeUserId },
+                    deletedAt: null,
+                    isActive: true
+                },
+                ...(hospitalId ? { hospitalId } : {})
+            },
+            select: {
+                id: true,
+                name: true,
+                specialization: true,
+                hospitalId: true,
+                hospital: { select: { name: true } }
+            },
+            orderBy: { name: "asc" }
+        });
+        return doctors;
+    }
+
+    async listAllPatients(hospitalId?: string) {
+        const patients = await prisma.patient.findMany({
+            where: {
+                user: {
+                    deletedAt: null,
+                    isActive: true,
+                    ...(hospitalId ? { tenant: { hospital: { id: hospitalId } } } : {})
+                }
+            },
+            select: {
+                id: true,
+                name: true,
+                user: {
+                    select: {
+                        tenant: {
+                            select: {
+                                hospital: {
+                                    select: { name: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { name: "asc" }
+        });
+        return patients.map(p => ({
+            id: p.id,
+            name: p.name,
+            hospital: p.user?.tenant?.hospital ? { name: p.user.tenant.hospital.name } : null
+        }));
+    }
+
     async createRequest(doctorId: string, payload: { patientId: string; targetDoctorId: string; reason: string }) {
         const requestingDoctor = await prisma.doctor.findFirst({
             where: { userId: doctorId },
@@ -62,7 +131,6 @@ export class RequestService {
         if (!targetDoctor) {
             throw new AppError("Target/Custodian doctor not found.", 404);
         }
-
         // Create transaction: DataRequest + Consent
         const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const req = await tx.dataRequest.create({
@@ -133,7 +201,7 @@ export class RequestService {
             throw new AppError("This request is no longer pending.", 400);
         }
 
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const code = crypto.randomInt(100000, 1000000).toString();
         const codeHash = crypto.createHash("sha256").update(code).digest("hex");
 
         await prisma.oTP.deleteMany({
@@ -178,9 +246,9 @@ export class RequestService {
             throw new AppError("Invalid or expired verification code.", 400);
         }
 
-        const result = await this.processPatientConsent(userId, requestId, "APPROVE");
-
         await prisma.oTP.update({ where: { id: otp.id }, data: { isUsed: true } });
+
+        const result = await this.processPatientConsent(userId, requestId, "APPROVE");
 
         return result;
     }

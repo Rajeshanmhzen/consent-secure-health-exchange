@@ -92,6 +92,35 @@ export class RequestController {
         return sendSuccess(res, "Data requests list fetched successfully.", result);
     });
 
+    listAllPatients = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        if (!user) {
+            throw new AppError("Unauthorized session.", 401);
+        }
+        const hospitalId = (req.query.hospitalId as string) || undefined;
+        const result = await this.service.listAllPatients(hospitalId);
+        return sendSuccess(res, "Patients fetched.", result);
+    });
+
+    listAllDoctors = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        if (!user) {
+            throw new AppError("Unauthorized session.", 401);
+        }
+        const hospitalId = (req.query.hospitalId as string) || undefined;
+        const result = await this.service.listAllDoctors(user.id, hospitalId);
+        return sendSuccess(res, "Doctors fetched.", result);
+    });
+
+    listAllHospitals = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        if (!user) {
+            throw new AppError("Unauthorized session.", 401);
+        }
+        const result = await this.service.listAllHospitals();
+        return sendSuccess(res, "Hospitals fetched.", result);
+    });
+
     getSharedRecords = asyncHandler(async (req: Request, res: Response) => {
         const user = (req as any).user;
         if (!user || user.role !== "DOCTOR") {

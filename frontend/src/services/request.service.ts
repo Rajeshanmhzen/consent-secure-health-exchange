@@ -71,5 +71,25 @@ export const requestApi = {
         return request("/requests/list", {
             method: "GET"
         });
+    },
+
+    listAllPatients: (hospitalId?: string) => {
+        const q = hospitalId ? `?hospitalId=${encodeURIComponent(hospitalId)}` : ''
+        return request(`/requests/all-patients${q}`, {
+            method: "GET"
+        });
+    },
+
+    listAllDoctors: (hospitalId?: string) => {
+        const q = hospitalId ? `?hospitalId=${encodeURIComponent(hospitalId)}` : ''
+        return request(`/requests/all-doctors${q}`, {
+            method: "GET"
+        });
+    },
+
+    listAllHospitals: () => {
+        return request("/requests/all-hospitals", {
+            method: "GET"
+        });
     }
 };
