@@ -90,6 +90,20 @@ const StaffPage = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [resolvedHospitalId, setResolvedHospitalId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (user?.hospitalId) {
+      setResolvedHospitalId(user.hospitalId)
+    } else if (user?.tenantId) {
+      tenantApi.getTenantHospital(user.tenantId)
+        .then((res: any) => {
+          const id: string | null = res?.data?.id ?? null
+          if (id) setResolvedHospitalId(id)
+        })
+        .catch(() => { })
+    }
+  }, [user])
 
   const fetchStaff = async () => {
     if (!user?.tenantId) {
@@ -130,7 +144,6 @@ const StaffPage = () => {
   }, [user, page, search, roleFilter])
 
 
-  // Modals state
   const [showModal, setShowModal] = useState(false)
   const [name, setName] = useState('')
   const [role, setRole] = useState<TenantUserRole>('DOCTOR')
@@ -197,7 +210,7 @@ const StaffPage = () => {
       specialty,
       dob,
       tenantId: user?.tenantId,
-      hospitalId: user?.hospitalId,
+      hospitalId: resolvedHospitalId,
       isEditMode: Boolean(editStaffId),
     })
 
@@ -229,7 +242,7 @@ const StaffPage = () => {
       } else {
         await tenantApi.addUser({
           tenantId: user!.tenantId!,
-          hospitalId: role === 'DOCTOR' || role === 'RECEPTIONIST' ? user!.hospitalId! : undefined,
+          hospitalId: (role === 'DOCTOR' || role === 'RECEPTIONIST') ? (resolvedHospitalId ?? undefined) : undefined,
           email,
           password,
           role,

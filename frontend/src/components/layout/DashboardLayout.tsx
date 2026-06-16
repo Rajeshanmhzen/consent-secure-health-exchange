@@ -49,6 +49,7 @@ const ROLE_NAV: Record<string, { label: string; to: string; icon: React.ReactNod
         { label: 'Medical Records', to: '/dashboard/records', icon: ICONS.records },
         { label: 'Data Requests', to: '/dashboard/requests',  icon: ICONS.requests },
         { label: 'Emergency',     to: '/dashboard/emergency', icon: ICONS.emergency },
+        { label: 'Audit Logs',    to: '/dashboard/audit',     icon: ICONS.audit },
     ],
     RECEPTIONIST: [
         { label: 'Dashboard',     to: '/dashboard',           icon: ICONS.dashboard },
@@ -59,6 +60,7 @@ const ROLE_NAV: Record<string, { label: string; to: string; icon: React.ReactNod
         { label: 'My Records',    to: '/dashboard/records',   icon: ICONS.records },
         { label: 'Consent',       to: '/dashboard/consent',   icon: ICONS.consent },
         { label: 'Data Requests', to: '/dashboard/requests',  icon: ICONS.requests },
+        { label: 'Audit Logs',    to: '/dashboard/audit',     icon: ICONS.audit },
     ],
 }
 

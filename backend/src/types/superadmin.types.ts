@@ -33,6 +33,9 @@ export type SuperAdminUpdateData = Prisma.SuperAdminUpdateInput;
 
 export type SuperAdminListParams = PaginationParams & {
     search?: string;
+    isActive?: boolean;
+    includeDeleted?: boolean;
+    deletedOnly?: boolean;
 };
 
 export type SuperAdminWithUser = Prisma.SuperAdminGetPayload<{

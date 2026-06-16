@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../Context/AuthContext'
 import { useToast } from '../Context/ToastContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import ConfirmDialog from '../components/shared/ConfirmDialog'
+import FilterTabs from '../components/shared/FilterTabs'
 import { ConsentSkeleton } from '../components/skeletons/PageSkeletons'
 import Button from '../components/shared/Button'
 import { requestApi } from '../services/request.service'
@@ -38,6 +40,14 @@ type ConsentRequest = {
   }
 }
 
+const consentTabs = [
+  { key: 'All', label: 'All Requests' },
+  { key: 'PENDING', label: 'Pending' },
+  { key: 'PATIENT_APPROVED', label: 'Signed' },
+  { key: 'APPROVED', label: 'Active Sessions' },
+  { key: 'REJECTED', label: 'Closed / Revoked' }
+] as const
+
 const ConsentPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -47,6 +57,10 @@ const ConsentPage = () => {
   const [consents, setConsents] = useState<ConsentRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRequest, setSelectedRequest] = useState<ConsentRequest | null>(null)
+
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false)
+  const [requestToRevoke, setRequestToRevoke] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState('All')
 
   // Signature Wizard Step: 'review' | 'otp' | 'success'
   const [wizardStep, setWizardStep] = useState<'review' | 'otp' | 'success'>('review')
@@ -190,17 +204,23 @@ const ConsentPage = () => {
     }
   }
 
-  const handleRevokeConsent = async (requestId: string) => {
-    if (!window.confirm('WARNING: Revoking consent will instantly lock your medical dossiers. Any active clinician sharing session will be aborted. Do you want to proceed?')) {
-      return
-    }
+  const confirmRevoke = (requestId: string) => {
+    setRequestToRevoke(requestId)
+    setRevokeConfirmOpen(true)
+  }
+
+  const handleRevokeConsent = async () => {
+    if (!requestToRevoke) return
     try {
-      await requestApi.patientConsent({ requestId, action: 'REJECT' })
+      await requestApi.patientConsent({ requestId: requestToRevoke, action: 'REJECT' })
       showToast('Exchange consent revoked. Access locked.', 'error')
       void fetchConsents()
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to revoke consent.'
       showToast(message, 'error')
+    } finally {
+      setRevokeConfirmOpen(false)
+      setRequestToRevoke(null)
     }
   }
 
@@ -233,6 +253,15 @@ const ConsentPage = () => {
           </div>
         </div>
 
+        <div className="bg-(--color-surface) rounded-2xl px-4 py-2 border border-(--color-border)">
+          <FilterTabs
+            tabs={consentTabs}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            layoutId="consentTabs"
+          />
+        </div>
+
         {/* TABLE LISTING */}
         <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
           <div className="grid grid-cols-12 px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
@@ -245,15 +274,15 @@ const ConsentPage = () => {
 
           {loading ? (
             <ConsentSkeleton />
-          ) : consents.length === 0 ? (
+          ) : consents.filter(c => statusFilter === 'All' || c.status === statusFilter).length === 0 ? (
             <div className="px-5 py-16 text-center">
               <svg viewBox="0 0 24 24" className="h-10 w-10 mx-auto mb-3 text-(--color-text-tertiary)" fill="currentColor">
                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" />
               </svg>
-              <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No active sharing requests</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No {statusFilter !== 'All' ? statusFilter.toLowerCase() : 'active'} sharing requests</p>
               <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Pending cross-hospital requests requiring your signature will appear here.</p>
             </div>
-          ) : consents.map((c, index) => {
+          ) : consents.filter(c => statusFilter === 'All' || c.status === statusFilter).map((c, index) => {
             return (
               <motion.div
                 key={c.id}
@@ -300,10 +329,12 @@ const ConsentPage = () => {
                     <Button variant="primary" size="sm" onClick={() => handleOpenWizard(c)}>
                       Authorize & Sign
                     </Button>
-                  ) : (c.status === 'APPROVED' || c.status === 'PATIENT_APPROVED') ? (
-                    <Button variant="danger" size="sm" onClick={() => handleRevokeConsent(c.id)}>
+                  ) : c.status === 'PATIENT_APPROVED' ? (
+                    <Button variant="danger" size="sm" onClick={() => confirmRevoke(c.id)}>
                       Revoke Consent
                     </Button>
+                  ) : c.status === 'APPROVED' ? (
+                    <span className="text-[10px] font-semibold text-(--color-text-tertiary) italic text-right">Cannot Revoke<br />(Clinician Accepted)</span>
                   ) : (
                     <span className="text-xs italic text-(--color-text-tertiary)">Closed</span>
                   )}
@@ -497,6 +528,19 @@ const ConsentPage = () => {
           </div>
         )}
       </AnimatePresence>
+      <ConfirmDialog
+        isOpen={revokeConfirmOpen}
+        onClose={() => {
+          setRevokeConfirmOpen(false)
+          setRequestToRevoke(null)
+        }}
+        onConfirm={handleRevokeConsent}
+        type="danger"
+        title="Revoke Consent?"
+        description="WARNING: Revoking consent will instantly lock your medical dossiers. Any active clinician sharing session will be aborted. Do you want to proceed?"
+        confirmLabel="Yes, Revoke"
+        cancelLabel="Cancel"
+      />
     </DashboardLayout>
   )
 }

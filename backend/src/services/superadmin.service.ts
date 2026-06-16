@@ -65,7 +65,15 @@ export class SuperAdminService {
         return await this.repository.listSuperAdmins(params);
     }
 
-    async deleteSuperAdmin(superAdminId: string) {
-        return await this.repository.deleteSuperAdmin(superAdminId);
+    async softDeleteSuperAdmin(superAdminId: string) {
+        return await this.repository.softDeleteSuperAdmin(superAdminId);
+    }
+
+    async hardDeleteSuperAdmin(superAdminId: string) {
+        return await this.repository.hardDeleteSuperAdmin(superAdminId);
+    }
+
+    async restoreSuperAdmin(superAdminId: string) {
+        return await this.repository.restoreSuperAdmin(superAdminId);
     }
 }

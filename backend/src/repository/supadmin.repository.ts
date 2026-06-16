@@ -73,18 +73,36 @@ export class SupAdminRepository {
         params: SuperAdminListParams
     ): Promise<PaginationResult<SuperAdminWithUser>> {
         const { page, limit, skip, take } = normalizePagination(params);
-        const where: Prisma.SuperAdminWhereInput = params.search
-            ? {
-                  user: {
-                      is: {
-                          email: {
-                              contains: params.search,
-                              mode: "insensitive"
-                          }
-                      }
-                  }
-              }
-            : {};
+        const where: Prisma.SuperAdminWhereInput = {};
+
+        if (params.search) {
+            where.user = {
+                ...((where.user as Prisma.UserWhereInput) || {}),
+                email: {
+                    contains: params.search,
+                    mode: "insensitive"
+                }
+            };
+        }
+
+        if (params.isActive !== undefined) {
+            where.user = {
+                ...((where.user as Prisma.UserWhereInput) || {}),
+                isActive: params.isActive
+            };
+        }
+
+        if (params.deletedOnly) {
+            where.user = {
+                ...((where.user as Prisma.UserWhereInput) || {}),
+                deletedAt: { not: null }
+            };
+        } else if (!params.includeDeleted) {
+            where.user = {
+                ...((where.user as Prisma.UserWhereInput) || {}),
+                deletedAt: null
+            };
+        }
 
         const [total, data] = (await prisma.$transaction([
             prisma.superAdmin.count({ where }),
@@ -104,9 +122,36 @@ export class SupAdminRepository {
         return buildPaginationResult(data, total, page, limit);
     }
 
-    async deleteSuperAdmin(superAdminId: string) {
-        return await prisma.superAdmin.delete({
-            where: { id: superAdminId }
+    async softDeleteSuperAdmin(superAdminId: string) {
+        const superAdmin = await prisma.superAdmin.findUnique({ where: { id: superAdminId } });
+        if (!superAdmin) return null;
+        return await prisma.user.update({
+            where: { id: superAdmin.userId },
+            data: {
+                deletedAt: new Date(),
+                isActive: false
+            }
+        });
+    }
+
+    async hardDeleteSuperAdmin(superAdminId: string) {
+        const superAdmin = await prisma.superAdmin.findUnique({ where: { id: superAdminId } });
+        if (!superAdmin) return null;
+        return await prisma.$transaction([
+            prisma.superAdmin.delete({ where: { id: superAdminId } }),
+            prisma.user.delete({ where: { id: superAdmin.userId } })
+        ]);
+    }
+
+    async restoreSuperAdmin(superAdminId: string) {
+        const superAdmin = await prisma.superAdmin.findUnique({ where: { id: superAdminId } });
+        if (!superAdmin) return null;
+        return await prisma.user.update({
+            where: { id: superAdmin.userId },
+            data: {
+                deletedAt: null,
+                isActive: true
+            }
         });
     }
 }

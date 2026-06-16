@@ -10,21 +10,21 @@ export type NotificationPreference = {
 }
 
 export type UpdateProfilePayload = {
-  email?: string
-  phone?: string | null
-  name?: string
-  specialization?: string | null
-  licenseNumber?: string | null
-  dob?: string | null
-  gender?: string | null
-  bloodGroup?: string | null
-  allergies?: string | null
+    email?: string
+    phone?: string | null
+    name?: string
+    specialization?: string | null
+    licenseNumber?: string | null
+    dob?: string | null
+    gender?: string | null
+    bloodGroup?: string | null
+    allergies?: string | null
 }
 
 export type ChangePasswordPayload = {
-  oldPassword: string
-  newPassword: string
-  confirmPassword: string
+    oldPassword: string
+    newPassword: string
+    confirmPassword: string
 }
 
 export const userApi = {
@@ -36,6 +36,9 @@ export const userApi = {
             method: 'PUT',
             body: JSON.stringify(payload)
         })
+    },
+    getProfile: () => {
+        return request<ApiResponse<any>>('/users/profile')
     },
     updateProfile: (payload: UpdateProfilePayload) => {
         return request<ApiResponse<{ id: string; email: string; phone: string | null }>>('/users/profile', {
