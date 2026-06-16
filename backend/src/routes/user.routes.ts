@@ -9,6 +9,11 @@ const controller = new UserController();
 
 router.get("/preferences", checkPermission("PREFERENCES_MANAGE"), controller.getPreferences);
 router.put("/preferences", checkPermission("PREFERENCES_MANAGE"), controller.updatePreferences);
+router.get(
+	"/profile",
+	requireRole("SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT"),
+	controller.getProfile
+);
 router.put(
 	"/profile",
 	requireRole("SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT"),

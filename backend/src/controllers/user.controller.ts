@@ -98,6 +98,29 @@ export class UserController {
         return sendSuccess(res, "Notification preferences updated successfully", pref);
     });
 
+    getProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const authUser = req.user;
+        if (!authUser) {
+            throw new AppError("Unauthorized", 401);
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: authUser.id },
+            include: {
+                doctor: true,
+                patient: true,
+                receptionist: true,
+                superAdmin: true
+            }
+        });
+
+        if (!user) {
+            throw new AppError("User not found", 404);
+        }
+
+        return sendSuccess(res, "Profile retrieved successfully", user);
+    });
+
     updateProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         const authUser = req.user;
         if (!authUser) {

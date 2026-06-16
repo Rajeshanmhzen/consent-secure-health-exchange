@@ -107,9 +107,9 @@ export type TenantUserListData = {
 export const tenantApi = {
     list: (params: { page?: number; limit?: number; search?: string; isActive?: boolean; includeDeleted?: boolean; deletedOnly?: boolean }) => {
         const q = new URLSearchParams()
-        if (params.page)              q.set('page',     String(params.page))
-        if (params.limit)             q.set('limit',    String(params.limit))
-        if (params.search)            q.set('search',   params.search)
+        if (params.page) q.set('page', String(params.page))
+        if (params.limit) q.set('limit', String(params.limit))
+        if (params.search) q.set('search', params.search)
         if (params.isActive !== undefined) q.set('isActive', String(params.isActive))
         if (params.includeDeleted !== undefined) q.set('includeDeleted', String(params.includeDeleted))
         if (params.deletedOnly !== undefined) q.set('deletedOnly', String(params.deletedOnly))
@@ -142,6 +142,14 @@ export const tenantApi = {
             method: 'POST',
         })
     },
+    getTenantHospital: (tenantId: string) => {
+        return request<ApiResponse<{ id: string; name: string } | null>>(`/tenant/detail/${tenantId}`)
+            .then((res) => {
+                const data = res.data as any
+                const hospital = data?.hospital ?? null
+                return { ...res, data: hospital }
+            })
+    },
     bulkSoftDeleteTenants: (ids: string[]) => {
         return request<ApiResponse<unknown>>('/tenant/bulk/soft-delete', {
             method: 'POST',
@@ -169,10 +177,10 @@ export const tenantApi = {
     listUsers: (params: { tenantId: string; page?: number; limit?: number; search?: string; role?: string; isActive?: boolean; includeDeleted?: boolean; deletedOnly?: boolean }) => {
         const q = new URLSearchParams()
         q.set('tenantId', params.tenantId)
-        if (params.page)              q.set('page',     String(params.page))
-        if (params.limit)             q.set('limit',    String(params.limit))
-        if (params.search)            q.set('search',   params.search)
-        if (params.role)              q.set('role',     params.role)
+        if (params.page) q.set('page', String(params.page))
+        if (params.limit) q.set('limit', String(params.limit))
+        if (params.search) q.set('search', params.search)
+        if (params.role) q.set('role', params.role)
         if (params.isActive !== undefined) q.set('isActive', String(params.isActive))
         if (params.includeDeleted !== undefined) q.set('includeDeleted', String(params.includeDeleted))
         if (params.deletedOnly !== undefined) q.set('deletedOnly', String(params.deletedOnly))

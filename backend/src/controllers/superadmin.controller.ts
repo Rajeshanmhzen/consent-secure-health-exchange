@@ -59,9 +59,30 @@ export class SuperAdminController {
         return sendSuccess(res, "Super admin updated successfully", result);
     });
 
-    deleteSuperAdmin = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
+    softDeleteSuperAdmin = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
         const { id } = superAdminIdParamSchema.parse(req.params);
-        const result = await this.service.deleteSuperAdmin(id);
-        return sendSuccess(res, "Super admin deleted successfully", result);
+        const result = await this.service.softDeleteSuperAdmin(id);
+        if (!result) {
+            throw new AppError("Super admin not found", 404);
+        }
+        return sendSuccess(res, "Super admin soft deleted successfully", result);
+    });
+
+    hardDeleteSuperAdmin = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
+        const { id } = superAdminIdParamSchema.parse(req.params);
+        const result = await this.service.hardDeleteSuperAdmin(id);
+        if (!result) {
+            throw new AppError("Super admin not found", 404);
+        }
+        return sendSuccess(res, "Super admin hard deleted successfully", result);
+    });
+
+    restoreSuperAdmin = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
+        const { id } = superAdminIdParamSchema.parse(req.params);
+        const result = await this.service.restoreSuperAdmin(id);
+        if (!result) {
+            throw new AppError("Super admin not found", 404);
+        }
+        return sendSuccess(res, "Super admin restored successfully", result);
     });
 }

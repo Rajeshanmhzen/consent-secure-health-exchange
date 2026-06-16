@@ -10,14 +10,6 @@ import { useToast } from '../Context/ToastContext'
 import { userApi, type UpdateProfilePayload } from '../services/user.service'
 import { validateProfileForm, type ProfileFormErrors } from '../validation/profile.validation'
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  HOSPITAL_ADMIN: 'Hospital Admin',
-  DOCTOR: 'Doctor',
-  RECEPTIONIST: 'Receptionist',
-  PATIENT: 'Patient',
-}
-
 const InfoRow = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
   <div className="flex flex-col gap-1">
     <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
@@ -61,6 +53,44 @@ const ProfilePage = () => {
     if (!user) return
     setName(user.name ?? '')
     setEmail(user.email ?? '')
+
+    const fetchProfile = async () => {
+      try {
+        const res = await userApi.getProfile()
+        const data = res.data
+        if (data.role === 'DOCTOR' && data.doctor) {
+          setRoleFields({
+            specialization: data.doctor.specialization ?? '',
+            licenseNumber: data.doctor.licenseNumber ?? ''
+          })
+        } else if (data.role === 'PATIENT' && data.patient) {
+          // Format date to YYYY-MM-DD
+          let formattedDob = ''
+          if (data.patient.dob) {
+            try {
+              formattedDob = new Date(data.patient.dob).toISOString().split('T')[0]
+            } catch (e) {
+              formattedDob = data.patient.dob
+            }
+          }
+          setRoleFields({
+            dob: formattedDob,
+            gender: data.patient.gender ?? '',
+            bloodGroup: data.patient.bloodGroup ?? '',
+            allergies: data.patient.allergies ?? ''
+          })
+        } else if (data.role === 'RECEPTIONIST' && data.receptionist) {
+          setRoleFields({})
+        }
+        if (data.phone) {
+            setPhone(data.phone)
+        }
+      } catch (err) {
+        showToast('Failed to load profile details', 'error')
+      }
+    }
+
+    fetchProfile()
   }, [user])
 
   if (!user) return null

@@ -33,5 +33,32 @@ export const listSuperAdminSchema = z.object({
         (value) => (value === undefined ? undefined : Number(value)),
         z.number().int().positive().optional()
     ),
-    search: optionalString
+    search: optionalString,
+    isActive: z.preprocess(
+        (value) => {
+            if (value === undefined) return undefined;
+            if (value === "true") return true;
+            if (value === "false") return false;
+            return value;
+        },
+        z.boolean().optional()
+    ),
+    includeDeleted: z.preprocess(
+        (value) => {
+            if (value === undefined) return undefined;
+            if (value === "true") return true;
+            if (value === "false") return false;
+            return value;
+        },
+        z.boolean().optional()
+    ),
+    deletedOnly: z.preprocess(
+        (value) => {
+            if (value === undefined) return undefined;
+            if (value === "true") return true;
+            if (value === "false") return false;
+            return value;
+        },
+        z.boolean().optional()
+    )
 });
