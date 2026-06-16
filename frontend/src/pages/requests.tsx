@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../Context/AuthContext'
 import { useToast } from '../Context/ToastContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import FilterTabs from '../components/shared/FilterTabs'
 import Button from '../components/shared/Button'
 import InputField from '../components/shared/InputField'
 import { requestApi } from '../services/request.service'
@@ -33,6 +34,19 @@ type HieRequest = {
   }
 }
 
+const doctorTabs = [
+  { key: 'sent', label: 'Sent Requests' },
+  { key: 'received', label: 'Received Releases (Awaiting Consent)' }
+] as const
+
+const statusTabs = [
+  { key: 'All', label: 'All Requests' },
+  { key: 'PENDING', label: 'Pending' },
+  { key: 'PATIENT_APPROVED', label: 'Signed' },
+  { key: 'APPROVED', label: 'Active Sessions' },
+  { key: 'REJECTED', label: 'Closed / Revoked' }
+] as const
+
 const RequestsPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -54,6 +68,7 @@ const RequestsPage = () => {
   const [networkDoctors, setNetworkDoctors] = useState<{ id: string; name: string; specialization?: string | null }[]>([])
   const [loadingDropdowns, setLoadingDropdowns] = useState(false)
   const [activeTab, setActiveTab] = useState<'sent' | 'received'>(user?.role === 'DOCTOR' ? 'sent' : 'received')
+  const [statusFilter, setStatusFilter] = useState('All')
 
   const isDoctor = user?.role === 'DOCTOR'
   const isPatient = user?.role === 'PATIENT'
@@ -130,6 +145,9 @@ const RequestsPage = () => {
   if (!user) return null
 
   const filteredRequests = requests.filter(r => {
+    const matchesStatus = statusFilter === 'All' || r.status === statusFilter
+    if (!matchesStatus) return false
+
     if (isPatient) return true // Patients see requests pertaining to them
     if (isDoctor) {
       if (activeTab === 'sent') {
@@ -207,31 +225,23 @@ const RequestsPage = () => {
           )}
         </div>
 
-        {/* Tab Selection (For Doctors) */}
-        {isDoctor && (
-          <div className="flex gap-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <button
-              onClick={() => setActiveTab('sent')}
-              className="px-4 py-2 text-xs font-bold transition-all border-b-2 outline-none cursor-pointer"
-              style={{
-                borderColor: activeTab === 'sent' ? 'var(--color-primary)' : 'transparent',
-                color: activeTab === 'sent' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-              }}
-            >
-              Sent Requests
-            </button>
-            <button
-              onClick={() => setActiveTab('received')}
-              className="px-4 py-2 text-xs font-bold transition-all border-b-2 outline-none cursor-pointer"
-              style={{
-                borderColor: activeTab === 'received' ? 'var(--color-primary)' : 'transparent',
-                color: activeTab === 'received' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-              }}
-            >
-              Received Releases (Awaiting Consent)
-            </button>
-          </div>
-        )}
+        {/* Tab Selection */}
+        <div className="bg-(--color-surface) rounded-2xl px-4 py-2 border border-(--color-border) flex flex-col gap-2">
+          {isDoctor && (
+            <FilterTabs
+              tabs={doctorTabs}
+              value={activeTab}
+              onChange={(val) => setActiveTab(val as any)}
+              layoutId="doctorRequestsTab"
+            />
+          )}
+          <FilterTabs
+            tabs={statusTabs}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            layoutId="statusRequestsTab"
+          />
+        </div>
 
         {/* TABLE LISTING */}
         <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>

@@ -179,7 +179,6 @@ const ProfilePage = () => {
                 <div className="relative mb-3">
                   <div
                     className="shrink-0 shadow-lg overflow-hidden rounded-2xl"
-                    style={{ outline: '4px solid var(--color-surface)', outlineOffset: '-1px' }}
                   >
                     <Avatar name={displayName} image={user.profileImageUrl} size="xl" />
                   </div>
@@ -216,34 +215,6 @@ const ProfilePage = () => {
                 <p className="text-xs truncate w-full text-center mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                   {user.email}
                 </p>
-
-                <div className="flex flex-wrap justify-center gap-1.5 mt-3">
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                    style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}
-                  >
-                    {ROLE_LABELS[user.role] ?? user.role}
-                  </span>
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                    style={{
-                      backgroundColor: user.isActive ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                      color: user.isActive ? '#10B981' : '#EF4444',
-                    }}
-                  >
-                    <span className="h-1 w-1 rounded-full" style={{ backgroundColor: user.isActive ? '#10B981' : '#EF4444' }} />
-                    {user.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                    style={{
-                      backgroundColor: user.isVerified ? 'rgba(16,185,129,0.12)' : 'rgba(251,191,36,0.12)',
-                      color: user.isVerified ? '#10B981' : '#F59E0B',
-                    }}
-                  >
-                    {user.isVerified ? '✓ Verified' : '! Unverified'}
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -251,8 +222,7 @@ const ProfilePage = () => {
               className="rounded-2xl p-4 flex flex-col gap-3"
               style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
             >
-              <InfoRow label="Role" value={ROLE_LABELS[user.role] ?? user.role} />
-              <div style={{ borderTop: '1px solid var(--color-border)' }} />
+              <div />
               <InfoRow label="Status" value={user.isActive ? 'Active' : 'Inactive'} />
               <div style={{ borderTop: '1px solid var(--color-border)' }} />
               <InfoRow label="Verified" value={user.isVerified ? 'Yes' : 'No'} />

@@ -18,7 +18,6 @@ const router = createBrowserRouter([
       { path: '/pricing', element: pricingRouteElement },
     ],
   },
-  // Dashboard routes — no Header/Footer
   { path: '/dashboard', element: dashboardRouteElement },
   { path: '/dashboard/tenants', element: tenantsRouteElement },
   { path: '/dashboard/superadmins', element: superadminsRouteElement },

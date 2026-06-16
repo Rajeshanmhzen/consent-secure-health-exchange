@@ -277,11 +277,11 @@ export class RequestService {
             throw new AppError("Unauthorized. You do not own this request record.", 403);
         }
 
-        if (request.status !== "PENDING") {
-            throw new AppError("This request is no longer pending patient consent.", 400);
-        }
-
         if (action === "REJECT") {
+            if (request.status !== "PENDING" && request.status !== "PATIENT_APPROVED") {
+                throw new AppError("Cannot reject or revoke this request at its current stage.", 400);
+            }
+
             const result = await prisma.dataRequest.update({
                 where: { id: requestId },
                 data: { status: "REJECTED" }
@@ -295,10 +295,14 @@ export class RequestService {
             await this.sendNotification(
                 request.requestingDoctor.userId,
                 "CONSENT_UPDATE",
-                `Patient ${patient.name} has rejected your record sharing request.`
+                `Patient ${patient.name} has rejected or revoked your record sharing request.`
             );
 
             return result;
+        }
+
+        if (request.status !== "PENDING") {
+            throw new AppError("This request is no longer pending patient consent.", 400);
         }
 
         // Approve Consent
