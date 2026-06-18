@@ -217,7 +217,10 @@ export class RequestService {
             }
         });
 
-        await sendConsentOtpEmail(patient.user.email, code);
+        // Fire-and-forget: do not await so the response is never blocked by SMTP
+        sendConsentOtpEmail(patient.user.email, code).catch(err => {
+            console.error("[OTP EMAIL] Failed to send consent OTP email:", err?.message ?? err);
+        });
 
         return { sent: true };
     }

@@ -40,6 +40,7 @@ const RecordsPage = () => {
   const [prescription, setPrescription] = useState('')
   const [notes, setNotes] = useState('')
   const [creating, setCreating] = useState(false)
+  const [recordFile, setRecordFile] = useState<File | null>(null)
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -106,12 +107,14 @@ const RecordsPage = () => {
         diagnosis,
         prescription: prescription || undefined,
         notes: notes || undefined,
+        recordFile: recordFile || undefined,
       })
       showToast('Medical record created successfully!', 'success')
       setShowAddModal(false)
       setDiagnosis('')
       setPrescription('')
       setNotes('')
+      setRecordFile(null)
       const res = await recordApi.list()
       const mapped: DisplayRecord[] = (res.data || []).map((r: ApiMedicalRecord) => ({
         id: r.id,
@@ -366,6 +369,32 @@ const RecordsPage = () => {
                 <InputField label="Prescription / Treatment Plan" value={prescription} onChange={setPrescription} placeholder="e.g. Rizatriptan 10mg orally at migraine onset; rest in dark room" />
                 
                 <InputField label="Encounter Notes" as="textarea" rows={3} value={notes} onChange={setNotes} placeholder="Describe clinical symptoms, examination findings, and follow-up directives..." required={false} />
+
+                {/* File upload */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Attach Document <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(PDF, DOCX, Image — max 20MB)</span></label>
+                  <label
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer border border-dashed transition-colors hover:border-indigo-400"
+                    style={{ borderColor: recordFile ? 'var(--color-primary)' : 'var(--color-border)', backgroundColor: 'var(--color-surface-elevated)' }}
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="currentColor" style={{ color: recordFile ? 'var(--color-primary)' : 'var(--color-text-secondary)' }}>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM12 18l-4-4h2.5v-3h3v3H16l-4 4z" />
+                    </svg>
+                    <span className="text-sm" style={{ color: recordFile ? 'var(--color-text)' : 'var(--color-text-secondary)' }}>
+                      {recordFile ? recordFile.name : 'Click to upload or drag a file here'}
+                    </span>
+                    {recordFile && (
+                      <button type="button" onClick={(e) => { e.preventDefault(); setRecordFile(null) }} className="ml-auto text-xs font-bold" style={{ color: 'var(--color-text-secondary)' }}>✕ Remove</button>
+                    )}
+                    <input
+                      type="file"
+                      id="recordFileInput"
+                      className="hidden"
+                      accept=".pdf,.docx,image/jpeg,image/png,image/webp"
+                      onChange={(e) => setRecordFile(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                </div>
 
                 <div className="flex justify-end gap-3 mt-3">
                   <Button variant="default" size="md" onClick={() => setShowAddModal(false)}>Cancel</Button>

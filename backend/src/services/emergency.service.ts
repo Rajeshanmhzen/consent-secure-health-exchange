@@ -98,20 +98,47 @@ export class EmergencyService {
         };
     }
 
-    async getActiveOverrides(doctorId: string) {
-        const doctor = await prisma.doctor.findFirst({ where: { userId: doctorId } });
-        if (!doctor) return [];
+    async getActiveOverrides(userId: string, role: string) {
+        if (role === "DOCTOR") {
+            const doctor = await prisma.doctor.findFirst({ where: { userId } });
+            if (!doctor) return [];
 
-        return await prisma.emergencyAccess.findMany({
-            where: {
-                requestingDoctorId: doctor.id,
-                expiresAt: { gt: new Date() }
-            },
-            include: {
-                patient: true
-            },
-            orderBy: { grantedAt: "desc" }
-        });
+            return await prisma.emergencyAccess.findMany({
+                where: {
+                    requestingDoctorId: doctor.id,
+                    expiresAt: { gt: new Date() }
+                },
+                include: {
+                    patient: true,
+                    requestingDoctor: { include: { hospital: true } }
+                },
+                orderBy: { grantedAt: "desc" }
+            });
+        }
+
+        if (role === "HOSPITAL_ADMIN") {
+            const adminUser = await prisma.user.findUnique({
+                where: { id: userId },
+                include: { tenant: true }
+            });
+            if (!adminUser || !adminUser.tenantId) return [];
+
+            return await prisma.emergencyAccess.findMany({
+                where: {
+                    expiresAt: { gt: new Date() },
+                    requestingDoctor: {
+                        hospital: { tenantId: adminUser.tenantId }
+                    }
+                },
+                include: {
+                    patient: true,
+                    requestingDoctor: { include: { hospital: true } }
+                },
+                orderBy: { grantedAt: "desc" }
+            });
+        }
+
+        return [];
     }
 
     async getHistory(userId: string, role: string) {
