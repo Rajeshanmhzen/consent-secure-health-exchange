@@ -90,7 +90,6 @@ export class RecordController {
             return sendSuccess(res, "Records fetched", records);
         }
 
-        // HOSPITAL_ADMIN: scope to records from doctors in their hospital
         if (user.role === "HOSPITAL_ADMIN") {
             const adminUser = await prisma.user.findUnique({
                 where: { id: user.id },
@@ -123,7 +122,6 @@ export class RecordController {
             return sendSuccess(res, "Records fetched", records);
         }
 
-        // Fallback (SUPER_ADMIN, etc.) - all records
         const where: any = { deletedAt: null };
         if (search) {
             where.OR = [
@@ -173,7 +171,6 @@ export class RecordController {
                 },
             });
 
-            // If a file was uploaded, create a RecordFile entry
             if (req.file) {
                 const fileUrl = `/uploads/record-files/${req.file.filename}`;
                 await tx.recordFile.create({
