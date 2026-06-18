@@ -9,7 +9,7 @@ if (!fs.existsSync(baseUploadPath)) {
 	fs.mkdirSync(baseUploadPath, { recursive: true });
 }
 
-type UploadFolder = "profile-images" | "doctor-files";
+type UploadFolder = "profile-images" | "doctor-files" | "record-files";
 
 const getStorage = (folder: UploadFolder): StorageEngine => {
 	const uploadPath = path.join(baseUploadPath, folder);
@@ -68,4 +68,23 @@ export const uploadDoctorFile = multer({
 	storage: getStorage("doctor-files"),
 	limits: { fileSize: 10 * 1024 * 1024 },
 	fileFilter: resumeFilter
+});
+
+export const uploadRecordFile = multer({
+	storage: getStorage("record-files"),
+	limits: { fileSize: 20 * 1024 * 1024 },
+	fileFilter: (_req, file, cb) => {
+		const allowed = [
+			"application/pdf",
+			"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+			"image/jpeg",
+			"image/png",
+			"image/webp"
+		];
+		if (allowed.includes(file.mimetype)) {
+			cb(null, true);
+		} else {
+			cb(new Error("Invalid file type. Allowed: PDF, DOCX, JPEG, PNG, WEBP"));
+		}
+	}
 });

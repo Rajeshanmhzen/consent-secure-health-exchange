@@ -24,11 +24,11 @@ export class EmergencyController {
 
     getActiveOverrides = asyncHandler(async (req: Request, res: Response) => {
         const user = (req as any).user;
-        if (!user || user.role !== "DOCTOR") {
+        if (!user || (user.role !== "DOCTOR" && user.role !== "HOSPITAL_ADMIN")) {
             throw new AppError("Unauthorized.", 403);
         }
 
-        const result = await this.service.getActiveOverrides(user.id);
+        const result = await this.service.getActiveOverrides(user.id, user.role);
         return sendSuccess(res, "Active emergency bypass sessions loaded.", result);
     });
 

@@ -90,6 +90,38 @@ export class RecordController {
             return sendSuccess(res, "Records fetched", records);
         }
 
+        if (user.role === "HOSPITAL_ADMIN") {
+            const adminUser = await prisma.user.findUnique({
+                where: { id: user.id },
+                select: { tenantId: true }
+            });
+            if (!adminUser?.tenantId) {
+                return sendSuccess(res, "Records fetched", []);
+            }
+
+            const where: any = {
+                deletedAt: null,
+                doctor: { hospital: { tenantId: adminUser.tenantId } }
+            };
+            if (search) {
+                where.OR = [
+                    { patient: { name: { contains: search, mode: "insensitive" } } },
+                    { diagnosis: { contains: search, mode: "insensitive" } },
+                ];
+            }
+
+            const records = await prisma.medicalRecord.findMany({
+                where,
+                include: {
+                    patient: { select: { name: true } },
+                    doctor: { select: { name: true, specialization: true } },
+                    files: true,
+                },
+                orderBy: { createdAt: "desc" },
+            });
+            return sendSuccess(res, "Records fetched", records);
+        }
+
         const where: any = { deletedAt: null };
         if (search) {
             where.OR = [
@@ -128,19 +160,37 @@ export class RecordController {
         const patient = await prisma.patient.findUnique({ where: { id: patientId } });
         if (!patient) throw new AppError("Patient not found", 404);
 
-        const record = await prisma.medicalRecord.create({
-            data: {
-                patientId,
-                doctorId: doctor.id,
-                diagnosis,
-                prescription: prescription || null,
-                notes: notes || null,
-            },
-            include: {
-                patient: { select: { name: true } },
-                doctor: { select: { name: true, specialization: true } },
-                files: true,
-            },
+        const record = await prisma.$transaction(async (tx) => {
+            const newRecord = await tx.medicalRecord.create({
+                data: {
+                    patientId,
+                    doctorId: doctor.id,
+                    diagnosis,
+                    prescription: prescription || null,
+                    notes: notes || null,
+                },
+            });
+
+            if (req.file) {
+                const fileUrl = `/uploads/record-files/${req.file.filename}`;
+                await tx.recordFile.create({
+                    data: {
+                        recordId: newRecord.id,
+                        fileUrl,
+                        fileType: req.file.mimetype,
+                        fileName: req.file.originalname,
+                    },
+                });
+            }
+
+            return await tx.medicalRecord.findUnique({
+                where: { id: newRecord.id },
+                include: {
+                    patient: { select: { name: true } },
+                    doctor: { select: { name: true, specialization: true } },
+                    files: true,
+                },
+            });
         });
 
         return sendSuccess(res, "Medical record created successfully", record, 201);
