@@ -37,7 +37,7 @@ export async function sendConsentOtpEmail(email: string, code: string): Promise<
 }
 
 export async function sendForgotPasswordEmail(email: string, code: string): Promise<void> {
-    const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?email=${encodeURIComponent(email)}&code=${code}`;
+    const resetLink = `${process.env.CORS_ORIGIN || "http://localhost:5173"}/reset-password?email=${encodeURIComponent(email)}&code=${code}`;
 
     await transporter.sendMail({
         from: `"Health Exchange" <${process.env.SMTP_USER}>`,
