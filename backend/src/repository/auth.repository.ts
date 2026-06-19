@@ -144,12 +144,14 @@ export class AuthRepository {
         const codeHash = this.hashToken(code);
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-        await prisma.oTP.deleteMany({ where: { userId: user.id, purpose: "RESET_PASSWORD" } });
-        await prisma.oTP.create({
-            data: { userId: user.id, codeHash, purpose: "RESET_PASSWORD", expiresAt }
+        await prisma.$transaction(async (tx) => {
+            await tx.oTP.deleteMany({ where: { userId: user.id, purpose: "RESET_PASSWORD" } });
+            await tx.oTP.create({ data: { userId: user.id, codeHash, purpose: "RESET_PASSWORD", expiresAt } });
         });
 
-        await sendForgotPasswordEmail(email, code);
+        sendForgotPasswordEmail(email, code).catch(err => {
+            console.error("[OTP EMAIL] Failed to send forgot password email:", err?.message ?? err);
+        });
     }
 
     async verifyOtp(email: string, code: string): Promise<string | null> {
