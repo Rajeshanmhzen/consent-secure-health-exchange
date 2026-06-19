@@ -204,17 +204,11 @@ export class RequestService {
         const code = crypto.randomInt(100000, 1000000).toString();
         const codeHash = crypto.createHash("sha256").update(code).digest("hex");
 
-        await prisma.oTP.deleteMany({
-            where: { userId, purpose: "CONSENT_APPROVAL" }
-        });
-
-        await prisma.oTP.create({
-            data: {
-                userId,
-                codeHash,
-                purpose: "CONSENT_APPROVAL",
-                expiresAt: new Date(Date.now() + 10 * 60 * 1000)
-            }
+        await prisma.$transaction(async (tx) => {
+            await tx.oTP.deleteMany({ where: { userId, purpose: "CONSENT_APPROVAL" } });
+            await tx.oTP.create({
+                data: { userId, codeHash, purpose: "CONSENT_APPROVAL", expiresAt: new Date(Date.now() + 10 * 60 * 1000) }
+            });
         });
 
         // Fire-and-forget: do not await so the response is never blocked by SMTP
