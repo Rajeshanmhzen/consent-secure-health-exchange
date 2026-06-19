@@ -991,89 +991,144 @@ export const PatientsSkeleton = () => {
   )
 }
 
-export const RecordsSkeleton = () => {
-  return (
-    <div className="pt-24 px-6">
-      <div className="mx-auto w-[82%] max-w-7xl">
+// ── RecordsSkeleton: matches 2-col card grid (doctor view) inside DashboardLayout ──
+export const RecordsSkeleton = () => (
+  <DashboardLayout>
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-2">
+          <SkeletonBlock className="h-6 w-52 rounded-full" />
+          <SkeletonBlock className="h-4 w-72 rounded-full" />
+        </div>
+        <SkeletonBlock className="h-10 w-32 rounded-xl" />
+      </div>
+      <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 max-w-md" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+        <SkeletonBlock className="h-4 w-4 rounded-full shrink-0" />
+        <SkeletonBlock className="h-4 flex-1 rounded-full" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="p-5 rounded-2xl flex flex-col gap-4 border" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <div className="flex justify-between items-start gap-2">
+              <div className="flex flex-col gap-1.5">
+                <SkeletonBlock className="h-4 w-20 rounded-full" />
+                <SkeletonBlock className="h-5 w-40 rounded-full" />
+              </div>
+              <div className="flex flex-col gap-1.5 items-end">
+                <SkeletonBlock className="h-3 w-28 rounded-full" />
+                <SkeletonBlock className="h-3 w-24 rounded-full" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <SkeletonBlock className="h-3 w-full rounded-full" />
+              <SkeletonBlock className="h-3 w-5/6 rounded-full" />
+            </div>
+            <div className="flex justify-between items-center pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <SkeletonBlock className="h-3 w-24 rounded-full" />
+              <SkeletonBlock className="h-4 w-20 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </DashboardLayout>
+)
+
+// ── EmergencySkeleton: matches header + alert banner + 2/3 form + 1/3 history panel ──
+export const EmergencySkeleton = () => (
+  <DashboardLayout>
+    <div className="flex flex-col gap-6">
+      <div>
         <SkeletonBlock className="h-6 w-52 rounded-full" />
-        <div className="mt-6 grid gap-6">
+        <SkeletonBlock className="mt-2 h-4 w-80 rounded-full" />
+      </div>
+      {/* Alert banner */}
+      <div className="p-4 rounded-2xl flex items-start gap-3 border" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+        <SkeletonBlock className="h-5 w-5 rounded-full shrink-0 mt-0.5" />
+        <div className="flex flex-col gap-2 flex-1">
+          <SkeletonBlock className="h-4 w-44 rounded-full" />
+          <SkeletonBlock className="h-3 w-full rounded-full" />
+          <SkeletonBlock className="h-3 w-5/6 rounded-full" />
+          <SkeletonBlock className="h-3 w-4/5 rounded-full" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Form side — 2/3 */}
+        <div className="lg:col-span-2 p-5 rounded-2xl flex flex-col gap-4 border" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+          <div>
+            <SkeletonBlock className="h-4 w-52 rounded-full" />
+            <SkeletonBlock className="mt-1.5 h-3 w-64 rounded-full" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SkeletonBlock className="h-11 rounded-xl" />
+            <SkeletonBlock className="h-11 rounded-xl" />
+          </div>
+          <SkeletonBlock className="h-20 rounded-xl" />
+          <SkeletonBlock className="h-10 w-full rounded-xl" />
+        </div>
+        {/* History side — 1/3 */}
+        <div className="p-5 rounded-2xl flex flex-col gap-4 border" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+          <div>
+            <SkeletonBlock className="h-4 w-44 rounded-full" />
+            <SkeletonBlock className="mt-1.5 h-3 w-40 rounded-full" />
+          </div>
           {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-2xl p-6" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-              <SkeletonBlock className="h-4 w-48 rounded-full" />
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <SkeletonBlock className="h-20 w-full rounded-3xl" />
-                <SkeletonBlock className="h-20 w-full rounded-3xl" />
-              </div>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {[1, 2, 3].map(fileIndex => (
-                  <SkeletonBlock key={fileIndex} className="h-8 w-28 rounded-xl" />
-                ))}
-              </div>
+            <div key={i} className="p-3.5 rounded-xl flex flex-col gap-1.5" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)' }}>
+              <SkeletonBlock className="h-4 w-32 rounded-full" />
+              <SkeletonBlock className="h-3 w-40 rounded-full" />
+              <SkeletonBlock className="h-3 w-full rounded-full" />
             </div>
           ))}
         </div>
       </div>
     </div>
-  )
-}
+  </DashboardLayout>
+)
 
-export const EmergencySkeleton = () => {
-  return (
-    <div className="pt-24 px-6">
-      <div className="mx-auto w-[82%] max-w-7xl">
-        <SkeletonBlock className="h-6 w-48 rounded-full" />
-        <div className="mt-6 rounded-2xl p-6" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-          <SkeletonBlock className="h-4 w-40" />
-          <div className="mt-4 grid gap-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center justify-between">
-                <SkeletonBlock className="h-12 w-3/4" />
-                <SkeletonBlock className="h-8 w-24" />
-              </div>
-            ))}
-          </div>
-        </div>
+// ── SettingsSkeleton: placeholder (settings page not deeply custom) ──
+export const SettingsSkeleton = () => (
+  <DashboardLayout>
+    <div className="max-w-2xl flex flex-col gap-6">
+      <div className="flex flex-col gap-1 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <SkeletonBlock className="h-8 w-52 rounded-full" />
+        <SkeletonBlock className="mt-2 h-4 w-72 rounded-full" />
       </div>
-    </div>
-  )
-}
-
-export const SettingsSkeleton = () => {
-  return (
-    <div className="pt-24 px-6">
-      <div className="mx-auto w-[82%] max-w-7xl">
-        <SkeletonBlock className="h-6 w-40 rounded-full" />
-        <div className="mt-6 grid gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="rounded-2xl p-4 flex items-center justify-between" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-              <SkeletonBlock className="h-4 w-48" />
-              <SkeletonBlock className="h-8 w-28" />
+      <div className="rounded-2xl p-6 flex flex-col gap-5" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex items-center justify-between p-3.5 rounded-xl" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-elevated)' }}>
+            <div className="flex flex-col gap-1.5">
+              <SkeletonBlock className="h-4 w-36 rounded-full" />
+              <SkeletonBlock className="h-3 w-64 rounded-full" />
             </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export const ConsentSkeleton = () => {
-  return (
-    <div className="pt-24 px-6">
-      <div className="mx-auto w-[82%] max-w-7xl">
-        <SkeletonBlock className="h-6 w-56 rounded-full" />
-        <div className="mt-6 rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-          <div className="grid grid-cols-12 px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
-            <SkeletonBlock className="col-span-3 h-4 w-24 rounded-full" />
-            <SkeletonBlock className="col-span-3 h-4 w-24 rounded-full" />
-            <SkeletonBlock className="col-span-2 h-4 w-20 rounded-full" />
-            <SkeletonBlock className="col-span-2 h-4 w-16 rounded-full" />
-            <SkeletonBlock className="col-span-2 h-4 w-12 rounded-full" />
+            <SkeletonBlock className="h-6 w-11 rounded-full shrink-0" />
           </div>
-        </div>
+        ))}
       </div>
     </div>
-  )
-}
+  </DashboardLayout>
+)
+
+// ── ConsentSkeleton: rendered INSIDE the table div in consent.tsx (after header row) ──
+export const ConsentSkeleton = () => (
+  <>
+    {[1, 2, 3, 4, 5].map(i => (
+      <div key={i} className="grid grid-cols-12 items-center px-5 py-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="col-span-3 flex flex-col gap-1.5 pr-2">
+          <SkeletonBlock className="h-4 w-32 rounded-full" />
+          <SkeletonBlock className="h-3 w-24 rounded-full" />
+        </div>
+        <SkeletonBlock className="col-span-3 h-4 w-36 rounded-full pr-2" />
+        <SkeletonBlock className="col-span-2 h-3 w-20 rounded-full pr-2" />
+        <div className="col-span-2 flex justify-center">
+          <SkeletonBlock className="h-5 w-24 rounded-full" />
+        </div>
+        <div className="col-span-2 flex justify-end">
+          <SkeletonBlock className="h-7 w-24 rounded-lg" />
+        </div>
+      </div>
+    ))}
+  </>
+)
 
 export const TenantsSkeleton = () => (
   <DashTableSkeleton
@@ -1180,17 +1235,78 @@ export const AuditSkeleton = () => (
   />
 )
 
+// ── StaffSkeleton: matches header + 3 stat cards + search/filter bar + 6-col table ──
 export const StaffSkeleton = () => (
-  <DashTableSkeleton
-    headerWidth="w-32"
-    subtitleWidth="w-48"
-    showButton={true}
-    tabCount={3}
-    columns={[
-      { span: 'w-1/4', width: 'w-32' },
-      { span: 'w-1/4', width: 'w-40' },
-      { span: 'w-1/4', width: 'w-24' },
-      { span: 'w-1/4', width: 'w-20' }
-    ]}
-  />
+  <DashboardLayout>
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-2">
+          <SkeletonBlock className="h-6 w-44 rounded-full" />
+          <SkeletonBlock className="h-4 w-72 rounded-full" />
+        </div>
+        <SkeletonBlock className="h-10 w-36 rounded-xl" />
+      </div>
+      {/* 3 stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="p-4 rounded-xl flex flex-col gap-2 border" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <SkeletonBlock className="h-3 w-24 rounded-full" />
+            <SkeletonBlock className="h-7 w-10 rounded-xl" />
+          </div>
+        ))}
+      </div>
+      {/* Search + filter tabs */}
+      <div className="flex flex-col gap-4 p-4 rounded-2xl" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)' }}>
+          <SkeletonBlock className="h-4 w-4 rounded-full shrink-0" />
+          <SkeletonBlock className="h-4 flex-1 max-w-sm rounded-full" />
+        </div>
+        <div className="flex gap-4 border-b pb-2" style={{ borderColor: 'var(--color-border)' }}>
+          {['w-16', 'w-16', 'w-24', 'w-16'].map((w, i) => (
+            <SkeletonBlock key={i} className={`h-4 ${w} rounded-full`} />
+          ))}
+        </div>
+      </div>
+      {/* 6-col table */}
+      <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+        <div className="flex items-center px-5 py-3.5 gap-4" style={{ backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
+          {['w-1/4', 'w-16', 'w-1/5', 'w-16', 'w-1/5', 'w-16'].map((w, i) => (
+            <div key={i} className={`${i === 0 ? 'flex-1' : ''}`}>
+              <SkeletonBlock className={`h-3 ${w} rounded-full`} />
+            </div>
+          ))}
+        </div>
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="flex items-center px-5 py-4 gap-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+            {/* Staff member col */}
+            <div className="flex items-center gap-3 flex-1">
+              <SkeletonBlock className="h-10 w-10 rounded-xl shrink-0" />
+              <div className="flex flex-col gap-1.5">
+                <SkeletonBlock className="h-4 w-28 rounded-full" />
+                <SkeletonBlock className="h-3 w-20 rounded-full" />
+              </div>
+            </div>
+            <SkeletonBlock className="h-5 w-20 rounded-full" />
+            <div className="flex flex-col gap-1 w-1/5">
+              <SkeletonBlock className="h-3 w-32 rounded-full" />
+              <SkeletonBlock className="h-3 w-20 rounded-full" />
+            </div>
+            <SkeletonBlock className="h-4 w-14 rounded-full" />
+            <div className="flex flex-col gap-1 w-1/5">
+              <SkeletonBlock className="h-3 w-24 rounded-full" />
+              <SkeletonBlock className="h-3 w-28 rounded-full" />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <SkeletonBlock className="h-6 w-6 rounded-md" />
+              <SkeletonBlock className="h-6 w-6 rounded-md" />
+              <SkeletonBlock className="h-6 w-6 rounded-md" />
+            </div>
+          </div>
+        ))}
+        <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+          <SkeletonBlock className="h-8 w-48 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  </DashboardLayout>
 )

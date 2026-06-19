@@ -2,6 +2,7 @@
 import { Suspense, lazy } from 'react'
 import type { ReactElement } from 'react'
 import { AuthSplitSkeleton, ContactSkeleton, FeatureSkeleton, HomeSkeleton, PricingSkeleton } from '../components/skeletons/PageSkeletons'
+import DashboardSkeleton from '../components/skeletons/DashboardSkeleton'
 
 const withSuspense = (element: ReactElement, fallback?: ReactElement) => (
   <Suspense fallback={fallback ?? <HomeSkeleton />}>
@@ -27,19 +28,19 @@ export const resetPasswordRouteElement = createLazyRouteElement(() => import('..
 export const contactRouteElement = createLazyRouteElement(() => import('../pages/contact'), <ContactSkeleton />)
 export const featureRouteElement = createLazyRouteElement(() => import('../pages/feature'), <FeatureSkeleton />)
 export const pricingRouteElement = createLazyRouteElement(() => import('../pages/pricing'), <PricingSkeleton />)
-export const tenantsRouteElement = createLazyRouteElement(() => import('../pages/superadmin/tenants'))
-export const superadminsRouteElement = createLazyRouteElement(() => import('../pages/superadmin/superadmins'))
-export const plansRouteElement = createLazyRouteElement(() => import('../pages/superadmin/plans'))
-export const subscriptionsRouteElement = createLazyRouteElement(() => import('../pages/superadmin/subscriptions'))
-export const inquiriesRouteElement = createLazyRouteElement(() => import('../pages/superadmin/inquiries'))
-export const settingsRouteElement = createLazyRouteElement(() => import('../pages/settings'))
-export const recordsRouteElement = createLazyRouteElement(() => import('../pages/records'))
-export const requestsRouteElement = createLazyRouteElement(() => import('../pages/requests'))
-export const consentRouteElement = createLazyRouteElement(() => import('../pages/consent'))
-export const emergencyRouteElement = createLazyRouteElement(() => import('../pages/emergency'))
-export const scheduleRouteElement = createLazyRouteElement(() => import('../pages/schedule'))
-export const auditRouteElement = createLazyRouteElement(() => import('../pages/audit'))
-export const staffRouteElement = createLazyRouteElement(() => import('../pages/staff'))
+export const tenantsRouteElement = createLazyRouteElement(() => import('../pages/superadmin/tenants'), <DashboardSkeleton />)
+export const superadminsRouteElement = createLazyRouteElement(() => import('../pages/superadmin/superadmins'), <DashboardSkeleton />)
+export const plansRouteElement = createLazyRouteElement(() => import('../pages/superadmin/plans'), <DashboardSkeleton />)
+export const subscriptionsRouteElement = createLazyRouteElement(() => import('../pages/superadmin/subscriptions'), <DashboardSkeleton />)
+export const inquiriesRouteElement = createLazyRouteElement(() => import('../pages/superadmin/inquiries'), <DashboardSkeleton />)
+export const settingsRouteElement = createLazyRouteElement(() => import('../pages/settings'), <DashboardSkeleton />)
+export const recordsRouteElement = createLazyRouteElement(() => import('../pages/records'), <DashboardSkeleton />)
+export const requestsRouteElement = createLazyRouteElement(() => import('../pages/requests'), <DashboardSkeleton />)
+export const consentRouteElement = createLazyRouteElement(() => import('../pages/consent'), <DashboardSkeleton />)
+export const emergencyRouteElement = createLazyRouteElement(() => import('../pages/emergency'), <DashboardSkeleton />)
+export const scheduleRouteElement = createLazyRouteElement(() => import('../pages/schedule'), <DashboardSkeleton />)
+export const auditRouteElement = createLazyRouteElement(() => import('../pages/audit'), <DashboardSkeleton />)
+export const staffRouteElement = createLazyRouteElement(() => import('../pages/staff'), <DashboardSkeleton />)
 export const profileRouteElement = createLazyRouteElement(() => import('../pages/profile'))
 export const changePasswordRouteElement = createLazyRouteElement(() => import('../pages/change-password'))
 export const trashRouteElement = createLazyRouteElement(() => import('../pages/superadmin/trash'))

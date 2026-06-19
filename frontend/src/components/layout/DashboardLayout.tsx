@@ -85,14 +85,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     const [showProfileMenu, setShowProfileMenu] = useState(false)
     const [showPrefModal, setShowPrefModal] = useState(false)
     const [notificationsCount, setNotificationsCount] = useState(3)
-    const [layoutLoading, setLayoutLoading] = useState(true)
 
-    React.useEffect(() => {
-        const timer = setTimeout(() => {
-            setLayoutLoading(false)
-        }, 650)
-        return () => clearTimeout(timer)
-    }, [])
 
     const handleLogout = async () => {
         const refreshToken = localStorage.getItem('refreshToken')
@@ -318,25 +311,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
                 {/* Page content */}
                 <main className="flex-1 overflow-y-auto p-6">
-                    {layoutLoading ? (
-                        <div className="flex flex-col gap-6 w-full h-full">
-                            {/* Header Skeleton */}
-                            <div className="flex justify-between items-center w-full">
-                                <div className="space-y-2">
-                                    <div className="skeleton-shimmer h-6 w-48 rounded-lg animate-pulse" />
-                                    <div className="skeleton-shimmer h-4 w-72 rounded-lg animate-pulse" />
-                                </div>
-                                <div className="skeleton-shimmer h-10 w-32 rounded-xl animate-pulse" />
-                            </div>
-
-                            {/* Main Body Skeleton */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mt-4">
-                                {Array.from({ length: 4 }).map((_, i) => (
-                                    <div key={i} className="skeleton-shimmer h-44 rounded-2xl w-full animate-pulse" />
-                                ))}
-                            </div>
-                        </div>
-                    ) : children}
+                    {children}
                 </main>
             </div>
 
