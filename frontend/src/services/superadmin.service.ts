@@ -24,9 +24,15 @@ export type SuperAdminListData = {
 export const superAdminApi = {
     list: (params: { page?: number; limit?: number; search?: string }) => {
         const q = new URLSearchParams()
-        if (params.page)              q.set('page',     String(params.page))
-        if (params.limit)             q.set('limit',    String(params.limit))
-        if (params.search)            q.set('search',   params.search)
+        if (params.page)   q.set('page',   String(params.page))
+        if (params.limit)  q.set('limit',  String(params.limit))
+        if (params.search) q.set('search', params.search)
         return request<ApiResponse<SuperAdminListData>>(`/superadmin/list?${q.toString()}`)
     },
+    add: (payload: { email: string; password: string; fullName: string; phone?: string }) =>
+        request<ApiResponse<SuperAdmin>>('/superadmin/add', { method: 'POST', body: payload }),
+    edit: (id: string, payload: { email?: string; password?: string; fullName?: string; phone?: string; isActive?: boolean }) =>
+        request<ApiResponse<SuperAdmin>>(`/superadmin/edit/${id}`, { method: 'PUT', body: payload }),
+    delete: (id: string) =>
+        request<ApiResponse<null>>(`/superadmin/delete/${id}`, { method: 'DELETE' }),
 }
