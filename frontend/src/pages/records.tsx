@@ -259,64 +259,101 @@ const RecordsPage = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            {/* Table header */}
+            <div className="grid px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style={{ gridTemplateColumns: '0.9fr 1fr 1.4fr 1.4fr 0.6fr 1fr', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
+              <span>Date</span>
+              <span>Patient</span>
+              <span>Diagnosis</span>
+              <span>Prescription</span>
+              <span>Files</span>
+              <span className="text-right">Actions</span>
+            </div>
+
             {loading ? (
-              <div className="md:col-span-2 p-12 text-center">
-                <div className="h-10 w-10 mx-auto rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
-                <p className="text-sm mt-3" style={{ color: 'var(--color-text-secondary)' }}>Loading records...</p>
+              <div className="flex flex-col">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="grid px-5 py-4 gap-4" style={{ gridTemplateColumns: '0.9fr 1fr 1.4fr 1.4fr 0.6fr 1fr', borderTop: '1px solid var(--color-border)' }}>
+                    <div className="h-4 w-20 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
+                    <div className="h-4 w-24 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
+                    <div className="h-4 w-32 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
+                    <div className="h-4 w-36 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
+                    <div className="h-4 w-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
+                    <div className="h-4 w-16 rounded-full animate-pulse ml-auto" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
+                  </div>
+                ))}
               </div>
             ) : records.length === 0 ? (
-              <div className="md:col-span-2 p-12 text-center rounded-2xl" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <div className="px-5 py-16 text-center">
                 <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No patient records match search parameters</p>
               </div>
             ) : records.map((r, i) => (
               <motion.div
                 key={r.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04, duration: 0.3 }}
-                className="p-5 rounded-2xl flex flex-col gap-4 justify-between border"
-                style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                transition={{ delay: i * 0.03, duration: 0.25 }}
+                className="grid px-5 py-4 text-sm items-center transition-colors"
+                style={{ gridTemplateColumns: '0.9fr 1fr 1.4fr 1.4fr 0.6fr 1fr', borderTop: '1px solid var(--color-border)' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
-                {/* Header Info */}
-                <div className="flex justify-between items-start gap-2">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
-                      {new Date(r.createdAt).toLocaleDateString()}
-                    </span>
-                    <h3 className="text-sm font-extrabold mt-1.5" style={{ color: 'var(--color-text)' }}>{r.diagnosis}</h3>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-bold" style={{ color: 'var(--color-text)' }}>Patient: {r.patientName}</p>
-                    <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Authored by: {r.doctorName}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <div className="text-xs">
-                    <span className="font-bold text-(--color-text-secondary)">Prescription: </span>
-                    <span style={{ color: 'var(--color-text)' }}>{r.prescription}</span>
-                  </div>
-                  <div className="text-xs line-clamp-2">
-                    <span className="font-bold text-(--color-text-secondary)">Notes: </span>
-                    <span style={{ color: 'var(--color-text-secondary)' }}>{r.notes}</span>
-                  </div>
-                </div>
-
-                {/* Footer details */}
-                <div className="flex justify-between items-center gap-2 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-                  <span className="text-[10px] font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
-                    Attachments: {r.files.length} file{r.files.length !== 1 ? 's' : ''}
+                {/* Date */}
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-bold" style={{ color: 'var(--color-primary)' }}>
+                    {new Date(r.createdAt).toLocaleDateString()}
                   </span>
+                  <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+                    {r.doctorName}
+                  </span>
+                </div>
+
+                {/* Patient */}
+                <span className="font-semibold pr-2 truncate" style={{ color: 'var(--color-text)' }}>{r.patientName}</span>
+
+                {/* Diagnosis */}
+                <span className="text-xs pr-2 truncate font-semibold" style={{ color: 'var(--color-text)' }} title={r.diagnosis}>{r.diagnosis}</span>
+
+                {/* Prescription */}
+                <span className="text-xs pr-2 truncate" style={{ color: 'var(--color-text-secondary)' }} title={r.prescription}>{r.prescription}</span>
+
+                {/* Files */}
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
+                  {r.files.length > 0 ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
+                      {r.files.length} file{r.files.length !== 1 ? 's' : ''}
+                    </span>
+                  ) : '—'}
+                </span>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-2">
+                  {/* View — info icon */}
                   <button
+                    type="button"
                     onClick={() => navigate('/dashboard/requests', { state: { requestPatientName: r.patientName } })}
-                    className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                    className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer group relative"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
                   >
-                    Share Record
-                    <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor">
-                      <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 0-6 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81A2.99 2.99 0 0 0 6 9a3 3 0 0 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66a2.92 2.92 0 0 0 5.84 0 2.92 2.92 0 0 0-2.92-2.92z" />
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
                     </svg>
+                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">View</span>
                   </button>
+                  {/* Share — share icon, only for doctors */}
+                  {isDoctor && (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/dashboard/requests', { state: { requestPatientName: r.patientName } })}
+                      className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer group relative"
+                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" style={{ color: 'var(--color-text-secondary)' }}>
+                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 0-6 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81A2.99 2.99 0 0 0 6 9a3 3 0 0 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66a2.92 2.92 0 0 0 5.84 0 2.92 2.92 0 0 0-2.92-2.92z" />
+                      </svg>
+                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">Share</span>
+                    </button>
+                  )}
                 </div>
               </motion.div>
             ))}

@@ -27,7 +27,9 @@ export type Permission =
     | "CONSENT_MANAGE"
     | "EMERGENCY_OVERRIDE"
     | "RECORD_CREATE"
-    | "RECORD_LIST";
+    | "RECORD_LIST"
+    | "RECORD_EDIT"
+    | "RECORD_DELETE";
 
 // ================= ROLE TO PERMISSIONS MAP =================
 const ROLE_PERMISSIONS: Record<string, Permission[]> = {
@@ -72,7 +74,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         "DATA_REQUEST_LIST",
         "EMERGENCY_OVERRIDE",
         "RECORD_CREATE",
-        "RECORD_LIST"
+        "RECORD_LIST",
+        "RECORD_EDIT",
+        "RECORD_DELETE"
     ],
     RECEPTIONIST: [
         "USER_LIST",

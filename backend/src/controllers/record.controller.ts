@@ -195,4 +195,46 @@ export class RecordController {
 
         return sendSuccess(res, "Medical record created successfully", record, 201);
     });
+
+    updateRecord = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const user = req.user;
+        if (!user || user.role !== "DOCTOR") throw new AppError("Only doctors can update medical records", 403);
+
+        const { id } = req.params;
+        const { diagnosis, prescription, notes } = req.body;
+
+        const doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
+        if (!doctor) throw new AppError("Doctor profile not found", 404);
+
+        const existing = await prisma.medicalRecord.findFirst({ where: { id, doctorId: doctor.id, deletedAt: null } });
+        if (!existing) throw new AppError("Record not found or not owned by you", 404);
+
+        const updated = await prisma.medicalRecord.update({
+            where: { id },
+            data: { diagnosis, prescription: prescription || null, notes: notes || null },
+            include: {
+                patient: { select: { name: true } },
+                doctor: { select: { name: true, specialization: true } },
+                files: true,
+            },
+        });
+
+        return sendSuccess(res, "Medical record updated successfully", updated);
+    });
+
+    deleteRecord = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const user = req.user;
+        if (!user || user.role !== "DOCTOR") throw new AppError("Only doctors can delete medical records", 403);
+
+        const { id } = req.params;
+        const doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
+        if (!doctor) throw new AppError("Doctor profile not found", 404);
+
+        const existing = await prisma.medicalRecord.findFirst({ where: { id, doctorId: doctor.id, deletedAt: null } });
+        if (!existing) throw new AppError("Record not found or not owned by you", 404);
+
+        await prisma.medicalRecord.update({ where: { id }, data: { deletedAt: new Date() } });
+
+        return sendSuccess(res, "Medical record deleted successfully", null);
+    });
 }
