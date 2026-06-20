@@ -29,10 +29,10 @@ export const superAdminApi = {
         if (params.search) q.set('search', params.search)
         return request<ApiResponse<SuperAdminListData>>(`/superadmin/list?${q.toString()}`)
     },
-    add: (payload: { email: string; password: string; fullName: string; phone?: string }) =>
-        request<ApiResponse<SuperAdmin>>('/superadmin/add', { method: 'POST', body: payload }),
+    add: (payload: { email: string; password: string; fullName: string; phone?: string; isActive?: boolean; isVerified?: boolean }) =>
+        request<ApiResponse<SuperAdmin>>('/superadmin/add', { method: 'POST', body: JSON.stringify(payload) }),
     edit: (id: string, payload: { email?: string; password?: string; fullName?: string; phone?: string; isActive?: boolean }) =>
-        request<ApiResponse<SuperAdmin>>(`/superadmin/edit/${id}`, { method: 'PUT', body: payload }),
+        request<ApiResponse<SuperAdmin>>(`/superadmin/edit/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
     delete: (id: string) =>
         request<ApiResponse<null>>(`/superadmin/delete/${id}`, { method: 'DELETE' }),
 }
