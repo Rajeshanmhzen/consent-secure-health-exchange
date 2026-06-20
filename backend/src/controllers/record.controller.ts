@@ -200,7 +200,7 @@ export class RecordController {
         const user = req.user;
         if (!user || user.role !== "DOCTOR") throw new AppError("Only doctors can update medical records", 403);
 
-        const { id } = req.params;
+        const id = req.params.id as string;
         const { diagnosis, prescription, notes } = req.body;
 
         const doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
@@ -226,7 +226,7 @@ export class RecordController {
         const user = req.user;
         if (!user || user.role !== "DOCTOR") throw new AppError("Only doctors can delete medical records", 403);
 
-        const { id } = req.params;
+        const id = req.params.id as string;
         const doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
         if (!doctor) throw new AppError("Doctor profile not found", 404);
 

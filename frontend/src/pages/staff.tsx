@@ -12,7 +12,6 @@ import PhoneInputField from '../components/shared/PhoneInputField'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import Pagination from '../components/shared/Pagination'
 import Checkbox from '../components/shared/Checkbox'
-import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { tenantApi, type TenantUserRole } from '../services/tenant.service'
 import { validateStaffForm, type StaffFormErrors } from '../validation/staff.validation'
 
@@ -451,18 +450,15 @@ const StaffPage = () => {
                       )}
                     </td>
                     <td className="px-5 py-4 align-top text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setViewStaffId(s.id)}
-                          className="text-xs font-bold text-indigo-400 hover:text-indigo-300"
-                          title="View"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="relative group">
+                          <button type="button" onClick={() => setViewStaffId(s.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
+                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                          </button>
+                          <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View Details</span>
+                        </div>
+                        <div className="relative group">
+                          <button type="button" onClick={() => {
                             const m = staff.find(x => x.id === s.id)
                             if (m) {
                               setEditStaffId(m.id)
@@ -479,20 +475,17 @@ const StaffPage = () => {
                               setIsActive(m.isActive)
                               setIsVerified(m.isVerified || false)
                             }
-                          }}
-                          className="text-xs font-bold text-amber-500 hover:text-amber-400"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirm({ isOpen: true, id: s.id, name: s.name })}
-                          className="text-xs font-bold text-rose-500 hover:text-rose-400"
-                          title="De-authorize"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          }} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
+                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                          </button>
+                          <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Staff</span>
+                        </div>
+                        <div className="relative group">
+                          <button type="button" onClick={() => setDeleteConfirm({ isOpen: true, id: s.id, name: s.name })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
+                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                          </button>
+                          <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">De-authorize</span>
+                        </div>
                       </div>
                     </td>
                   </tr>

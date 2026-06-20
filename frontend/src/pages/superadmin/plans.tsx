@@ -106,15 +106,11 @@ const PlansPage = () => {
     }, [user, navigate])
 
     useEffect(() => {
-        setLoading(true)
-        pricingApi.listPlans({
-            page,
-            limit: 8,
-            search: search || undefined
-        })
-            .then(res => {
+        const fetchPlans = async () => {
+            setLoading(true)
+            try {
+                const res = await pricingApi.listPlans({ page, limit: 8, search: search || undefined })
                 const fetched = res.data.plans
-                // Apply status filter locally if statusFilter isn't 'all'
                 const filtered = fetched.filter(p => {
                     if (statusFilter === 'active') return p.isActive
                     if (statusFilter === 'inactive') return !p.isActive
@@ -123,9 +119,13 @@ const PlansPage = () => {
                 setPlans(filtered)
                 setTotalPages(res.data.pagination.totalPages)
                 setTotal(filtered.length)
-            })
-            .catch(() => { })
-            .finally(() => setLoading(false))
+            } catch {
+                // silent
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchPlans()
     }, [page, search, statusFilter, refreshTrigger])
 
     const handleSearch = (e: React.FormEvent) => {
@@ -216,8 +216,8 @@ const PlansPage = () => {
 
             setModalConfig(p => ({ ...p, isOpen: false }))
             setRefreshTrigger(prev => prev + 1)
-        } catch (err: any) {
-            showToast(err.message ?? 'An error occurred during submission', 'error')
+        } catch (err: unknown) {
+            showToast(err instanceof Error ? err.message : 'An error occurred during submission', 'error')
         } finally {
             setFormLoading(false)
         }
@@ -230,8 +230,8 @@ const PlansPage = () => {
             showToast(`Pricing plan "${confirmDialog.planName}" deleted successfully`, 'success')
             setConfirmDialog(p => ({ ...p, isOpen: false }))
             setRefreshTrigger(prev => prev + 1)
-        } catch (err: any) {
-            showToast(err.message ?? 'Failed to delete pricing plan', 'error')
+        } catch (err: unknown) {
+            showToast(err instanceof Error ? err.message : 'Failed to delete pricing plan', 'error')
         } finally {
             setIsDeleting(false)
         }
@@ -338,38 +338,18 @@ const PlansPage = () => {
                                             )}
                                         </div>
                                         <div className="flex items-center justify-end gap-2.5">
-                                            {/* Edit Button */}
-                                            <button
-                                                type="button"
-                                                onClick={() => handleOpenEditModal(plan)}
-                                                className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer select-none group relative"
-                                                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                                            >
-                                                <svg viewBox="0 0 24 24" className="h-4 w-4 group-hover:scale-105" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M12 20h9" />
-                                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                                </svg>
-                                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow">
-                                                    Edit Plan
-                                                </span>
-                                            </button>
-
-                                            {/* Delete Button */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setConfirmDialog({ isOpen: true, planId: plan.id, planName: plan.name })}
-                                                className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer select-none group relative"
-                                                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                                            >
-                                                <svg viewBox="0 0 24 24" className="h-4 w-4 text-red-500 group-hover:scale-105" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M3 6h18" />
-                                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                                </svg>
-                                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-red-600 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow">
-                                                    Delete Plan
-                                                </span>
-                                            </button>
+                                            <div className="relative group">
+                                                <button type="button" onClick={() => handleOpenEditModal(plan)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
+                                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                                                </button>
+                                                <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Plan</span>
+                                            </div>
+                                            <div className="relative group">
+                                                <button type="button" onClick={() => setConfirmDialog({ isOpen: true, planId: plan.id, planName: plan.name })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
+                                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                                                </button>
+                                                <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Plan</span>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -407,7 +387,7 @@ const PlansPage = () => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setModalConfig(p => ({ ...p, isOpen: false }))}
-                        className="fixed inset-0 z-[99] flex items-center justify-center p-4 backdrop-blur-md"
+                        className="fixed inset-0 z-99 flex items-center justify-center p-4 backdrop-blur-md"
                         style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
                     >
                         <motion.div
