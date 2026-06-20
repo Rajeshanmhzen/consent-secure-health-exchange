@@ -3,6 +3,7 @@ import {
     CreateSuperAdminInput,
     CreateSuperAdminPayload,
     SuperAdminListParams,
+    SuperAdminUpdateData,
     UpdateSuperAdminPayload
 } from "../types/superadmin.types";
 import { hashPassword } from "../utils/password";
@@ -41,7 +42,7 @@ export class SuperAdminService {
             ? await hashPassword(data.password)
             : undefined;
 
-        const updateData = {
+        const updateData: SuperAdminUpdateData = {
             fullName: data.fullName,
             user: {
                 update: {

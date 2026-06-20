@@ -6,6 +6,8 @@ import { useToast } from '../../Context/ToastContext'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import Pagination from '../../components/shared/Pagination'
 import Button from '../../components/shared/Button'
+import InputField from '../../components/shared/InputField'
+import PhoneInputField from '../../components/shared/PhoneInputField'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import SuperAdminListSkeleton from '../../components/dashboard/SuperAdminListSkeleton'
 import { superAdminApi, type SuperAdmin } from '../../services/superadmin.service'
@@ -17,7 +19,7 @@ const superAdminTabs = [
     { key: 'inactive', label: 'Inactive' }
 ] as const
 
-const EMPTY_FORM = { fullName: '', email: '', password: '', phone: '', isActive: true }
+const EMPTY_FORM = { fullName: '', email: '', password: '', phone: '', isActive: true, isVerified: true }
 
 const SuperAdminsPage = () => {
     const { user } = useAuth()
@@ -72,7 +74,7 @@ const SuperAdminsPage = () => {
     const openAdd = () => { setForm(EMPTY_FORM); setSelectedAdmin(null); setModalMode('add') }
     const openEdit = (a: SuperAdmin) => {
         setSelectedAdmin(a)
-        setForm({ fullName: a.fullName, email: a.user.email, password: '', phone: a.user.phone || '', isActive: a.user.isActive })
+        setForm({ fullName: a.fullName, email: a.user.email, password: '', phone: a.user.phone || '', isActive: a.user.isActive, isVerified: a.user.isVerified })
         setModalMode('edit')
     }
     const openView = (a: SuperAdmin) => { setSelectedAdmin(a); setModalMode('view') }
@@ -83,10 +85,10 @@ const SuperAdminsPage = () => {
         setFormLoading(true)
         try {
             if (modalMode === 'add') {
-                await superAdminApi.add({ fullName: form.fullName, email: form.email, password: form.password, phone: form.phone || undefined })
+                await superAdminApi.add({ fullName: form.fullName, email: form.email, password: form.password, phone: form.phone || undefined, isActive: form.isActive, isVerified: form.isVerified })
                 showToast('Super admin created successfully', 'success')
             } else if (modalMode === 'edit' && selectedAdmin) {
-                await superAdminApi.edit(selectedAdmin.id, { fullName: form.fullName, email: form.email, password: form.password || undefined, phone: form.phone || undefined, isActive: form.isActive })
+                await superAdminApi.edit(selectedAdmin.id, { fullName: form.fullName, email: form.email, phone: form.phone || undefined, isActive: form.isActive })
                 showToast('Super admin updated successfully', 'success')
             }
             closeModal()
@@ -189,28 +191,25 @@ const SuperAdminsPage = () => {
                                     </span>
                                 </span>
                                 <span style={{ color: 'var(--color-text-secondary)' }}>{new Date(admin.user.createdAt).toLocaleDateString()}</span>
-                                <div className="flex items-center justify-end gap-2">
-                                    {/* View */}
-                                    <button type="button" onClick={() => openView(admin)} className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer group relative" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-                                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
-                                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-                                        </svg>
-                                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">View</span>
-                                    </button>
-                                    {/* Edit */}
-                                    <button type="button" onClick={() => openEdit(admin)} className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer group relative" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-                                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
-                                            <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                        </svg>
-                                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">Edit</span>
-                                    </button>
-                                    {/* Delete */}
-                                    <button type="button" onClick={() => setDeleteDialog({ isOpen: true, id: admin.id, name: admin.fullName })} className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer group relative" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-                                        <svg viewBox="0 0 24 24" className="h-4 w-4 text-red-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                        </svg>
-                                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-red-600 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">Delete</span>
-                                    </button>
+                                <div className="flex items-center justify-end gap-2 pr-1">
+                                    <div className="relative group">
+                                        <button type="button" onClick={() => openView(admin)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
+                                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                                        </button>
+                                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View Details</span>
+                                    </div>
+                                    <div className="relative group">
+                                        <button type="button" onClick={() => openEdit(admin)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
+                                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                                        </button>
+                                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Admin</span>
+                                    </div>
+                                    <div className="relative group">
+                                        <button type="button" onClick={() => setDeleteDialog({ isOpen: true, id: admin.id, name: admin.fullName })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
+                                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                                        </button>
+                                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Admin</span>
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}
@@ -235,23 +234,24 @@ const SuperAdminsPage = () => {
                                 <button type="button" onClick={closeModal} className="h-8 w-8 rounded-full border flex items-center justify-center opacity-70 hover:opacity-100" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface-elevated)' }}>✕</button>
                             </div>
                             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                                {[
-                                    { label: 'Full Name', key: 'fullName', type: 'text', placeholder: 'e.g. John Smith', required: true },
-                                    { label: 'Email', key: 'email', type: 'email', placeholder: 'admin@example.com', required: true },
-                                    { label: `Password${modalMode === 'edit' ? ' (leave blank to keep)' : ''}`, key: 'password', type: 'password', placeholder: 'Min 6 characters', required: modalMode === 'add' },
-                                    { label: 'Phone', key: 'phone', type: 'text', placeholder: '+1 234 567 8900', required: false },
-                                ].map(f => (
-                                    <div key={f.key} className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>{f.label}{f.required && <span className="text-red-500 ml-1">*</span>}</label>
-                                        <input type={f.type} required={f.required} placeholder={f.placeholder} value={(form as any)[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="w-full rounded-2xl px-4 py-3 text-sm outline-none border" style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }} />
-                                    </div>
-                                ))}
-                                {modalMode === 'edit' && (
+                                <InputField label="Full Name" value={form.fullName} onChange={v => setForm(p => ({ ...p, fullName: v }))} placeholder="e.g. John Smith" />
+                                <InputField label="Email" type="email" value={form.email} onChange={v => setForm(p => ({ ...p, email: v }))} placeholder="admin@example.com" />
+                                {modalMode === 'add' && (
+                                    <InputField label="Password" type="password" value={form.password} onChange={v => setForm(p => ({ ...p, password: v }))} placeholder="Min 6 characters" />
+                                )}
+                                <PhoneInputField label="Phone Number" value={form.phone} onChange={v => setForm(p => ({ ...p, phone: v }))} required={false} />
+                                <div className="flex items-center gap-6">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={form.isActive} onChange={e => setForm(p => ({ ...p, isActive: e.target.checked }))} className="h-4 w-4 rounded accent-violet-500" />
                                         <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Active Account</span>
                                     </label>
-                                )}
+                                    {modalMode === 'add' && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" checked={form.isVerified} onChange={e => setForm(p => ({ ...p, isVerified: e.target.checked }))} className="h-4 w-4 rounded accent-violet-500" />
+                                            <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Verified</span>
+                                        </label>
+                                    )}
+                                </div>
                                 <div className="flex justify-end gap-3 mt-2 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
                                     <Button type="button" variant="default" size="md" onClick={closeModal} disabled={formLoading}>Cancel</Button>
                                     <Button type="submit" variant="primary" size="md" isLoading={formLoading} loadingText="Saving...">{modalMode === 'add' ? 'Create Admin' : 'Save Changes'}</Button>

@@ -31,7 +31,7 @@ const RecordsPage = () => {
 
   const [records, setRecords] = useState<DisplayRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState(() => (location.state as any)?.filterPatientName ?? '')
+  const [search, setSearch] = useState(() => (location.state as { filterPatientName?: string } | null)?.filterPatientName ?? '')
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [patientsList, setPatientsList] = useState<{ id: string; name: string }[]>([])
@@ -78,12 +78,12 @@ const RecordsPage = () => {
       }
     }
     if (user) fetchRecords()
-  }, [user, search])
+  }, [user, search, showToast])
 
   useEffect(() => {
     if (showAddModal && user?.tenantId) {
       tenantApi.listUsers({ tenantId: user.tenantId, role: 'PATIENT' }).then(res => {
-        const list = (res.data?.users || []).map((u: any) => ({ id: u.id, name: u.patient?.name || u.name || '—' }))
+        const list = (res.data?.users || []).map((u: { id: string; name?: string; patient?: { name?: string } }) => ({ id: u.id, name: u.patient?.name || u.name || '—' }))
         setPatientsList(list)
         if (list.length > 0) setSelectedPatientId(list[0].id)
       }).catch(() => {})
@@ -205,7 +205,7 @@ const RecordsPage = () => {
                 style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
               >
                 {/* Timeline node */}
-                <div className="absolute -left-[33px] top-7 h-4.5 w-4.5 rounded-full border-4 border-(--color-background) shadow-sm transition-transform group-hover:scale-125" style={{ backgroundColor: 'var(--color-primary)' }} />
+                <div className="absolute -left-8.25 top-7 h-4.5 w-4.5 rounded-full border-4 border-(--color-background) shadow-sm transition-transform group-hover:scale-125" style={{ backgroundColor: 'var(--color-primary)' }} />
 
                 {/* Card Title & Specialty */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -328,31 +328,19 @@ const RecordsPage = () => {
 
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-2">
-                  {/* View — info icon */}
-                  <button
-                    type="button"
-                    onClick={() => navigate('/dashboard/requests', { state: { requestPatientName: r.patientName } })}
-                    className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer group relative"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                    </svg>
-                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">View</span>
-                  </button>
-                  {/* Share — share icon, only for doctors */}
-                  {isDoctor && (
-                    <button
-                      type="button"
-                      onClick={() => navigate('/dashboard/requests', { state: { requestPatientName: r.patientName } })}
-                      className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer group relative"
-                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                    >
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" style={{ color: 'var(--color-text-secondary)' }}>
-                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 0-6 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81A2.99 2.99 0 0 0 6 9a3 3 0 0 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66a2.92 2.92 0 0 0 5.84 0 2.92 2.92 0 0 0-2.92-2.92z" />
-                      </svg>
-                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">Share</span>
+                  <div className="relative group">
+                    <button type="button" onClick={() => navigate('/dashboard/requests', { state: { requestPatientName: r.patientName } })} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                     </button>
+                    <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View</span>
+                  </div>
+                  {isDoctor && (
+                    <div className="relative group">
+                      <button type="button" onClick={() => navigate('/dashboard/requests', { state: { requestPatientName: r.patientName } })} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 0-6 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81A2.99 2.99 0 0 0 6 9a3 3 0 0 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66a2.92 2.92 0 0 0 5.84 0 2.92 2.92 0 0 0-2.92-2.92z" /></svg>
+                      </button>
+                      <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Share</span>
+                    </div>
                   )}
                 </div>
               </motion.div>

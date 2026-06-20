@@ -363,38 +363,18 @@ const SubscriptionsPage = () => {
                                             {sub.endsAt ? sub.endsAt.substring(0, 10) : 'Ongoing'}
                                         </span>
                                         <div className="flex items-center justify-end gap-2.5">
-                                            {/* Edit Button */}
-                                            <button
-                                                type="button"
-                                                onClick={() => handleOpenEditModal(sub)}
-                                                className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer select-none group relative"
-                                                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                                            >
-                                                <svg viewBox="0 0 24 24" className="h-4 w-4 group-hover:scale-105" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M12 20h9" />
-                                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                                </svg>
-                                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow">
-                                                    Edit Contract
-                                                </span>
-                                            </button>
-
-                                            {/* Delete Button */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setConfirmDialog({ isOpen: true, subscriptionId: sub.id, tenantName: sub.tenant?.name ?? 'this tenant' })}
-                                                className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer select-none group relative"
-                                                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                                            >
-                                                <svg viewBox="0 0 24 24" className="h-4 w-4 text-red-500 group-hover:scale-105" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M3 6h18" />
-                                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                                </svg>
-                                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-red-600 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow">
-                                                    Delete Record
-                                                </span>
-                                            </button>
+                                            <div className="relative group">
+                                                <button type="button" onClick={() => handleOpenEditModal(sub)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
+                                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                                                </button>
+                                                <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Contract</span>
+                                            </div>
+                                            <div className="relative group">
+                                                <button type="button" onClick={() => setConfirmDialog({ isOpen: true, subscriptionId: sub.id, tenantName: sub.tenant?.name ?? 'this tenant' })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
+                                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                                                </button>
+                                                <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Record</span>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
