@@ -34,6 +34,19 @@ type HieRequest = {
   }
 }
 
+type SharedRecord = {
+  id: string
+  patientId: string
+  doctorId: string
+  diagnosis: string | null
+  prescription: string | null
+  notes: string | null
+  createdAt: string
+  doctor?: { name: string; specialization?: string | null }
+  patient?: { name: string }
+  files?: { id: string; fileName?: string | null; name?: string }[]
+}
+
 const doctorTabs = [
   { key: 'sent', label: 'Sent Requests' },
   { key: 'received', label: 'Received Releases (Awaiting Consent)' }
@@ -56,6 +69,12 @@ const RequestsPage = () => {
   const [requests, setRequests] = useState<HieRequest[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Shared records viewer
+  const [viewingRequest, setViewingRequest] = useState<HieRequest | null>(null)
+  const [sharedRecords, setSharedRecords] = useState<SharedRecord[]>([])
+  const [loadingRecords, setLoadingRecords] = useState(false)
+  const [viewPdf, setViewPdf] = useState<string | null>(null)
+
   // Creation State
   const [showModal, setShowModal] = useState(false)
   const [hospitalId, setHospitalId] = useState('')
@@ -72,6 +91,8 @@ const RequestsPage = () => {
 
   const isDoctor = user?.role === 'DOCTOR'
   const isPatient = user?.role === 'PATIENT'
+
+  const backendBase = (import.meta.env.VITE_API_URL as string || 'http://localhost:8080/api/v1').replace(/\/api.*$/, '')
 
   const fetchRequests = async () => {
     try {
@@ -202,6 +223,21 @@ const RequestsPage = () => {
     }
   }
 
+  const handleViewSharedRecords = async (req: HieRequest) => {
+    setViewingRequest(req)
+    setSharedRecords([])
+    setLoadingRecords(true)
+    try {
+      const res = await requestApi.getSharedRecords(req.id) as { data: SharedRecord[] }
+      setSharedRecords(res.data || [])
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Failed to load shared records', 'error')
+      setViewingRequest(null)
+    } finally {
+      setLoadingRecords(false)
+    }
+  }
+
   return (
     <DashboardLayout>
       <motion.div
@@ -309,6 +345,15 @@ const RequestsPage = () => {
 
                 {/* Action Items */}
                 <div className="col-span-2 flex items-center justify-end">
+                  {isDoctor && r.status === 'APPROVED' && (
+                    <button
+                      onClick={() => handleViewSharedRecords(r)}
+                      className="text-xs font-extrabold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      View Records
+                    </button>
+                  )}
                   {isDoctor && activeTab === 'received' && r.status === 'PATIENT_APPROVED' && (
                     <div className="flex gap-2">
                       <Button variant="danger" size="sm" onClick={() => handleAction(r.id, 'REJECT')}>
@@ -336,6 +381,86 @@ const RequestsPage = () => {
           })}
         </div>
       </motion.div>
+
+      {/* SHARED RECORDS VIEWER MODAL */}
+      <AnimatePresence>
+        {viewingRequest && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewingRequest(null)} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative rounded-2xl p-6 shadow-xl z-10 flex flex-col gap-5 border max-h-[90vh] overflow-y-auto"
+              style={{ width: 'clamp(500px, 75vw, 1100px)', backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+            >
+              <button type="button" onClick={() => setViewingRequest(null)} className="absolute right-4 top-4 p-1.5 rounded-full hover:bg-gray-500/10 transition-colors" style={{ color: 'var(--color-text-secondary)' }}>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+
+              <div>
+                <h3 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Shared Records</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                  Patient: <span className="font-semibold">{viewingRequest.patient?.name}</span> · Custodian: <span className="font-semibold">{viewingRequest.targetDoctor?.name}</span>
+                </p>
+              </div>
+
+              {loadingRecords ? (
+                <div className="py-10 text-center">
+                  <div className="h-8 w-8 mx-auto rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                  <p className="text-xs mt-3" style={{ color: 'var(--color-text-secondary)' }}>Decrypting shared records...</p>
+                </div>
+              ) : sharedRecords.length === 0 ? (
+                <p className="text-sm text-center py-8" style={{ color: 'var(--color-text-secondary)' }}>No shared records found for this request.</p>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {sharedRecords.map((r) => (
+                    <div key={r.id} className="p-4 rounded-xl border flex flex-col gap-3" style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)' }}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-primary)' }}>{new Date(r.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}</p>
+                          <p className="text-sm font-extrabold mt-0.5" style={{ color: 'var(--color-text)' }}>{r.diagnosis || '—'}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>{r.doctor?.name || '—'}</p>
+                          <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{r.doctor?.specialization || '—'}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Prescription</p>
+                          <p className="text-xs mt-1 font-medium" style={{ color: 'var(--color-text)' }}>{r.prescription || '—'}</p>
+                        </div>
+                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Notes</p>
+                          <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>{r.notes || '—'}</p>
+                        </div>
+                      </div>
+                      {(r.files?.length ?? 0) > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {r.files?.map((f: any) => (
+                            <button 
+                              key={f.id} 
+                              onClick={() => setViewPdf(`${backendBase}${f.fileUrl}`)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors hover:bg-slate-800" 
+                              style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+                            >
+                              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-emerald-400" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z" /></svg>
+                              {f.fileName || f.name || 'file'}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button variant="default" size="md" onClick={() => setViewingRequest(null)}>Close</Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ACCESS REQUEST MODAL */}
       <AnimatePresence>
@@ -432,6 +557,31 @@ const RequestsPage = () => {
                   </Button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* PDF VIEWER MODAL */}
+      <AnimatePresence>
+        {viewPdf && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewPdf(null)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative rounded-2xl shadow-2xl z-10 flex flex-col border flex-grow w-full max-w-6xl max-h-[90vh] overflow-hidden"
+              style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', height: '85vh' }}
+            >
+              <div className="flex justify-between items-center p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                <h3 className="text-sm font-bold tracking-wide text-(--color-text)">Secure Document Viewer <span className="text-[10px] text-red-400 uppercase tracking-widest ml-2 border border-red-500/30 bg-red-500/10 px-2 py-0.5 rounded-full">View Only Mode</span></h3>
+                <button onClick={() => setViewPdf(null)} className="p-1.5 rounded-full hover:bg-slate-800 transition-colors" style={{ color: 'var(--color-text-secondary)' }}>
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                </button>
+              </div>
+              <div className="flex-grow w-full bg-slate-900 overflow-hidden relative">
+                {/* #toolbar=0 hides download/print buttons in modern browsers */}
+                <iframe src={`${viewPdf}#toolbar=0&navpanes=0`} className="absolute inset-0 w-full h-full border-0" title="Secure PDF View" />
+              </div>
             </motion.div>
           </div>
         )}

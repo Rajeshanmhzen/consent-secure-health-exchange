@@ -91,5 +91,11 @@ export const requestApi = {
         return request("/requests/all-hospitals", {
             method: "GET"
         });
+    },
+
+    getSharedRecords: (requestId: string) => {
+        return request(`/requests/shared-records/${requestId}`, {
+            method: "GET"
+        });
     }
 };

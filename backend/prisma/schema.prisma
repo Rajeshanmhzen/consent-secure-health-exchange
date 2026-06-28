@@ -35,6 +35,8 @@ enum AuditAction {
   APPROVE_CONSENT
   VIEW_RECORD
   EMERGENCY_ACCESS
+  LOGIN
+  CREATE_PATIENT
 }
 
 enum TenantType {

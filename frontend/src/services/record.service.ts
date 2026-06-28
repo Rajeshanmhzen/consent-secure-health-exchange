@@ -23,23 +23,35 @@ export type MedicalRecord = {
     files: RecordFile[]
 }
 
+const buildFormData = (payload: { patientId?: string; diagnosis: string; prescription?: string; notes?: string; recordFile?: File | null }) => {
+    const formData = new FormData()
+    if (payload.patientId) formData.append('patientId', payload.patientId)
+    formData.append('diagnosis', payload.diagnosis)
+    if (payload.prescription) formData.append('prescription', payload.prescription)
+    if (payload.notes) formData.append('notes', payload.notes)
+    if (payload.recordFile) formData.append('recordFile', payload.recordFile)
+    return formData
+}
+
 export const recordApi = {
     list: (search?: string) => {
         const q = search ? `?search=${encodeURIComponent(search)}` : ''
         return request<ApiResponse<MedicalRecord[]>>(`/records/list${q}`)
     },
-    create: (payload: { patientId: string; diagnosis: string; prescription?: string; notes?: string; recordFile?: File | null }) => {
-        const formData = new FormData()
-        formData.append('patientId', payload.patientId)
-        formData.append('diagnosis', payload.diagnosis)
-        if (payload.prescription) formData.append('prescription', payload.prescription)
-        if (payload.notes) formData.append('notes', payload.notes)
-        if (payload.recordFile) formData.append('recordFile', payload.recordFile)
-        // Use raw fetch via the base request, but override Content-Type to be auto-set by browser
-        return request<ApiResponse<MedicalRecord>>('/records/create', {
+    get: (id: string) =>
+        request<ApiResponse<MedicalRecord>>(`/records/${id}`),
+    create: (payload: { patientId: string; diagnosis: string; prescription?: string; notes?: string; recordFile?: File | null }) =>
+        request<ApiResponse<MedicalRecord>>('/records/create', {
             method: 'POST',
-            body: formData,
+            body: buildFormData(payload),
             rawBody: true,
-        })
-    },
+        }),
+    update: (id: string, payload: { diagnosis: string; prescription?: string; notes?: string; recordFile?: File | null }) =>
+        request<ApiResponse<MedicalRecord>>(`/records/${id}`, {
+            method: 'PUT',
+            body: buildFormData(payload),
+            rawBody: true,
+        }),
+    delete: (id: string) =>
+        request<ApiResponse<null>>(`/records/${id}`, { method: 'DELETE' }),
 }
