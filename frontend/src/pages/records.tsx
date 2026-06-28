@@ -5,6 +5,7 @@ import { useAuth } from '../Context/AuthContext'
 import { useToast } from '../Context/ToastContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import Button from '../components/shared/Button'
+import ConfirmDialog from '../components/shared/ConfirmDialog'
 import InputField from '../components/shared/InputField'
 import { recordApi, type MedicalRecord as ApiMedicalRecord } from '../services/record.service'
 import { tenantApi } from '../services/tenant.service'
@@ -20,7 +21,7 @@ type DisplayRecord = {
   prescription: string
   notes: string
   createdAt: string
-  files: { id: string; name: string; size: string; type: string }[]
+  files: { id: string; name: string; url: string; type: string }[]
 }
 
 const RecordsPage = () => {
@@ -42,6 +43,18 @@ const RecordsPage = () => {
   const [creating, setCreating] = useState(false)
   const [recordFile, setRecordFile] = useState<File | null>(null)
 
+  const [editRecord, setEditRecord] = useState<DisplayRecord | null>(null)
+  const [editDiagnosis, setEditDiagnosis] = useState('')
+  const [editPrescription, setEditPrescription] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+  const [editFile, setEditFile] = useState<File | null>(null)
+  const [updating, setUpdating] = useState(false)
+
+  const [deleteTarget, setDeleteTarget] = useState<DisplayRecord | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const [viewRecord, setViewRecord] = useState<DisplayRecord | null>(null)
+
   useEffect(() => {
     if (!user) { navigate('/login'); return }
   }, [user, navigate])
@@ -51,25 +64,7 @@ const RecordsPage = () => {
       setLoading(true)
       try {
         const res = await recordApi.list(search || undefined)
-        const mapped: DisplayRecord[] = (res.data || []).map((r: ApiMedicalRecord) => ({
-          id: r.id,
-          patientId: r.patientId,
-          patientName: r.patient?.name || '—',
-          doctorId: r.doctorId,
-          doctorName: r.doctor?.name || '—',
-          specialty: r.doctor?.specialization || '—',
-          diagnosis: r.diagnosis || '—',
-          prescription: r.prescription || '—',
-          notes: r.notes || '—',
-          createdAt: r.createdAt,
-          files: (r.files || []).map(f => ({
-            id: f.id,
-            name: f.fileName || 'file',
-            size: '—',
-            type: f.fileType || '—',
-          })),
-        }))
-        setRecords(mapped)
+        setRecords((res.data || []).map(mapRecord))
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load records'
         showToast(message, 'error')
@@ -92,6 +87,72 @@ const RecordsPage = () => {
 
   const isDoctor = user?.role === 'DOCTOR'
   const isPatient = user?.role === 'PATIENT'
+
+  const backendBase = (import.meta.env.VITE_API_URL as string || 'http://localhost:8080/api/v1').replace(/\/api.*$/, '')
+
+  const mapRecord = (r: ApiMedicalRecord): DisplayRecord => ({
+    id: r.id,
+    patientId: r.patientId,
+    patientName: r.patient?.name || '—',
+    doctorId: r.doctorId,
+    doctorName: r.doctor?.name || '—',
+    specialty: r.doctor?.specialization || '—',
+    diagnosis: r.diagnosis || '—',
+    prescription: r.prescription || '—',
+    notes: r.notes || '—',
+    createdAt: r.createdAt,
+    files: (r.files || []).map(f => ({
+      id: f.id,
+      name: f.fileName || 'file',
+      url: f.fileUrl ? `${backendBase}${f.fileUrl}` : '',
+      type: f.fileType || '—',
+    })),
+  })
+
+  const openEdit = (r: DisplayRecord) => {
+    setEditRecord(r)
+    setEditDiagnosis(r.diagnosis === '—' ? '' : r.diagnosis)
+    setEditPrescription(r.prescription === '—' ? '' : r.prescription)
+    setEditNotes(r.notes === '—' ? '' : r.notes)
+    setEditFile(null)
+  }
+
+  const handleUpdateRecord = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editRecord || !editDiagnosis) { showToast('Diagnosis is required', 'warning'); return }
+    setUpdating(true)
+    try {
+      await recordApi.update(editRecord.id, {
+        diagnosis: editDiagnosis,
+        prescription: editPrescription || undefined,
+        notes: editNotes || undefined,
+        recordFile: editFile || undefined,
+      })
+      showToast('Record updated successfully!', 'success')
+      setEditRecord(null)
+      const res = await recordApi.list(search || undefined)
+      setRecords((res.data || []).map(mapRecord))
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to update record', 'error')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleDeleteRecord = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await recordApi.delete(deleteTarget.id)
+      showToast('Record deleted successfully!', 'success')
+      setDeleteTarget(null)
+      setRecords(prev => prev.filter(r => r.id !== deleteTarget.id))
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to delete record', 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const handleCreateRecord = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,20 +177,7 @@ const RecordsPage = () => {
       setNotes('')
       setRecordFile(null)
       const res = await recordApi.list()
-      const mapped: DisplayRecord[] = (res.data || []).map((r: ApiMedicalRecord) => ({
-        id: r.id,
-        patientId: r.patientId,
-        patientName: r.patient?.name || '—',
-        doctorId: r.doctorId,
-        doctorName: r.doctor?.name || '—',
-        specialty: r.doctor?.specialization || '—',
-        diagnosis: r.diagnosis || '—',
-        prescription: r.prescription || '—',
-        notes: r.notes || '—',
-        createdAt: r.createdAt,
-        files: (r.files || []).map(f => ({ id: f.id, name: f.fileName || 'file', size: '—', type: f.fileType || '—' })),
-      }))
-      setRecords(mapped)
+      setRecords((res.data || []).map(mapRecord))
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create record'
       showToast(message, 'error')
@@ -327,19 +375,41 @@ const RecordsPage = () => {
                 </span>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-2 pr-1">
+                  {/* View */}
                   <div className="relative group">
-                    <button type="button" onClick={() => navigate('/dashboard/requests', { state: { requestPatientName: r.patientName } })} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                    <button type="button" onClick={() => setViewRecord(r)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                      </svg>
                     </button>
-                    <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View</span>
+                    <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View Details</span>
                   </div>
+                  {/* Edit */}
                   {isDoctor && (
                     <div className="relative group">
-                      <button type="button" onClick={() => navigate('/dashboard/requests', { state: { requestPatientName: r.patientName } })} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
-                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 0-6 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81A2.99 2.99 0 0 0 6 9a3 3 0 0 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66a2.92 2.92 0 0 0 5.84 0 2.92 2.92 0 0 0-2.92-2.92z" /></svg>
+                      <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
                       </button>
-                      <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Share</span>
+                      <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Record</span>
+                    </div>
+                  )}
+                  {/* Delete */}
+                  {isDoctor && (
+                    <div className="relative group">
+                      <button type="button" onClick={() => setDeleteTarget(r)} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
+                      </button>
+                      <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Record</span>
                     </div>
                   )}
                 </div>
@@ -348,6 +418,151 @@ const RecordsPage = () => {
           </div>
         )}
       </motion.div>
+
+      {/* View Record Modal */}
+      {viewRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+            className="relative rounded-2xl p-6 shadow-xl border flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
+            style={{ width: 'clamp(500px, 75vw, 1100px)', backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+          >
+            <button type="button" onClick={() => setViewRecord(null)} className="absolute right-4 top-4 p-1.5 rounded-full hover:bg-gray-500/10 transition-colors" style={{ color: 'var(--color-text-secondary)' }}>
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+
+            <div>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Record Details</h3>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                {new Date(viewRecord.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Patient</span>
+                <span className="font-semibold" style={{ color: 'var(--color-text)' }}>{viewRecord.patientName}</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Doctor</span>
+                <span className="font-semibold" style={{ color: 'var(--color-text)' }}>{viewRecord.doctorName}</span>
+                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{viewRecord.specialty}</span>
+              </div>
+              <div className="col-span-2 flex flex-col gap-0.5 p-3 rounded-xl" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)' }}>
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Diagnosis</span>
+                <span className="font-semibold" style={{ color: 'var(--color-text)' }}>{viewRecord.diagnosis}</span>
+              </div>
+              <div className="flex flex-col gap-0.5 p-3 rounded-xl" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)' }}>
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Prescription</span>
+                <span className="text-sm" style={{ color: 'var(--color-text)' }}>{viewRecord.prescription}</span>
+              </div>
+              <div className="flex flex-col gap-0.5 p-3 rounded-xl" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)' }}>
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Notes</span>
+                <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{viewRecord.notes}</span>
+              </div>
+            </div>
+
+            {viewRecord.files.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Attachments ({viewRecord.files.length})</span>
+                <div className="flex flex-wrap gap-2">
+                  {viewRecord.files.map(f => (
+                    <a
+                      key={f.id}
+                      href={`${backendBase}/uploads/record-files/${f.name}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 text-emerald-400" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-1 9-4-4h2.5v-3h3v3H16l-4 4z" /></svg>
+                      {f.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <Button variant="default" size="md" onClick={() => setViewRecord(null)}>Close</Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Record Modal */}
+      <AnimatePresence>
+        {editRecord && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditRecord(null)} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-xl rounded-2xl p-6 shadow-xl z-10 flex flex-col gap-5 border"
+              style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+            >
+              <div>
+                <h3 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Edit Medical Record</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>Patient: <span className="font-semibold">{editRecord.patientName}</span></p>
+              </div>
+              <form onSubmit={handleUpdateRecord} className="flex flex-col gap-4">
+                <InputField label="Primary Diagnosis" value={editDiagnosis} onChange={setEditDiagnosis} placeholder="e.g. Acute Vestibular Migraine" />
+                <InputField label="Prescription / Treatment Plan" value={editPrescription} onChange={setEditPrescription} placeholder="e.g. Rizatriptan 10mg" required={false} />
+                <InputField label="Encounter Notes" as="textarea" rows={3} value={editNotes} onChange={setEditNotes} placeholder="Clinical notes..." required={false} />
+
+                {/* Existing files */}
+                {editRecord.files.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Existing Attachments</label>
+                    <div className="flex flex-wrap gap-2">
+                      {editRecord.files.map(f => (
+                        <a
+                          key={f.id}
+                          href={`${backendBase}/uploads/record-files/${f.name}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-opacity hover:opacity-80"
+                          style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+                        >
+                          <svg viewBox="0 0 24 24" className="h-4 w-4 text-emerald-400" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-1 9-4-4h2.5v-3h3v3H16l-4 4z" /></svg>
+                          {f.name}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* New file upload */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Add New Document <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
+                  <label className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer border border-dashed transition-colors hover:border-indigo-400" style={{ borderColor: editFile ? 'var(--color-primary)' : 'var(--color-border)', backgroundColor: 'var(--color-surface-elevated)' }}>
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="currentColor" style={{ color: editFile ? 'var(--color-primary)' : 'var(--color-text-secondary)' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM12 18l-4-4h2.5v-3h3v3H16l-4 4z" /></svg>
+                    <span className="text-sm" style={{ color: editFile ? 'var(--color-text)' : 'var(--color-text-secondary)' }}>{editFile ? editFile.name : 'Click to upload a file'}</span>
+                    {editFile && <button type="button" onClick={e => { e.preventDefault(); setEditFile(null) }} className="ml-auto text-xs font-bold" style={{ color: 'var(--color-text-secondary)' }}>✕ Remove</button>}
+                    <input type="file" className="hidden" accept=".pdf,.docx,image/jpeg,image/png,image/webp" onChange={e => setEditFile(e.target.files?.[0] ?? null)} />
+                  </label>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-1">
+                  <Button variant="default" size="md" onClick={() => setEditRecord(null)}>Cancel</Button>
+                  <Button variant="primary" size="md" type="submit" isLoading={updating} loadingText="Saving...">Save Changes</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteRecord}
+        title="Delete Medical Record"
+        description={`This will permanently remove the record for ${deleteTarget?.patientName}. This action cannot be undone.`}
+        confirmLabel="Delete Record"
+        type="danger"
+        isLoading={deleting}
+      />
 
       {/* Add Record Drawer/Modal */}
       <AnimatePresence>

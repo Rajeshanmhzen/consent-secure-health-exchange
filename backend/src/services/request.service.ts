@@ -590,9 +590,8 @@ export class RequestService {
             include: {
                 record: {
                     include: {
-                        doctor: {
-                            include: { hospital: true }
-                        }
+                        doctor: { include: { hospital: true } },
+                        files: true
                     }
                 }
             }
@@ -612,10 +611,20 @@ export class RequestService {
             let prescription = record.prescription;
             let notes = record.notes;
 
-            // Decrypt symmetric AES key using recipient's Private RSA Key
-            if (sr.encryptedAesKey) {
+            // Determine which wrapped AES key to use based on who is viewing
+            let wrappedKeyToDecrypt: string | null = null;
+            if (doctor.hospitalId === request.requestingDoctor.hospitalId) {
+                // Viewer is from the recipient hospital (use the shared wrapped key)
+                wrappedKeyToDecrypt = sr.encryptedAesKey;
+            } else if (doctor.hospitalId === record.doctor.hospitalId) {
+                // Viewer is from the custodian hospital (use the original record's wrapped key)
+                wrappedKeyToDecrypt = record.encryptedAesKey;
+            }
+
+            // Decrypt symmetric AES key using viewer's Private RSA Key
+            if (wrappedKeyToDecrypt) {
                 try {
-                    const plainAesKeyHex = decryptAsymmetric(sr.encryptedAesKey, recipientPrivateKey);
+                    const plainAesKeyHex = decryptAsymmetric(wrappedKeyToDecrypt, recipientPrivateKey);
                     const aesKey = Buffer.from(plainAesKeyHex, "hex");
 
                     if (record.diagnosis) diagnosis = decryptPacked(record.diagnosis, aesKey);
@@ -632,15 +641,14 @@ export class RequestService {
             return {
                 id: record.id,
                 patientId: record.patientId,
-                patientName: request.patient.name,
+                patient: { name: request.patient.name },
                 doctorId: record.doctorId,
-                doctorName: record.doctor.name,
-                specialty: record.doctor.specialization ?? "Clinical Medicine",
+                doctor: { name: record.doctor.name, specialization: record.doctor.specialization ?? "Clinical Medicine" },
                 diagnosis,
                 prescription,
                 notes,
                 createdAt: record.createdAt,
-                files: []
+                files: record.files ?? []
             };
         });
 

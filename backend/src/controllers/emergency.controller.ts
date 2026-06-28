@@ -32,6 +32,19 @@ export class EmergencyController {
         return sendSuccess(res, "Active emergency bypass sessions loaded.", result);
     });
 
+    getEmergencyRecords = asyncHandler(async (req: Request, res: Response) => {
+        const user = (req as any).user;
+        if (!user || user.role !== "DOCTOR") {
+            throw new AppError("Only licensed clinicians can access emergency records.", 403);
+        }
+
+        const accessId = req.params.accessId as string;
+        if (!accessId) throw new AppError("Missing accessId parameter.", 400);
+
+        const result = await this.service.getEmergencyRecords(user.id, accessId);
+        return sendSuccess(res, "Emergency records fetched successfully.", result);
+    });
+
     getHistory = asyncHandler(async (req: Request, res: Response) => {
         const user = (req as any).user;
         if (!user) {

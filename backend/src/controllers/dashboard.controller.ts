@@ -114,10 +114,18 @@ export class DashboardController {
         if (user.role === 'PATIENT') {
             const patient = await prisma.patient.findFirst({ where: { userId: user.id } });
             if (patient) {
-                const requests = await prisma.dataRequest.findMany({ where: { patientId: patient.id }, select: { id: true } });
-                const emergencies = await prisma.emergencyAccess.findMany({ where: { patientId: patient.id }, select: { id: true } });
+                // All data requests involving this patient (both sides)
+                const requests = await prisma.dataRequest.findMany({
+                    where: { patientId: patient.id },
+                    select: { id: true }
+                });
+                // All emergency accesses on this patient's records
+                const emergencies = await prisma.emergencyAccess.findMany({
+                    where: { patientId: patient.id },
+                    select: { id: true }
+                });
                 const entityIds = [...requests.map(r => r.id), ...emergencies.map(e => e.id)];
-                
+
                 whereClause = {
                     OR: [
                         { userId: user.id },
@@ -128,15 +136,28 @@ export class DashboardController {
         } else if (user.role === 'DOCTOR') {
             const doctor = await prisma.doctor.findFirst({ where: { userId: user.id } });
             if (doctor) {
-                const requests = await prisma.dataRequest.findMany({ 
-                    where: { OR: [{ requestingDoctorId: doctor.id }, { targetDoctorId: doctor.id }] }, 
-                    select: { id: true } 
+                // Requests where this doctor is sender OR receiver
+                const requests = await prisma.dataRequest.findMany({
+                    where: { OR: [{ requestingDoctorId: doctor.id }, { targetDoctorId: doctor.id }] },
+                    select: { id: true, patientId: true }
                 });
-                const emergencies = await prisma.emergencyAccess.findMany({ 
-                    where: { requestingDoctorId: doctor.id }, 
-                    select: { id: true } 
+                // All patients involved in this doctor's requests
+                const patientIds = [...new Set(requests.map(r => r.patientId))];
+                // Emergency accesses triggered BY this doctor
+                const myEmergencies = await prisma.emergencyAccess.findMany({
+                    where: { requestingDoctorId: doctor.id },
+                    select: { id: true }
                 });
-                const entityIds = [...requests.map(r => r.id), ...emergencies.map(e => e.id)];
+                // Emergency accesses ON patients whose records this doctor manages
+                const patientEmergencies = await prisma.emergencyAccess.findMany({
+                    where: { patientId: { in: patientIds } },
+                    select: { id: true }
+                });
+                const entityIds = [
+                    ...requests.map(r => r.id),
+                    ...myEmergencies.map(e => e.id),
+                    ...patientEmergencies.map(e => e.id)
+                ];
 
                 whereClause = {
                     OR: [
@@ -148,27 +169,56 @@ export class DashboardController {
         } else if (user.role === 'HOSPITAL_ADMIN') {
             const adminUser = await prisma.user.findUnique({ where: { id: user.id }, include: { tenant: true } });
             if (adminUser && adminUser.tenantId) {
-                const doctors = await prisma.doctor.findMany({ where: { hospital: { tenantId: adminUser.tenantId } }, select: { id: true } });
+                // All doctors in this hospital (both sender and receiver hospital)
+                const doctors = await prisma.doctor.findMany({
+                    where: { hospital: { tenantId: adminUser.tenantId } },
+                    select: { id: true }
+                });
                 const doctorIds = doctors.map(d => d.id);
-                
-                const requests = await prisma.dataRequest.findMany({ 
-                    where: { OR: [{ requestingDoctorId: { in: doctorIds } }, { targetDoctorId: { in: doctorIds } }] }, 
-                    select: { id: true } 
+
+                // All requests where any of this hospital's doctors is sender OR receiver
+                const requests = await prisma.dataRequest.findMany({
+                    where: {
+                        OR: [
+                            { requestingDoctorId: { in: doctorIds } },
+                            { targetDoctorId: { in: doctorIds } }
+                        ]
+                    },
+                    select: { id: true, patientId: true }
                 });
-                const emergencies = await prisma.emergencyAccess.findMany({ 
-                    where: { requestingDoctorId: { in: doctorIds } }, 
-                    select: { id: true } 
+                const patientIds = [...new Set(requests.map(r => r.patientId))];
+
+                // Emergency accesses triggered by any doctor in this hospital
+                const myEmergencies = await prisma.emergencyAccess.findMany({
+                    where: { requestingDoctorId: { in: doctorIds } },
+                    select: { id: true }
                 });
-                const entityIds = [...requests.map(r => r.id), ...emergencies.map(e => e.id)];
+                // Emergency accesses on patients managed by this hospital's doctors
+                const patientEmergencies = await prisma.emergencyAccess.findMany({
+                    where: { patientId: { in: patientIds } },
+                    select: { id: true }
+                });
+                const entityIds = [
+                    ...requests.map(r => r.id),
+                    ...myEmergencies.map(e => e.id),
+                    ...patientEmergencies.map(e => e.id)
+                ];
+
+                // Also include audit logs from all users in this hospital's tenant
+                const tenantUserIds = await prisma.user.findMany({
+                    where: { tenantId: adminUser.tenantId, deletedAt: null },
+                    select: { id: true }
+                });
 
                 whereClause = {
                     OR: [
-                        { userId: user.id },
+                        { userId: { in: tenantUserIds.map(u => u.id) } },
                         { entityId: { in: entityIds } }
                     ]
                 };
             }
         }
+        // SUPER_ADMIN: whereClause stays {} — sees everything
 
         const logs = await prisma.auditLog.findMany({
             where: whereClause,

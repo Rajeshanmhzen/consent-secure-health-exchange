@@ -107,14 +107,43 @@ export class MedicalRecordRepository {
         // Wrap the AES key using the hospital's Public RSA Key
         const encryptedAesKey = encryptAsymmetric(aesKey.toString("hex"), record.doctor.hospital.publicKey);
 
-        return await prisma.medicalRecord.update({
-            where: { id: recordId },
-            data: {
-                diagnosis: encryptedDiagnosis,
-                prescription: encryptedPrescription,
-                notes: encryptedNotes,
-                encryptedAesKey
+        return await prisma.$transaction(async (tx) => {
+            const updated = await tx.medicalRecord.update({
+                where: { id: recordId },
+                data: {
+                    diagnosis: encryptedDiagnosis,
+                    prescription: encryptedPrescription,
+                    notes: encryptedNotes,
+                    encryptedAesKey
+                }
+            });
+
+            // Sync the new AES key to any existing SharedRecords
+            const sharedRecords = await tx.sharedRecord.findMany({
+                where: { recordId },
+                include: {
+                    request: {
+                        include: {
+                            requestingDoctor: {
+                                include: { hospital: true }
+                            }
+                        }
+                    }
+                }
+            });
+
+            for (const sr of sharedRecords) {
+                const recipientPubKey = sr.request.requestingDoctor.hospital.publicKey;
+                if (recipientPubKey) {
+                    const newSharedAesKey = encryptAsymmetric(aesKey.toString("hex"), recipientPubKey);
+                    await tx.sharedRecord.update({
+                        where: { id: sr.id },
+                        data: { encryptedAesKey: newSharedAesKey }
+                    });
+                }
             }
+
+            return updated;
         });
     }
 

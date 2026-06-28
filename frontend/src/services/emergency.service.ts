@@ -38,5 +38,11 @@ export const emergencyApi = {
         return request("/emergency/history", {
             method: "GET"
         });
+    },
+
+    getRecords: (accessId: string) => {
+        return request(`/emergency/records/${accessId}`, {
+            method: "GET"
+        });
     }
 };
