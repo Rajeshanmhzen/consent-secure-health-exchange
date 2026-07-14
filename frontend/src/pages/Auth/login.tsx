@@ -39,9 +39,10 @@ const LoginPage = () => {
       showToast('Logged in successfully!', 'success')
       login(res.data.user, res.data.accessToken, res.data.refreshToken)
       navigate('/dashboard')
-    } catch (err: any) {
-      setError(err.message ?? 'Login failed')
-      showToast(err.message ?? 'Login failed', 'error')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Login failed'
+      setError(message)
+      showToast(message, 'error')
     } finally {
       setIsLoading(false)
     }
@@ -160,7 +161,7 @@ const LoginPage = () => {
             </motion.div>
           </motion.div>
 
-          <div className="flex justify-center lg:justify-end">
+          <div className="flex justify-center">
             <motion.div
               initial={{ opacity: 0, x: 18, y: 10 }}
               animate={{ opacity: 1, x: 0, y: 0 }}

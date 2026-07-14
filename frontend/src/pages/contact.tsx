@@ -160,7 +160,7 @@ const ContactPage = () => {
               </div>
             </motion.div>
 
-            <div className="flex justify-center lg:justify-end">
+            <div className="flex justify-center">
               <motion.div
                 initial={{ opacity: 0, x: 18, y: 10 }}
                 animate={{ opacity: 1, x: 0, y: 0 }}
