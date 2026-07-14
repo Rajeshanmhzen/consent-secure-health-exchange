@@ -8,7 +8,7 @@ type PageWrapperProps = {
 
 const PageWrapper = ({ children, className = '', fullHeight = false }: PageWrapperProps) => {
   return (
-    <main className={`${fullHeight ? 'min-h-screen flex items-center' : 'pt-28 pb-20'} ${className}`}>
+    <main className={`${fullHeight ? 'min-h-screen pt-20 pb-8 flex items-center' : 'pt-28 pb-20'} ${className}`}>
       {children}
     </main>
   )

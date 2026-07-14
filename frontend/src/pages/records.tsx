@@ -24,6 +24,25 @@ type DisplayRecord = {
   files: { id: string; name: string; url: string; type: string }[]
 }
 
+const mapRecord = (r: ApiMedicalRecord, backendBase: string): DisplayRecord => ({
+  id: r.id,
+  patientId: r.patientId,
+  patientName: r.patient?.name || '-',
+  doctorId: r.doctorId,
+  doctorName: r.doctor?.name || '-',
+  specialty: r.doctor?.specialization || '-',
+  diagnosis: r.diagnosis || '-',
+  prescription: r.prescription || '-',
+  notes: r.notes || '-',
+  createdAt: r.createdAt,
+  files: (r.files || []).map(f => ({
+    id: f.id,
+    name: f.fileName || 'file',
+    url: f.fileUrl ? `${backendBase}${f.fileUrl}` : '',
+    type: f.fileType || '-',
+  })),
+})
+
 const RecordsPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -55,6 +74,8 @@ const RecordsPage = () => {
 
   const [viewRecord, setViewRecord] = useState<DisplayRecord | null>(null)
 
+  const backendBase = (import.meta.env.VITE_API_URL as string || 'http://localhost:8080/api/v1').replace(/\/api.*$/, '')
+
   useEffect(() => {
     if (!user) { navigate('/login'); return }
   }, [user, navigate])
@@ -64,7 +85,7 @@ const RecordsPage = () => {
       setLoading(true)
       try {
         const res = await recordApi.list(search || undefined)
-        setRecords((res.data || []).map(mapRecord))
+        setRecords((res.data || []).map(record => mapRecord(record, backendBase)))
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load records'
         showToast(message, 'error')
@@ -73,7 +94,7 @@ const RecordsPage = () => {
       }
     }
     if (user) fetchRecords()
-  }, [user, search, showToast])
+  }, [user, search, showToast, backendBase])
 
   useEffect(() => {
     if (showAddModal && user?.tenantId) {
@@ -81,39 +102,19 @@ const RecordsPage = () => {
         const list = (res.data?.users || []).map((u: { id: string; name?: string; patient?: { name?: string } }) => ({ id: u.id, name: u.patient?.name || u.name || '—' }))
         setPatientsList(list)
         if (list.length > 0) setSelectedPatientId(list[0].id)
-      }).catch(() => {})
+      }).catch(() => { })
     }
   }, [showAddModal, user])
 
   const isDoctor = user?.role === 'DOCTOR'
   const isPatient = user?.role === 'PATIENT'
 
-  const backendBase = (import.meta.env.VITE_API_URL as string || 'http://localhost:8080/api/v1').replace(/\/api.*$/, '')
-
-  const mapRecord = (r: ApiMedicalRecord): DisplayRecord => ({
-    id: r.id,
-    patientId: r.patientId,
-    patientName: r.patient?.name || '—',
-    doctorId: r.doctorId,
-    doctorName: r.doctor?.name || '—',
-    specialty: r.doctor?.specialization || '—',
-    diagnosis: r.diagnosis || '—',
-    prescription: r.prescription || '—',
-    notes: r.notes || '—',
-    createdAt: r.createdAt,
-    files: (r.files || []).map(f => ({
-      id: f.id,
-      name: f.fileName || 'file',
-      url: f.fileUrl ? `${backendBase}${f.fileUrl}` : '',
-      type: f.fileType || '—',
-    })),
-  })
 
   const openEdit = (r: DisplayRecord) => {
     setEditRecord(r)
-    setEditDiagnosis(r.diagnosis === '—' ? '' : r.diagnosis)
-    setEditPrescription(r.prescription === '—' ? '' : r.prescription)
-    setEditNotes(r.notes === '—' ? '' : r.notes)
+    setEditDiagnosis(r.diagnosis === '-' ? '' : r.diagnosis)
+    setEditPrescription(r.prescription === '-' ? '' : r.prescription)
+    setEditNotes(r.notes === '-' ? '' : r.notes)
     setEditFile(null)
   }
 
@@ -131,7 +132,7 @@ const RecordsPage = () => {
       showToast('Record updated successfully!', 'success')
       setEditRecord(null)
       const res = await recordApi.list(search || undefined)
-      setRecords((res.data || []).map(mapRecord))
+      setRecords((res.data || []).map(record => mapRecord(record, backendBase)))
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Failed to update record', 'error')
     } finally {
@@ -177,7 +178,7 @@ const RecordsPage = () => {
       setNotes('')
       setRecordFile(null)
       const res = await recordApi.list()
-      setRecords((res.data || []).map(mapRecord))
+      setRecords((res.data || []).map(record => mapRecord(record, backendBase)))
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create record'
       showToast(message, 'error')
@@ -297,7 +298,7 @@ const RecordsPage = () => {
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-1 9-4-4h2.5v-3h3v3H16l-4 4z" />
                           </svg>
                           <span>{f.name}</span>
-                          <span style={{ color: 'var(--color-text-secondary)' }}>({f.size})</span>
+                          {/* <span style={{ color: 'var(--color-text-secondary)' }}>({f.size})</span> */}
                         </div>
                       ))}
                     </div>
@@ -320,7 +321,7 @@ const RecordsPage = () => {
 
             {loading ? (
               <div className="flex flex-col">
-                {[1,2,3,4,5].map(i => (
+                {[1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="grid px-5 py-4 gap-4" style={{ gridTemplateColumns: '0.9fr 1fr 1.4fr 1.4fr 0.6fr 1fr', borderTop: '1px solid var(--color-border)' }}>
                     <div className="h-4 w-20 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
                     <div className="h-4 w-24 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
@@ -605,9 +606,9 @@ const RecordsPage = () => {
                 </div>
 
                 <InputField label="Primary Diagnosis" value={diagnosis} onChange={setDiagnosis} placeholder="e.g. Acute Vestibular Migraine" />
-                
+
                 <InputField label="Prescription / Treatment Plan" value={prescription} onChange={setPrescription} placeholder="e.g. Rizatriptan 10mg orally at migraine onset; rest in dark room" />
-                
+
                 <InputField label="Encounter Notes" as="textarea" rows={3} value={notes} onChange={setNotes} placeholder="Describe clinical symptoms, examination findings, and follow-up directives..." required={false} />
 
                 {/* File upload */}
