@@ -161,24 +161,24 @@ const InquiriesPage = () => {
                     data={loading ? Array.from({ length: 1 }) : inquiries}
                     emptyState={<div className="px-5 py-16 text-center text-sm" style={{ color: 'var(--color-text-secondary)' }}>No inquiries found</div>}
                     pagination={inquiries.length > 0 ? { page, totalPages, totalItems: total, itemsPerPage: 10, onPageChange: setPage } : undefined}
-                    renderRow={(inquiry, index) => loading ? (
+                    renderRow={(inquiry: unknown, index) => loading ? (
                         <tr key={index}>
                             <td colSpan={5} className="px-5 py-16 text-center text-sm" style={{ color: 'var(--color-text-secondary)' }}>Loading inquiries...</td>
                         </tr>
                     ) : (
-                        <motion.tr key={inquiry.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} className="transition-colors" style={{ borderTop: '1px solid var(--color-border)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                        <motion.tr key={(inquiry as Inquiry).id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} className="transition-colors" style={{ borderTop: '1px solid var(--color-border)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
                             <td className="px-5 py-4 min-w-0">
-                                <p className="font-semibold truncate" style={{ color: 'var(--color-text)' }}>{inquiry.firstName} {inquiry.lastName}</p>
-                                <p className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{inquiry.workEmail}</p>
-                                {inquiry.phoneNumber && <p className="text-xs truncate" style={{ color: 'var(--color-text-tertiary)' }}>{inquiry.phoneNumber}</p>}
+                                <p className="font-semibold truncate" style={{ color: 'var(--color-text)' }}>{(inquiry as Inquiry).firstName} {(inquiry as Inquiry).lastName}</p>
+                                <p className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{(inquiry as Inquiry).workEmail}</p>
+                                {(inquiry as Inquiry).phoneNumber && <p className="text-xs truncate" style={{ color: 'var(--color-text-tertiary)' }}>{(inquiry as Inquiry).phoneNumber}</p>}
                             </td>
-                            <td className="px-5 py-4 truncate" style={{ color: 'var(--color-text-secondary)' }}>{inquiry.organization || '—'}</td>
-                            <td className="px-5 py-4 truncate" style={{ color: 'var(--color-text-secondary)' }}>{inquiry.inquiryType}</td>
-                            <td className="px-5 py-4 line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>{inquiry.message}</td>
+                            <td className="px-5 py-4 truncate" style={{ color: 'var(--color-text-secondary)' }}>{(inquiry as Inquiry).organization || '—'}</td>
+                            <td className="px-5 py-4 truncate" style={{ color: 'var(--color-text-secondary)' }}>{(inquiry as Inquiry).inquiryType}</td>
+                            <td className="px-5 py-4 line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>{(inquiry as Inquiry).message}</td>
                             <td className="px-5 py-4">
                                 <div className="flex flex-col gap-2">
-                                    <span className="w-fit rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ backgroundColor: statusStyles[inquiry.status].bg, color: statusStyles[inquiry.status].color }}>{statusStyles[inquiry.status].label}</span>
-                                    <select value={inquiry.status} onChange={e => handleStatusUpdate(inquiry.id, e.target.value as InquiryStatus)} className="rounded-lg px-2 py-1 text-xs outline-none" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+                                    <span className="w-fit rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ backgroundColor: statusStyles[(inquiry as Inquiry).status].bg, color: statusStyles[(inquiry as Inquiry).status].color }}>{statusStyles[(inquiry as Inquiry).status].label}</span>
+                                    <select value={(inquiry as Inquiry).status} onChange={e => handleStatusUpdate((inquiry as Inquiry).id, e.target.value as InquiryStatus)} className="rounded-lg px-2 py-1 text-xs outline-none" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
                                         <option value="PENDING">Pending</option>
                                         <option value="IN_PROGRESS">In Progress</option>
                                         <option value="RESOLVED">Resolved</option>
