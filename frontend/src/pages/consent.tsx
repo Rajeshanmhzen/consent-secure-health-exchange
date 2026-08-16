@@ -6,7 +6,6 @@ import { useToast } from '../Context/ToastContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import FilterTabs from '../components/shared/FilterTabs'
-import { ConsentSkeleton } from '../components/skeletons/PageSkeletons'
 import Button from '../components/shared/Button'
 import Table from '../components/shared/Table'
 import { requestApi } from '../services/request.service'
@@ -73,7 +72,6 @@ const ConsentPage = () => {
   const [isVerifying, setIsVerifying] = useState(false)
   const [isSendingOtp, setIsSendingOtp] = useState(false)
   const [otpError, setOtpError] = useState('')
-  const [viewAll, setViewAll] = useState(false)
 
   const fetchConsents = useCallback(async () => {
     try {
@@ -128,11 +126,6 @@ const ConsentPage = () => {
 
   const handleStatusChange = (value: string) => {
     setStatusFilter(value)
-    setPage(1)
-  }
-
-  const handleToggleViewAll = () => {
-    setViewAll(prev => !prev)
     setPage(1)
   }
 
@@ -302,13 +295,13 @@ const ConsentPage = () => {
             </div>
           }
           pagination={totalConsents > 0 ? { page: safePage, totalPages, totalItems: totalConsents, itemsPerPage: CONSENT_PAGE_SIZE, onPageChange: setPage } : undefined}
-          renderRow={(c, index) => loading ? (
+          renderRow={(c: unknown, index) => loading ? (
             <tr key={index}>
               <td colSpan={5} className="px-5 py-16 text-center text-xs text-(--color-text-secondary) animate-pulse">Loading consent ledger...</td>
             </tr>
           ) : (
             <motion.tr
-              key={c.id}
+              key={(c as ConsentRequest).id}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.02, duration: 0.2 }}
@@ -317,39 +310,39 @@ const ConsentPage = () => {
             >
               <td className="px-5 py-4 align-top">
                 <div className="flex flex-col pr-2">
-                  <span className="font-semibold text-(--color-text)">{c.requestingDoctor?.name || 'Requesting Clinician'}</span>
+                  <span className="font-semibold text-(--color-text)">{(c as ConsentRequest).requestingDoctor?.name || 'Requesting Clinician'}</span>
                   <span className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-                    Specialization: {c.requestingDoctor?.specialization || 'Clinical HIE Specialist'}
+                    Specialization: {(c as ConsentRequest).requestingDoctor?.specialization || 'Clinical HIE Specialist'}
                   </span>
                 </div>
               </td>
               <td className="px-5 py-4 align-top font-medium text-(--color-text) pr-2">
-                {c.requestingDoctor?.hospital?.name || 'External Medical Group'}
+                {(c as ConsentRequest).requestingDoctor?.hospital?.name || 'External Medical Group'}
               </td>
-              <td className="px-5 py-4 align-top text-xs truncate pr-2 text-(--color-text-secondary)" title={c.reason}>
-                "{c.reason || 'Clinical dossier review'}"
+              <td className="px-5 py-4 align-top text-xs truncate pr-2 text-(--color-text-secondary)" title={(c as ConsentRequest).reason}>
+                "{(c as ConsentRequest).reason || 'Clinical dossier review'}"
               </td>
               <td className="px-5 py-4 align-top text-center">
                 <span
                   className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider"
                   style={{
-                    backgroundColor: c.status === 'APPROVED' ? 'var(--color-success-light)' : c.status === 'PENDING' ? 'var(--color-warning-light)' : c.status === 'PATIENT_APPROVED' ? 'var(--color-primary-light)' : 'var(--color-error-light)',
-                    color: c.status === 'APPROVED' ? 'var(--color-success)' : c.status === 'PENDING' ? 'var(--color-warning)' : c.status === 'PATIENT_APPROVED' ? 'var(--color-primary)' : 'var(--color-error)',
+                    backgroundColor: (c as ConsentRequest).status === 'APPROVED' ? 'var(--color-success-light)' : (c as ConsentRequest).status === 'PENDING' ? 'var(--color-warning-light)' : (c as ConsentRequest).status === 'PATIENT_APPROVED' ? 'var(--color-primary-light)' : 'var(--color-error-light)',
+                    color: (c as ConsentRequest).status === 'APPROVED' ? 'var(--color-success)' : (c as ConsentRequest).status === 'PENDING' ? 'var(--color-warning)' : (c as ConsentRequest).status === 'PATIENT_APPROVED' ? 'var(--color-primary)' : 'var(--color-error)',
                   }}
                 >
-                  {c.status === 'PATIENT_APPROVED' ? 'PATIENT SIGNED' : c.status}
+                  {(c as ConsentRequest).status === 'PATIENT_APPROVED' ? 'PATIENT SIGNED' : (c as ConsentRequest).status}
                 </span>
               </td>
               <td className="px-5 py-4 align-top text-right">
-                {c.status === 'PENDING' ? (
-                  <Button variant="primary" size="sm" onClick={() => handleOpenWizard(c)}>
+                {(c as ConsentRequest).status === 'PENDING' ? (
+                  <Button variant="primary" size="sm" onClick={() => handleOpenWizard(c as ConsentRequest)}>
                     Authorize & Sign
                   </Button>
-                ) : c.status === 'PATIENT_APPROVED' ? (
-                  <Button variant="danger" size="sm" onClick={() => confirmRevoke(c.id)}>
+                ) : (c as ConsentRequest).status === 'PATIENT_APPROVED' ? (
+                  <Button variant="danger" size="sm" onClick={() => confirmRevoke((c as ConsentRequest).id)}>
                     Revoke Consent
                   </Button>
-                ) : c.status === 'APPROVED' ? (
+                ) : (c as ConsentRequest).status === 'APPROVED' ? (
                   <span className="text-[10px] font-semibold text-(--color-text-tertiary) italic text-right">Cannot Revoke<br />(Clinician Accepted)</span>
                 ) : (
                   <span className="text-xs italic text-(--color-text-tertiary)">Closed</span>
