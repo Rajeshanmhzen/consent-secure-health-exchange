@@ -4,12 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../Context/AuthContext'
 import { useToast } from '../../Context/ToastContext'
 import DashboardLayout from '../../components/layout/DashboardLayout'
-import Pagination from '../../components/shared/Pagination'
+import Table from '../../components/shared/Table'
 import Button from '../../components/shared/Button'
 import InputField from '../../components/shared/InputField'
 import PhoneInputField from '../../components/shared/PhoneInputField'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
-import SuperAdminListSkeleton from '../../components/dashboard/SuperAdminListSkeleton'
 import { superAdminApi, type SuperAdmin } from '../../services/superadmin.service'
 import FilterTabs from '../../components/shared/FilterTabs'
 
@@ -154,77 +153,57 @@ const SuperAdminsPage = () => {
                 <FilterTabs tabs={superAdminTabs} value={statusFilter} onChange={val => { setStatusFilter(val); setPage(1) }} layoutId="activeSuperAdminTabUnderline" />
 
                 {/* Table */}
-                {loading ? <SuperAdminListSkeleton /> : (
-                    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1fr 0.6fr', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">
-                            {['Name', 'Email', 'Phone', 'Status', 'Created', 'Actions'].map((h, i) => (
-                                <span key={h} className={i === 5 ? 'text-right' : ''}>{h}</span>
-                            ))}
-                        </div>
-
-                        {filteredAdmins.length === 0 ? (
-                            <div className="px-5 py-16 text-center">
-                                <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No admins found</p>
-                            </div>
-                        ) : filteredAdmins.map((admin, i) => (
-                            <motion.div
-                                key={admin.id}
-                                initial={{ opacity: 0, y: 4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.04, duration: 0.25 }}
-                                style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1fr 0.6fr', borderTop: '1px solid var(--color-border)' }}
-                                className="items-center px-5 py-4 text-sm transition-colors"
-                                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')}
-                                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
-                                        {admin.fullName[0].toUpperCase()}
+                <Table
+                    loading={loading}
+                    loadingRows={5}
+                    columns={[
+                        { label: 'Name' },
+                        { label: 'Email' },
+                        { label: 'Phone' },
+                        { label: 'Status' },
+                        { label: 'Created' },
+                        { label: 'Actions', className: 'text-right' },
+                    ]}
+                    data={filteredAdmins}
+                    emptyState={<div className="px-5 py-16 text-center"><p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No admins found</p></div>}
+                    pagination={filteredAdmins.length > 0 ? { page, totalPages, totalItems: total, itemsPerPage: 10, onPageChange: setPage } : undefined}
+                    renderRow={(admin, i) => (
+                        <motion.tr key={admin.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04, duration: 0.25 }} className="transition-colors" style={{ borderTop: '1px solid var(--color-border)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                                <td className="px-5 py-4 align-top">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>{admin.fullName[0].toUpperCase()}</div>
+                                        <span className="font-medium truncate" style={{ color: 'var(--color-text)' }}>{admin.fullName}</span>
                                     </div>
-                                    <span className="font-medium truncate" style={{ color: 'var(--color-text)' }}>{admin.fullName}</span>
-                                </div>
-                                <span className="truncate" style={{ color: 'var(--color-text-secondary)' }}>{admin.user.email}</span>
-                                <span style={{ color: 'var(--color-text-secondary)' }}>{admin.user.phone || '—'}</span>
-                                <span>
-                                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ backgroundColor: admin.user.isActive ? 'var(--color-success-light)' : 'var(--color-error-light)', color: admin.user.isActive ? 'var(--color-success)' : 'var(--color-error)' }}>
-                                        {admin.user.isActive ? 'Active' : 'Inactive'}
-                                    </span>
-                                </span>
-                                <span style={{ color: 'var(--color-text-secondary)' }}>{new Date(admin.user.createdAt).toLocaleDateString()}</span>
-                                <div className="flex items-center justify-end gap-2 pr-1">
-                                    <div className="relative group">
-                                        <button type="button" onClick={() => openView(admin)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
-                                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
-                                        </button>
-                                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View Details</span>
+                                </td>
+                                <td className="px-5 py-4 align-top truncate" style={{ color: 'var(--color-text-secondary)' }}>{admin.user.email}</td>
+                                <td className="px-5 py-4 align-top" style={{ color: 'var(--color-text-secondary)' }}>{admin.user.phone || '—'}</td>
+                                <td className="px-5 py-4 align-top"><span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ backgroundColor: admin.user.isActive ? 'var(--color-success-light)' : 'var(--color-error-light)', color: admin.user.isActive ? 'var(--color-success)' : 'var(--color-error)' }}>{admin.user.isActive ? 'Active' : 'Inactive'}</span></td>
+                                <td className="px-5 py-4 align-top" style={{ color: 'var(--color-text-secondary)' }}>{new Date(admin.user.createdAt).toLocaleDateString()}</td>
+                                <td className="px-5 py-4 align-top">
+                                    <div className="flex items-center justify-end gap-2 pr-1">
+                                        <div className="relative group">
+                                            <button type="button" onClick={() => openView(admin)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg></button>
+                                            <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View Details</span>
+                                        </div>
+                                        <div className="relative group">
+                                            <button type="button" onClick={() => openEdit(admin)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg></button>
+                                            <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Admin</span>
+                                        </div>
+                                        <div className="relative group">
+                                            <button type="button" onClick={() => setDeleteDialog({ isOpen: true, id: admin.id, name: admin.fullName })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg></button>
+                                            <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Admin</span>
+                                        </div>
                                     </div>
-                                    <div className="relative group">
-                                        <button type="button" onClick={() => openEdit(admin)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
-                                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-                                        </button>
-                                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Admin</span>
-                                    </div>
-                                    <div className="relative group">
-                                        <button type="button" onClick={() => setDeleteDialog({ isOpen: true, id: admin.id, name: admin.fullName })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
-                                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
-                                        </button>
-                                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Admin</span>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-
-                        <div className="px-5 py-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-                            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-                        </div>
-                    </div>
-                )}
+                                </td>
+                        </motion.tr>
+                    )}
+                />
             </motion.div>
 
             {/* Add / Edit Modal */}
             <AnimatePresence>
                 {(modalMode === 'add' || modalMode === 'edit') && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="fixed inset-0 z-[99] flex items-center justify-center p-4 backdrop-blur-md" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="fixed inset-0 z-99 flex items-center justify-center p-4 backdrop-blur-md" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
                         <motion.div initial={{ scale: 0.95, y: 15, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, y: 15, opacity: 0 }} transition={{ type: 'spring', duration: 0.4 }} onClick={e => e.stopPropagation()} className="w-full max-w-md rounded-3xl p-6 shadow-2xl" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                             <div className="flex justify-between items-center mb-5">
                                 <div>
@@ -265,7 +244,7 @@ const SuperAdminsPage = () => {
             {/* View Modal */}
             <AnimatePresence>
                 {modalMode === 'view' && selectedAdmin && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="fixed inset-0 z-[99] flex items-center justify-center p-4 backdrop-blur-md" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="fixed inset-0 z-99 flex items-center justify-center p-4 backdrop-blur-md" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
                         <motion.div initial={{ scale: 0.95, y: 15, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, y: 15, opacity: 0 }} transition={{ type: 'spring', duration: 0.4 }} onClick={e => e.stopPropagation()} className="w-full max-w-md rounded-3xl p-6 shadow-2xl" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                             <div className="flex justify-between items-center mb-5">
                                 <h3 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Admin Details</h3>

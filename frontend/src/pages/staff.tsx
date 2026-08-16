@@ -4,13 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../Context/AuthContext'
 import { useToast } from '../Context/ToastContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
-import { StaffSkeleton } from '../components/skeletons/PageSkeletons'
 import Button from '../components/shared/Button'
 import FilterTabs from '../components/shared/FilterTabs'
 import InputField from '../components/shared/InputField'
 import PhoneInputField from '../components/shared/PhoneInputField'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
-import Pagination from '../components/shared/Pagination'
+import Table from '../components/shared/Table'
 import Checkbox from '../components/shared/Checkbox'
 import { tenantApi, type TenantUserRole } from '../services/tenant.service'
 import { validateStaffForm, type StaffFormErrors } from '../validation/staff.validation'
@@ -40,6 +39,20 @@ const PASSWORD_LENGTH = 12
 const PASSWORD_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{};:,.?/'
 
 type StaffRoleTab = 'ALL' | TenantUserRole
+
+type TenantUserListItem = {
+  id: string
+  email: string
+  phone?: string | null
+  tenantId?: string | null
+  role: TenantUserRole
+  isActive: boolean
+  isVerified?: boolean | null
+  createdAt: string
+  doctor?: { name?: string | null; specialization?: string | null; licenseNumber?: string | null }
+  receptionist?: { name?: string | null }
+  patient?: { name?: string | null; dob?: string | null; gender?: string | null; bloodGroup?: string | null; allergies?: string | null }
+}
 
 const staffTabs: { key: StaffRoleTab; label: string }[] = [
   { key: 'ALL', label: 'All Roles' },
@@ -93,10 +106,10 @@ const StaffPage = () => {
 
   useEffect(() => {
     if (user?.hospitalId) {
-      setResolvedHospitalId(user.hospitalId)
+      queueMicrotask(() => setResolvedHospitalId(user.hospitalId ?? null))
     } else if (user?.tenantId) {
       tenantApi.getTenantHospital(user.tenantId)
-        .then((res: any) => {
+        .then((res) => {
           const id: string | null = res?.data?.id ?? null
           if (id) setResolvedHospitalId(id)
         })
@@ -104,7 +117,7 @@ const StaffPage = () => {
     }
   }, [user])
 
-  const fetchStaff = async () => {
+  const fetchStaff = React.useCallback(async () => {
     if (!user?.tenantId) {
       setLoading(false)
       return
@@ -112,13 +125,13 @@ const StaffPage = () => {
     try {
       setLoading(true)
       const res = await tenantApi.listUsers({ tenantId: user.tenantId, page, limit: STAFF_PAGE_SIZE, search, role: roleFilter === 'ALL' ? undefined : roleFilter })
-      const users = res.data.users.map((u: any) => ({
+      const users = res.data.users.map((u: TenantUserListItem) => ({
         id: u.id,
         name: u.doctor?.name ?? u.receptionist?.name ?? u.patient?.name ?? 'Unknown',
         role: u.role as TenantUserRole,
         email: u.email,
         phone: u.phone ?? '',
-        tenantId: u.tenantId,
+        tenantId: u.tenantId ?? undefined,
         specialty: u.doctor?.specialization,
         licenseNumber: u.doctor?.licenseNumber,
         dob: u.patient?.dob,
@@ -131,16 +144,16 @@ const StaffPage = () => {
       }))
       setStaff(users)
       setTotalStaff(res.data.pagination.total)
-    } catch (err) {
+    } catch {
       showToast('Failed to load staff directory', 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, roleFilter, search, showToast, user])
 
   useEffect(() => {
-    fetchStaff()
-  }, [user, page, search, roleFilter])
+    void Promise.resolve().then(() => fetchStaff())
+  }, [fetchStaff])
 
 
   const [showModal, setShowModal] = useState(false)
@@ -173,10 +186,6 @@ const StaffPage = () => {
   if (user.role !== 'HOSPITAL_ADMIN') {
     navigate('/dashboard')
     return null
-  }
-
-  if (loading) {
-    return <StaffSkeleton />
   }
 
   const resetForm = () => {
@@ -283,8 +292,8 @@ const StaffPage = () => {
         }
         return s
       }))
-    } catch (err: any) {
-      showToast(err.message ?? 'Failed to update status', 'error')
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to update status', 'error')
     }
   }
 
@@ -295,8 +304,8 @@ const StaffPage = () => {
       setStaff(prev => prev.filter(s => s.id !== deleteConfirm.id))
       showToast(`Staff member "${deleteConfirm.name}" removed from payroll registry.`, 'success')
       setDeleteConfirm({ isOpen: false, id: '', name: '' })
-    } catch (err: any) {
-      showToast(err.message ?? 'Failed to delete staff member', 'error')
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to delete staff member', 'error')
     } finally {
       setDeleting(false)
     }
@@ -373,135 +382,126 @@ const StaffPage = () => {
           />
         </div>
 
-        <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead>
-                <tr style={{ backgroundColor: 'var(--color-surface-elevated)', color: 'var(--color-text-secondary)' }}>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider">Staff Member</th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider">Role</th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider">Contact</th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider">Details</th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedStaff.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-16 text-center">
-                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No personnel records found</p>
-                    </td>
-                  </tr>
-                ) : paginatedStaff.map((s) => (
-                  <tr key={s.id} className="border-t transition-colors" style={{ borderColor: 'var(--color-border)', opacity: s.isActive ? 1 : 0.65 }}>
-                    <td className="px-5 py-4 align-top">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-extrabold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
-                          {s.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-extrabold truncate" style={{ color: 'var(--color-text)' }}>{s.name}</h3>
-                          <p className="text-[10px] uppercase font-bold" style={{ color: 'var(--color-text-secondary)' }}>Joined {new Date(s.createdAt).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 align-top">
-                      <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase" style={{ backgroundColor: s.role === 'DOCTOR' ? 'var(--color-primary-ghost)' : s.role === 'RECEPTIONIST' ? 'var(--color-success-light)' : 'var(--color-warning-light)', color: s.role === 'DOCTOR' ? 'var(--color-primary)' : s.role === 'RECEPTIONIST' ? 'var(--color-success)' : 'var(--color-warning)' }}>
-                        {s.role}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 align-top text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                      <div>{s.email}</div>
-                      <div className="text-xs mt-1">{s.phone}</div>
-                    </td>
-                    <td className="px-5 py-4 align-top">
-                      <span className="text-xs font-semibold" style={{ color: s.isActive ? 'var(--color-success)' : 'var(--color-text-secondary)' }}>
-                        {s.isActive ? 'Active' : 'Suspended'}
-                      </span>
-                      <div className="mt-2">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleActive(s.id)}
-                          className="relative w-8 h-4.5 rounded-full p-0.5 transition-colors cursor-pointer"
-                          style={{ backgroundColor: s.isActive ? 'var(--color-success)' : 'var(--color-border)' }}
-                        >
-                          <motion.div
-                            layout
-                            className="w-3.5 h-3.5 rounded-full bg-white shadow-sm"
-                            animate={{ x: s.isActive ? 14 : 0 }}
-                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                          />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 align-top text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                      {s.role === 'DOCTOR' && s.licenseNumber && (
-                        <div><span className="font-bold" style={{ color: 'var(--color-text)' }}>License: </span>{s.licenseNumber}</div>
-                      )}
-                      {s.specialty && (
-                        <div className="mt-1"><span className="font-bold" style={{ color: 'var(--color-text)' }}>Specialty: </span>{s.specialty}</div>
-                      )}
-                      {s.role === 'PATIENT' && s.dob && (
-                        <div className="mt-1"><span className="font-bold" style={{ color: 'var(--color-text)' }}>DOB: </span>{s.dob}</div>
-                      )}
-                      {s.role === 'PATIENT' && s.bloodGroup && (
-                        <div className="mt-1"><span className="font-bold" style={{ color: 'var(--color-text)' }}>Blood: </span>{s.bloodGroup}</div>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 align-top text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="relative group">
-                          <button type="button" onClick={() => setViewStaffId(s.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
-                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
-                          </button>
-                          <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View Details</span>
-                        </div>
-                        <div className="relative group">
-                          <button type="button" onClick={() => {
-                            const m = staff.find(x => x.id === s.id)
-                            if (m) {
-                              setEditStaffId(m.id)
-                              setName(m.name)
-                              setRole(m.role)
-                              setEmail(m.email)
-                              setPhone(m.phone || '')
-                              setSpecialty(m.specialty || '')
-                              setLicenseNumber(m.licenseNumber || '')
-                              setDob(m.dob || '')
-                              setGender(m.gender || '')
-                              setBloodGroup(m.bloodGroup || '')
-                              setAllergies(m.allergies || '')
-                              setIsActive(m.isActive)
-                              setIsVerified(m.isVerified || false)
-                            }
-                          }} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
-                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-                          </button>
-                          <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Staff</span>
-                        </div>
-                        <div className="relative group">
-                          <button type="button" onClick={() => setDeleteConfirm({ isOpen: true, id: s.id, name: s.name })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
-                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
-                          </button>
-                          <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">De-authorize</span>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={(nextPage) => setPage(nextPage)}
-            />
-          </div>
-        </div>
+        <Table
+          loading={loading}
+          loadingRows={6}
+          columns={[
+            { label: 'Staff Member' },
+            { label: 'Role' },
+            { label: 'Contact' },
+            { label: 'Status' },
+            { label: 'Details' },
+            { label: 'Actions', className: 'text-right' },
+          ]}
+          data={paginatedStaff}
+          emptyState={
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No personnel records found</p>
+          }
+          renderRow={(s) => (
+            <tr key={s.id} className="transition-colors" style={{ borderTop: '1px solid var(--color-border)', opacity: s.isActive ? 1 : 0.65 }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+              <td className="px-5 py-4 align-top">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-extrabold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
+                    {s.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-extrabold truncate" style={{ color: 'var(--color-text)' }}>{s.name}</h3>
+                    <p className="text-[10px] uppercase font-bold" style={{ color: 'var(--color-text-secondary)' }}>Joined {new Date(s.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </td>
+              <td className="px-5 py-4 align-top">
+                <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase" style={{ backgroundColor: s.role === 'DOCTOR' ? 'var(--color-primary-ghost)' : s.role === 'RECEPTIONIST' ? 'var(--color-success-light)' : 'var(--color-warning-light)', color: s.role === 'DOCTOR' ? 'var(--color-primary)' : s.role === 'RECEPTIONIST' ? 'var(--color-success)' : 'var(--color-warning)' }}>
+                  {s.role}
+                </span>
+              </td>
+              <td className="px-5 py-4 align-top text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                <div>{s.email}</div>
+                <div className="text-xs mt-1">{s.phone}</div>
+              </td>
+              <td className="px-5 py-4 align-top">
+                <span className="text-xs font-semibold" style={{ color: s.isActive ? 'var(--color-success)' : 'var(--color-text-secondary)' }}>
+                  {s.isActive ? 'Active' : 'Suspended'}
+                </span>
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(s.id)}
+                    className="relative w-8 h-4.5 rounded-full p-0.5 transition-colors cursor-pointer"
+                    style={{ backgroundColor: s.isActive ? 'var(--color-success)' : 'var(--color-border)' }}
+                  >
+                    <motion.div
+                      layout
+                      className="w-3.5 h-3.5 rounded-full bg-white shadow-sm"
+                      animate={{ x: s.isActive ? 14 : 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    />
+                  </button>
+                </div>
+              </td>
+              <td className="px-5 py-4 align-top text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                {s.role === 'DOCTOR' && s.licenseNumber && (
+                  <div><span className="font-bold" style={{ color: 'var(--color-text)' }}>License: </span>{s.licenseNumber}</div>
+                )}
+                {s.specialty && (
+                  <div className="mt-1"><span className="font-bold" style={{ color: 'var(--color-text)' }}>Specialty: </span>{s.specialty}</div>
+                )}
+                {s.role === 'PATIENT' && s.dob && (
+                  <div className="mt-1"><span className="font-bold" style={{ color: 'var(--color-text)' }}>DOB: </span>{s.dob}</div>
+                )}
+                {s.role === 'PATIENT' && s.bloodGroup && (
+                  <div className="mt-1"><span className="font-bold" style={{ color: 'var(--color-text)' }}>Blood: </span>{s.bloodGroup}</div>
+                )}
+              </td>
+              <td className="px-5 py-4 align-top text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <div className="relative group">
+                    <button type="button" onClick={() => setViewStaffId(s.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                    </button>
+                    <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View Details</span>
+                  </div>
+                  <div className="relative group">
+                    <button type="button" onClick={() => {
+                      const m = staff.find(x => x.id === s.id)
+                      if (m) {
+                        setEditStaffId(m.id)
+                        setName(m.name)
+                        setRole(m.role)
+                        setEmail(m.email)
+                        setPhone(m.phone || '')
+                        setSpecialty(m.specialty || '')
+                        setLicenseNumber(m.licenseNumber || '')
+                        setDob(m.dob || '')
+                        setGender(m.gender || '')
+                        setBloodGroup(m.bloodGroup || '')
+                        setAllergies(m.allergies || '')
+                        setIsActive(m.isActive)
+                        setIsVerified(m.isVerified || false)
+                      }
+                    }} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                    </button>
+                    <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Staff</span>
+                  </div>
+                  <div className="relative group">
+                    <button type="button" onClick={() => setDeleteConfirm({ isOpen: true, id: s.id, name: s.name })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                    </button>
+                    <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">De-authorize</span>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          )}
+          pagination={{
+            page,
+            totalPages,
+            totalItems: totalStaff,
+            itemsPerPage: STAFF_PAGE_SIZE,
+            onPageChange: (nextPage) => setPage(nextPage),
+          }}
+        />
       </motion.div>
 
       <AnimatePresence>
@@ -605,7 +605,7 @@ const StaffPage = () => {
                         variant="default"
                         size="md"
                         onClick={() => setPassword(generateRandomPassword())}
-                        className="mb-[2px] px-3 border"
+                        className="mb-0.5 px-3 border"
                         aria-label="Generate random password"
                         style={{ height: '42px', borderColor: 'var(--color-border)' }}
                         title="Generate Secure Password"

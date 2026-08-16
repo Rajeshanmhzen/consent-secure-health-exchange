@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../Context/AuthContext'
 import { useToast } from '../../Context/ToastContext'
 import DashboardLayout from '../../components/layout/DashboardLayout'
-import Pagination from '../../components/shared/Pagination'
+import Table from '../../components/shared/Table'
 import Button from '../../components/shared/Button'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { pricingApi, type Plan } from '../../services/pricing.service'
@@ -15,37 +15,6 @@ const planTabs = [
     { key: 'active', label: 'Active Tiers' },
     { key: 'inactive', label: 'Inactive Tiers' }
 ] as const
-
-const PlanListSkeleton = () => (
-    <div className="rounded-2xl overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 0.8fr 2fr 1fr', alignItems: 'center', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">
-            {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-3 w-16 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-            ))}
-            <div className="h-3 w-12 justify-self-end rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-        </div>
-        <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-            {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 0.8fr 2fr 1fr', alignItems: 'center' }} className="px-5 py-4 gap-4">
-                    <div className="flex flex-col gap-2">
-                        <div className="h-4 w-24 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                        <div className="h-3 w-12 rounded-full bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <div className="h-4 w-16 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                        <div className="h-3 w-12 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    </div>
-                    <div className="h-3 w-10 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    <div className="h-3 w-32 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    <div className="flex items-center justify-end gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                        <div className="h-8 w-8 rounded-lg bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    </div>
-                </div>
-            ))}
-        </div>
-    </div>
-)
 
 const PlansPage = () => {
     const { user } = useAuth()
@@ -293,77 +262,50 @@ const PlansPage = () => {
                 <FilterTabs tabs={planTabs} value={statusFilter} onChange={handleStatusChange} layoutId="activePlanTabUnderline" />
 
                 {/* Table list */}
-                {loading ? <PlanListSkeleton /> : (
-                    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 0.8fr 2fr 1fr', alignItems: 'center', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">
-                            <span>Tier Name</span>
-                            <span>Monthly / Yearly</span>
-                            <span>Currency</span>
-                            <span>Features List</span>
-                            <span className="text-right">Actions</span>
-                        </div>
-
-                        {plans.length === 0 ? (
-                            <div className="px-5 py-16 text-center">
-                                <p className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>No subscription plans found matching filters.</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-                                {plans.map(plan => (
-                                    <div key={plan.id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 0.8fr 2fr 1fr', alignItems: 'center' }} className="px-5 py-4 text-sm hover:bg-[rgba(0,0,0,0.01)] transition-colors duration-150">
-                                        <div className="flex flex-col gap-1 pr-2">
-                                            <span className="font-bold block" style={{ color: 'var(--color-text)' }}>{plan.name}</span>
-                                            <div>
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${plan.isActive ? 'bg-[rgba(16,185,129,0.1)] text-emerald-500' : 'bg-[rgba(0,0,0,0.05)] text-gray-500'}`}>
-                                                    {plan.isActive ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </div>
+                <Table
+                    loading={loading}
+                    loadingRows={5}
+                    columns={[
+                        { label: 'Tier Name' },
+                        { label: 'Monthly / Yearly' },
+                        { label: 'Currency' },
+                        { label: 'Features List' },
+                        { label: 'Actions', className: 'text-right' },
+                    ]}
+                    data={plans}
+                    emptyState={<div className="px-5 py-16 text-center"><p className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>No subscription plans found matching filters.</p></div>}
+                    pagination={plans.length > 0 ? { page, totalPages, totalItems: total, itemsPerPage: 8, onPageChange: setPage } : undefined}
+                    renderRow={(plan) => (
+                        <tr key={plan.id} style={{ borderTop: '1px solid var(--color-border)' }} className="text-sm hover:bg-[rgba(0,0,0,0.01)] transition-colors duration-150">
+                                <td className="px-5 py-4 align-top">
+                                    <div className="flex flex-col gap-1 pr-2">
+                                        <span className="font-bold block" style={{ color: 'var(--color-text)' }}>{plan.name}</span>
+                                        <div><span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${plan.isActive ? 'bg-[rgba(16,185,129,0.1)] text-emerald-500' : 'bg-[rgba(0,0,0,0.05)] text-gray-500'}`}>{plan.isActive ? 'Active' : 'Inactive'}</span></div>
+                                    </div>
+                                </td>
+                                <td className="px-5 py-4 align-top">
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="font-mono font-bold" style={{ color: 'var(--color-text)' }}>${plan.monthlyPrice}<span className="text-xs font-normal opacity-70">/mo</span></span>
+                                        <span className="font-mono font-bold text-xs" style={{ color: 'var(--color-primary)' }}>${plan.yearlyPrice}<span className="text-[10px] font-normal opacity-70">/yr</span></span>
+                                    </div>
+                                </td>
+                                <td className="px-5 py-4 align-top text-xs uppercase" style={{ color: 'var(--color-text-secondary)' }}>{plan.currency}</td>
+                                <td className="px-5 py-4 align-top text-xs pr-2 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{(!plan.features || plan.features.length === 0) ? <span className="italic">No custom features listed</span> : plan.features.join(', ')}</td>
+                                <td className="px-5 py-4 align-top">
+                                    <div className="flex items-center justify-end gap-2.5">
+                                        <div className="relative group">
+                                            <button type="button" onClick={() => handleOpenEditModal(plan)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg></button>
+                                            <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Plan</span>
                                         </div>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="font-mono font-bold" style={{ color: 'var(--color-text)' }}>
-                                                ${plan.monthlyPrice}<span className="text-xs font-normal opacity-70">/mo</span>
-                                            </span>
-                                            <span className="font-mono font-bold text-xs" style={{ color: 'var(--color-primary)' }}>
-                                                ${plan.yearlyPrice}<span className="text-[10px] font-normal opacity-70">/yr</span>
-                                            </span>
-                                        </div>
-                                        <span className="text-xs uppercase" style={{ color: 'var(--color-text-secondary)' }}>
-                                            {plan.currency}
-                                        </span>
-                                        <div className="text-xs pr-2 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                                            {(!plan.features || plan.features.length === 0) ? (
-                                                <span className="italic">No custom features listed</span>
-                                            ) : (
-                                                plan.features.join(', ')
-                                            )}
-                                        </div>
-                                        <div className="flex items-center justify-end gap-2.5">
-                                            <div className="relative group">
-                                                <button type="button" onClick={() => handleOpenEditModal(plan)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
-                                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-                                                </button>
-                                                <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Plan</span>
-                                            </div>
-                                            <div className="relative group">
-                                                <button type="button" onClick={() => setConfirmDialog({ isOpen: true, planId: plan.id, planName: plan.name })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
-                                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
-                                                </button>
-                                                <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Plan</span>
-                                            </div>
+                                        <div className="relative group">
+                                            <button type="button" onClick={() => setConfirmDialog({ isOpen: true, planId: plan.id, planName: plan.name })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg></button>
+                                            <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Plan</span>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="mt-4 flex justify-end">
-                        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-                    </div>
-                )}
+                                </td>
+                        </tr>
+                    )}
+                />
             </motion.div>
 
             {/* Deletion confirmation dialog */}

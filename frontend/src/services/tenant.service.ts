@@ -100,8 +100,13 @@ export type UpdateTenantUserPayload = {
 }
 
 export type TenantUserListData = {
-    users: any[] // We can type this better later if needed, but any[] matches what backend sends currently
+    users: any[] 
     pagination: { total: number; page: number; limit: number; totalPages: number }
+}
+
+export type TenantHospitalDetail = {
+    id: string
+    name: string
 }
 
 export const tenantApi = {
@@ -143,9 +148,9 @@ export const tenantApi = {
         })
     },
     getTenantHospital: (tenantId: string) => {
-        return request<ApiResponse<{ id: string; name: string } | null>>(`/tenant/detail/${tenantId}`)
+        return request<ApiResponse<TenantHospitalDetail | null>>(`/tenant/detail/${tenantId}`)
             .then((res) => {
-                const data = res.data as any
+                const data = res.data as { hospital?: TenantHospitalDetail | null } | null
                 const hospital = data?.hospital ?? null
                 return { ...res, data: hospital }
             })

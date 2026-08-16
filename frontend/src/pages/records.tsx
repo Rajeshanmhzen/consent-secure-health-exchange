@@ -7,8 +7,11 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import Button from '../components/shared/Button'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import InputField from '../components/shared/InputField'
+import Table from '../components/shared/Table'
 import { recordApi, type MedicalRecord as ApiMedicalRecord } from '../services/record.service'
 import { tenantApi } from '../services/tenant.service'
+
+const RECORDS_PAGE_SIZE = 5
 
 type DisplayRecord = {
   id: string
@@ -50,6 +53,7 @@ const RecordsPage = () => {
   const { showToast } = useToast()
 
   const [records, setRecords] = useState<DisplayRecord[]>([])
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState(() => (location.state as { filterPatientName?: string } | null)?.filterPatientName ?? '')
 
@@ -108,6 +112,11 @@ const RecordsPage = () => {
 
   const isDoctor = user?.role === 'DOCTOR'
   const isPatient = user?.role === 'PATIENT'
+
+  const totalRecords = records.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / RECORDS_PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paginatedRecords = records.slice((safePage - 1) * RECORDS_PAGE_SIZE, safePage * RECORDS_PAGE_SIZE)
 
 
   const openEdit = (r: DisplayRecord) => {
@@ -226,197 +235,185 @@ const RecordsPage = () => {
             type="text"
             placeholder={isPatient ? "Search by diagnosis or doctor name..." : "Search by patient name or diagnosis..."}
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => { setSearch(e.target.value); setPage(1) }}
             className="flex-1 bg-transparent text-sm outline-none"
             style={{ color: 'var(--color-text)' }}
           />
         </div>
 
-        {/* Layout content depends on Patient vs Doctor/Admin */}
         {isPatient ? (
-          <div className="relative border-l-2 pl-6 ml-4 flex flex-col gap-8 mt-2" style={{ borderColor: 'var(--color-primary-ghost)' }}>
-            {loading ? (
-              <div className="p-8 text-center">
-                <div className="h-10 w-10 mx-auto rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
-                <p className="text-sm mt-3" style={{ color: 'var(--color-text-secondary)' }}>Loading records...</p>
-              </div>
-            ) : records.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No records found in your clinical file</p>
-              </div>
-            ) : records.map((r, i) => (
-              <motion.div
-                key={r.id}
-                initial={{ opacity: 0, x: -16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05, duration: 0.3 }}
-                className="relative p-6 rounded-2xl flex flex-col gap-4 group"
-                style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-              >
-                {/* Timeline node */}
-                <div className="absolute -left-8.25 top-7 h-4.5 w-4.5 rounded-full border-4 border-(--color-background) shadow-sm transition-transform group-hover:scale-125" style={{ backgroundColor: 'var(--color-primary)' }} />
-
-                {/* Card Title & Specialty */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                  <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-primary)' }}>
-                      {new Date(r.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}
-                    </span>
-                    <h3 className="text-base font-extrabold mt-0.5" style={{ color: 'var(--color-text)' }}>{r.diagnosis}</h3>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>{r.doctorName}</p>
-                    <p className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>{r.specialty}</p>
-                  </div>
-                </div>
-
-                {/* Prescription & Clinical Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl" style={{ backgroundColor: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)' }}>
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Prescription & Instructions</h4>
-                    <p className="text-sm mt-1 font-semibold" style={{ color: 'var(--color-text)' }}>{r.prescription}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Clinical Encounter Notes</h4>
-                    <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>{r.notes}</p>
-                  </div>
-                </div>
-
-                {/* Shared records attached files */}
-                {r.files.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-secondary)' }}>Diagnostic Attachments ({r.files.length})</h4>
-                    <div className="flex flex-wrap gap-3">
-                      {r.files.map((f, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer border hover:scale-102 transition-transform"
-                          style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
-                          onClick={() => showToast(`Simulating download for ${f.name}`, 'success')}
-                        >
-                          <svg viewBox="0 0 24 24" className="h-4 w-4 text-emerald-400" fill="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-1 9-4-4h2.5v-3h3v3H16l-4 4z" />
-                          </svg>
-                          <span>{f.name}</span>
-                          {/* <span style={{ color: 'var(--color-text-secondary)' }}>({f.size})</span> */}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-            {/* Table header */}
-            <div className="grid px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style={{ gridTemplateColumns: '0.9fr 1fr 1.4fr 1.4fr 0.6fr 1fr', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
-              <span>Date</span>
-              <span>Patient</span>
-              <span>Diagnosis</span>
-              <span>Prescription</span>
-              <span>Files</span>
-              <span className="text-right">Actions</span>
-            </div>
-
-            {loading ? (
-              <div className="flex flex-col">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="grid px-5 py-4 gap-4" style={{ gridTemplateColumns: '0.9fr 1fr 1.4fr 1.4fr 0.6fr 1fr', borderTop: '1px solid var(--color-border)' }}>
-                    <div className="h-4 w-20 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
-                    <div className="h-4 w-24 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
-                    <div className="h-4 w-32 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
-                    <div className="h-4 w-36 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
-                    <div className="h-4 w-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
-                    <div className="h-4 w-16 rounded-full animate-pulse ml-auto" style={{ backgroundColor: 'var(--color-surface-elevated)' }} />
-                  </div>
-                ))}
-              </div>
-            ) : records.length === 0 ? (
-              <div className="px-5 py-16 text-center">
-                <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No patient records match search parameters</p>
-              </div>
-            ) : records.map((r, i) => (
-              <motion.div
-                key={r.id}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03, duration: 0.25 }}
-                className="grid px-5 py-4 text-sm items-center transition-colors"
-                style={{ gridTemplateColumns: '0.9fr 1fr 1.4fr 1.4fr 0.6fr 1fr', borderTop: '1px solid var(--color-border)' }}
+          <Table
+            columns={[
+              { label: 'Date', className: 'text-left' },
+              { label: 'Doctor', className: 'text-left' },
+              { label: 'Diagnosis', className: 'text-left' },
+              { label: 'Prescription', className: 'text-left' },
+              { label: 'Attachments', className: 'text-left' },
+              { label: 'Details', className: 'text-right' }
+            ]}
+            data={loading ? Array.from({ length: 4 }) : paginatedRecords}
+            emptyState={
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No records found in your clinical file</p>
+            }
+            renderRow={(r, index) => loading ? (
+              <tr key={index} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+                <td className="px-5 py-4"><div className="h-4 w-24 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4"><div className="h-4 w-28 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4"><div className="h-4 w-40 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4"><div className="h-4 w-36 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4"><div className="h-4 w-16 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4 text-right"><div className="h-8 w-20 rounded-full animate-pulse ml-auto" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+              </tr>
+            ) : (
+              <tr
+                key={(r as DisplayRecord).id}
+                className="transition-colors"
+                style={{ borderTop: '1px solid var(--color-border)' }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
-                {/* Date */}
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-bold" style={{ color: 'var(--color-primary)' }}>
-                    {new Date(r.createdAt).toLocaleDateString()}
-                  </span>
-                  <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
-                    {r.doctorName}
-                  </span>
-                </div>
-
-                {/* Patient */}
-                <span className="font-semibold pr-2 truncate" style={{ color: 'var(--color-text)' }}>{r.patientName}</span>
-
-                {/* Diagnosis */}
-                <span className="text-xs pr-2 truncate font-semibold" style={{ color: 'var(--color-text)' }} title={r.diagnosis}>{r.diagnosis}</span>
-
-                {/* Prescription */}
-                <span className="text-xs pr-2 truncate" style={{ color: 'var(--color-text-secondary)' }} title={r.prescription}>{r.prescription}</span>
-
-                {/* Files */}
-                <span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
-                  {r.files.length > 0 ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
-                      {r.files.length} file{r.files.length !== 1 ? 's' : ''}
+                <td className="px-5 py-4 text-sm" style={{ color: 'var(--color-text)' }}>
+                  <div className="font-semibold">{new Date((r as DisplayRecord).createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}</div>
+                  <div className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>{new Date((r as DisplayRecord).createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</div>
+                </td>
+                <td className="px-5 py-4">
+                  <div className="font-semibold" style={{ color: 'var(--color-text)' }}>{(r as DisplayRecord).doctorName}</div>
+                  <div className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>{(r as DisplayRecord).specialty}</div>
+                </td>
+                <td className="px-5 py-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{(r as DisplayRecord).diagnosis}</td>
+                <td className="px-5 py-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>{(r as DisplayRecord).prescription === '-' ? '—' : (r as DisplayRecord).prescription}</td>
+                <td className="px-5 py-4">
+                  {(r as DisplayRecord).files.length > 0 ? (
+                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
+                      {(r as DisplayRecord).files.length} file{(r as DisplayRecord).files.length !== 1 ? 's' : ''}
                     </span>
-                  ) : '—'}
-                </span>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-2 pr-1">
-                  {/* View */}
-                  <div className="relative group">
-                    <button type="button" onClick={() => setViewRecord(r)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
+                  ) : (
+                    <span className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>None</span>
+                  )}
+                </td>
+                <td className="px-5 py-4 text-right">
+                  <div className="relative group inline-flex">
+                    <button
+                      type="button"
+                      onClick={() => setViewRecord(r as DisplayRecord)}
+                      title="View record"
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer"
+                    >
                       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
                       </svg>
+                      <span className="sr-only">View record</span>
                     </button>
-                    <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View Details</span>
+                    <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">
+                      View record
+                    </span>
                   </div>
-                  {/* Edit */}
-                  {isDoctor && (
+                </td>
+              </tr>
+            )}
+            pagination={totalRecords > 0 ? { page: safePage, totalPages, totalItems: totalRecords, itemsPerPage: RECORDS_PAGE_SIZE, onPageChange: setPage } : undefined}
+          />
+        ) : (
+          <Table
+            columns={[
+              { label: 'Date', className: 'text-left' },
+              { label: 'Patient', className: 'text-left' },
+              { label: 'Diagnosis', className: 'text-left' },
+              { label: 'Prescription', className: 'text-left' },
+              { label: 'Files', className: 'text-left' },
+              { label: 'Actions', className: 'text-right' }
+            ]}
+            data={loading ? Array.from({ length: 5 }) : paginatedRecords}
+            emptyState={
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No patient records match search parameters</p>
+            }
+            renderRow={(r, i) => loading ? (
+              <tr key={i} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+                <td className="px-5 py-4"><div className="h-4 w-20 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4"><div className="h-4 w-24 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4"><div className="h-4 w-32 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4"><div className="h-4 w-36 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4"><div className="h-4 w-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+                <td className="px-5 py-4 text-right"><div className="h-4 w-16 rounded-full animate-pulse ml-auto" style={{ backgroundColor: 'var(--color-surface-elevated)' }} /></td>
+              </tr>
+            ) : (
+              <tr
+                key={(r as DisplayRecord).id}
+                className="transition-colors"
+                style={{ borderTop: '1px solid var(--color-border)' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <td className="px-5 py-4 text-sm" style={{ color: 'var(--color-text)' }}>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-bold" style={{ color: 'var(--color-primary)' }}>
+                      {new Date((r as DisplayRecord).createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+                      {(r as DisplayRecord).doctorName}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-5 py-4 text-sm">
+                  <span className="font-semibold pr-2 truncate" style={{ color: 'var(--color-text)' }}>{(r as DisplayRecord).patientName}</span>
+                </td>
+                <td className="px-5 py-4 text-sm">
+                  <span className="text-xs pr-2 truncate font-semibold" style={{ color: 'var(--color-text)' }} title={(r as DisplayRecord).diagnosis}>{(r as DisplayRecord).diagnosis}</span>
+                </td>
+                <td className="px-5 py-4 text-sm">
+                  <span className="text-xs pr-2 truncate" style={{ color: 'var(--color-text-secondary)' }} title={(r as DisplayRecord).prescription}>{(r as DisplayRecord).prescription}</span>
+                </td>
+                <td className="px-5 py-4 text-sm">
+                  <span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
+                    {(r as DisplayRecord).files.length > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
+                        {(r as DisplayRecord).files.length} file{(r as DisplayRecord).files.length !== 1 ? 's' : ''}
+                      </span>
+                    ) : '—'}
+                  </span>
+                </td>
+                <td className="px-5 py-4 text-right">
+                  <div className="flex items-center justify-end gap-2 pr-1">
                     <div className="relative group">
-                      <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
+                      <button type="button" onClick={() => setViewRecord(r as DisplayRecord)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer">
                         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 20h9" />
-                          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="16" x2="12" y2="12" />
+                          <line x1="12" y1="8" x2="12.01" y2="8" />
                         </svg>
                       </button>
-                      <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Record</span>
+                      <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">View Details</span>
                     </div>
-                  )}
-                  {/* Delete */}
-                  {isDoctor && (
-                    <div className="relative group">
-                      <button type="button" onClick={() => setDeleteTarget(r)} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
-                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 6h18" />
-                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                        </svg>
-                      </button>
-                      <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Record</span>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                    {isDoctor && (
+                      <div className="relative group">
+                        <button type="button" onClick={() => openEdit(r as DisplayRecord)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                          </svg>
+                        </button>
+                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Record</span>
+                      </div>
+                    )}
+                    {isDoctor && (
+                      <div className="relative group">
+                        <button type="button" onClick={() => setDeleteTarget(r as DisplayRecord)} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          </svg>
+                        </button>
+                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Record</span>
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )}
+            pagination={totalRecords > 0 ? { page: safePage, totalPages, totalItems: totalRecords, itemsPerPage: RECORDS_PAGE_SIZE, onPageChange: setPage } : undefined}
+          />
         )}
       </motion.div>
 

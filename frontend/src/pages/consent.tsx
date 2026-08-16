@@ -8,7 +8,10 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 import FilterTabs from '../components/shared/FilterTabs'
 import { ConsentSkeleton } from '../components/skeletons/PageSkeletons'
 import Button from '../components/shared/Button'
+import Table from '../components/shared/Table'
 import { requestApi } from '../services/request.service'
+
+const CONSENT_PAGE_SIZE = 5
 
 type ConsentLocationState = {
   requestId?: string
@@ -57,6 +60,8 @@ const ConsentPage = () => {
   const [consents, setConsents] = useState<ConsentRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRequest, setSelectedRequest] = useState<ConsentRequest | null>(null)
+  const [otpSent, setOtpSent] = useState(false)
+  const [page, setPage] = useState(1)
 
   const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false)
   const [requestToRevoke, setRequestToRevoke] = useState<string | null>(null)
@@ -68,6 +73,7 @@ const ConsentPage = () => {
   const [isVerifying, setIsVerifying] = useState(false)
   const [isSendingOtp, setIsSendingOtp] = useState(false)
   const [otpError, setOtpError] = useState('')
+  const [viewAll, setViewAll] = useState(false)
 
   const fetchConsents = useCallback(async () => {
     try {
@@ -106,9 +112,11 @@ const ConsentPage = () => {
     }
   }, [location.state, consents])
 
-  if (!user) return null
-
-  const [otpSent, setOtpSent] = useState(false)
+  const filteredConsents = consents.filter(c => statusFilter === 'All' || c.status === statusFilter)
+  const totalConsents = filteredConsents.length
+  const totalPages = Math.max(1, Math.ceil(totalConsents / CONSENT_PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paginatedConsents = filteredConsents.slice((safePage - 1) * CONSENT_PAGE_SIZE, safePage * CONSENT_PAGE_SIZE)
 
   const handleOpenWizard = (c: ConsentRequest) => {
     setSelectedRequest(c)
@@ -117,6 +125,18 @@ const ConsentPage = () => {
     setOtpError('')
     setOtpSent(false)
   }
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value)
+    setPage(1)
+  }
+
+  const handleToggleViewAll = () => {
+    setViewAll(prev => !prev)
+    setPage(1)
+  }
+
+  if (!user) return null
 
   const handleSendOtp = async () => {
     if (!selectedRequest) return
@@ -257,24 +277,22 @@ const ConsentPage = () => {
           <FilterTabs
             tabs={consentTabs}
             value={statusFilter}
-            onChange={setStatusFilter}
+            onChange={handleStatusChange}
             layoutId="consentTabs"
           />
         </div>
 
         {/* TABLE LISTING */}
-        <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-          <div className="grid grid-cols-12 px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
-            <span className="col-span-3">Requestor Doctor</span>
-            <span className="col-span-3">Holding Hospital</span>
-            <span className="col-span-2">Access Reason</span>
-            <span className="col-span-2 text-center">Status</span>
-            <span className="col-span-2 text-right">Actions</span>
-          </div>
-
-          {loading ? (
-            <ConsentSkeleton />
-          ) : consents.filter(c => statusFilter === 'All' || c.status === statusFilter).length === 0 ? (
+        <Table
+          columns={[
+            { label: 'Requestor Doctor' },
+            { label: 'Holding Hospital' },
+            { label: 'Access Reason' },
+            { label: 'Status', className: 'text-center' },
+            { label: 'Actions', className: 'text-right' },
+          ]}
+          data={loading ? Array.from({ length: 5 }) : paginatedConsents}
+          emptyState={
             <div className="px-5 py-16 text-center">
               <svg viewBox="0 0 24 24" className="h-10 w-10 mx-auto mb-3 text-(--color-text-tertiary)" fill="currentColor">
                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" />
@@ -282,67 +300,64 @@ const ConsentPage = () => {
               <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No {statusFilter !== 'All' ? statusFilter.toLowerCase() : 'active'} sharing requests</p>
               <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Pending cross-hospital requests requiring your signature will appear here.</p>
             </div>
-          ) : consents.filter(c => statusFilter === 'All' || c.status === statusFilter).map((c, index) => {
-            return (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.02, duration: 0.2 }}
-                className="grid grid-cols-12 items-center px-5 py-4 text-sm transition-all border-t"
-                style={{ borderColor: 'var(--color-border)' }}
-              >
-                {/* Doctor */}
-                <div className="col-span-3 flex flex-col pr-2">
+          }
+          pagination={totalConsents > 0 ? { page: safePage, totalPages, totalItems: totalConsents, itemsPerPage: CONSENT_PAGE_SIZE, onPageChange: setPage } : undefined}
+          renderRow={(c, index) => loading ? (
+            <tr key={index}>
+              <td colSpan={5} className="px-5 py-16 text-center text-xs text-(--color-text-secondary) animate-pulse">Loading consent ledger...</td>
+            </tr>
+          ) : (
+            <motion.tr
+              key={c.id}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.02, duration: 0.2 }}
+              className="transition-all"
+              style={{ borderTop: '1px solid var(--color-border)' }}
+            >
+              <td className="px-5 py-4 align-top">
+                <div className="flex flex-col pr-2">
                   <span className="font-semibold text-(--color-text)">{c.requestingDoctor?.name || 'Requesting Clinician'}</span>
                   <span className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                     Specialization: {c.requestingDoctor?.specialization || 'Clinical HIE Specialist'}
                   </span>
                 </div>
-
-                {/* Hospital */}
-                <span className="col-span-3 font-medium text-(--color-text) pr-2">
-                  {c.requestingDoctor?.hospital?.name || 'External Medical Group'}
+              </td>
+              <td className="px-5 py-4 align-top font-medium text-(--color-text) pr-2">
+                {c.requestingDoctor?.hospital?.name || 'External Medical Group'}
+              </td>
+              <td className="px-5 py-4 align-top text-xs truncate pr-2 text-(--color-text-secondary)" title={c.reason}>
+                "{c.reason || 'Clinical dossier review'}"
+              </td>
+              <td className="px-5 py-4 align-top text-center">
+                <span
+                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider"
+                  style={{
+                    backgroundColor: c.status === 'APPROVED' ? 'var(--color-success-light)' : c.status === 'PENDING' ? 'var(--color-warning-light)' : c.status === 'PATIENT_APPROVED' ? 'var(--color-primary-light)' : 'var(--color-error-light)',
+                    color: c.status === 'APPROVED' ? 'var(--color-success)' : c.status === 'PENDING' ? 'var(--color-warning)' : c.status === 'PATIENT_APPROVED' ? 'var(--color-primary)' : 'var(--color-error)',
+                  }}
+                >
+                  {c.status === 'PATIENT_APPROVED' ? 'PATIENT SIGNED' : c.status}
                 </span>
-
-                {/* Reason */}
-                <span className="col-span-2 text-xs truncate pr-2 text-(--color-text-secondary)" title={c.reason}>
-                  "{c.reason || 'Clinical dossier review'}"
-                </span>
-
-                {/* Status Badge */}
-                <div className="col-span-2 text-center">
-                  <span
-                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider"
-                    style={{
-                      backgroundColor: c.status === 'APPROVED' ? 'var(--color-success-light)' : c.status === 'PENDING' ? 'var(--color-warning-light)' : c.status === 'PATIENT_APPROVED' ? 'var(--color-primary-light)' : 'var(--color-error-light)',
-                      color: c.status === 'APPROVED' ? 'var(--color-success)' : c.status === 'PENDING' ? 'var(--color-warning)' : c.status === 'PATIENT_APPROVED' ? 'var(--color-primary)' : 'var(--color-error)',
-                    }}
-                  >
-                    {c.status === 'PATIENT_APPROVED' ? 'PATIENT SIGNED' : c.status}
-                  </span>
-                </div>
-
-                {/* Actions */}
-                <div className="col-span-2 flex items-center justify-end">
-                  {c.status === 'PENDING' ? (
-                    <Button variant="primary" size="sm" onClick={() => handleOpenWizard(c)}>
-                      Authorize & Sign
-                    </Button>
-                  ) : c.status === 'PATIENT_APPROVED' ? (
-                    <Button variant="danger" size="sm" onClick={() => confirmRevoke(c.id)}>
-                      Revoke Consent
-                    </Button>
-                  ) : c.status === 'APPROVED' ? (
-                    <span className="text-[10px] font-semibold text-(--color-text-tertiary) italic text-right">Cannot Revoke<br />(Clinician Accepted)</span>
-                  ) : (
-                    <span className="text-xs italic text-(--color-text-tertiary)">Closed</span>
-                  )}
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
+              </td>
+              <td className="px-5 py-4 align-top text-right">
+                {c.status === 'PENDING' ? (
+                  <Button variant="primary" size="sm" onClick={() => handleOpenWizard(c)}>
+                    Authorize & Sign
+                  </Button>
+                ) : c.status === 'PATIENT_APPROVED' ? (
+                  <Button variant="danger" size="sm" onClick={() => confirmRevoke(c.id)}>
+                    Revoke Consent
+                  </Button>
+                ) : c.status === 'APPROVED' ? (
+                  <span className="text-[10px] font-semibold text-(--color-text-tertiary) italic text-right">Cannot Revoke<br />(Clinician Accepted)</span>
+                ) : (
+                  <span className="text-xs italic text-(--color-text-tertiary)">Closed</span>
+                )}
+              </td>
+            </motion.tr>
+          )}
+        />
       </motion.div>
 
       {/* SIGNATURE WIZARD DRAWER/MODAL */}

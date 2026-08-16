@@ -113,23 +113,26 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             >
                 {/* Logo */}
                 <div className="flex items-center gap-2 px-3.5 h-16 shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: 'var(--color-primary)' }}>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: 'var(--color-primary)' }}>
                         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="white">
                             <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 3a1 1 0 0 1 1 1v3h3a1 1 0 0 1 0 2h-3v3a1 1 0 0 1-2 0v-3H8a1 1 0 0 1 0-2h3V7a1 1 0 0 1 1-1z" />
                         </svg>
                     </div>
                     <AnimatePresence>
                         {!collapsed && (
-                            <motion.span
+                            <motion.div
                                 initial={{ opacity: 0, width: 0 }}
                                 animate={{ opacity: 1, width: 'auto' }}
                                 exit={{ opacity: 0, width: 0 }}
                                 transition={{ duration: 0.2 }}
-                                className="text-sm font-bold whitespace-nowrap overflow-hidden"
+                                className="whitespace-nowrap overflow-hidden"
                                 style={{ color: 'var(--color-text)' }}
                             >
-                                HealthExchange
-                            </motion.span>
+                                <div className="text-sm font-bold">SwasthyaConsent</div>
+                                <div className="mt-1 text-[11px] text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
+                                    तपाईंको स्वास्थ्य, तपाईंको सहमति
+                                </div>
+                            </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
