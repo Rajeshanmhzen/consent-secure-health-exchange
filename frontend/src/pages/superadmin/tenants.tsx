@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { useAuth } from '../../Context/AuthContext'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import Pagination from '../../components/shared/Pagination'
-import TenantListSkeleton from '../../components/dashboard/TenantListSkeleton'
+import Table from '../../components/shared/Table'
 import Button from '../../components/shared/Button'
 import AddTenantModal from '../../components/dashboard/AddTenantModal'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
@@ -207,20 +207,30 @@ const TenantsPage = () => {
                 <FilterTabs tabs={tenantTabs} value={statusFilter} onChange={handleStatusChange} layoutId="activeTenantTabUnderline" />
 
                 {/* Table */}
-                {loading ? <TenantListSkeleton /> : (
-                    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                        <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
-                            <div className="flex items-center">
-                                <input type="checkbox" checked={selectedIds.length === tenants.length && tenants.length > 0} onChange={toggleSelectAll} className="rounded border-gray-300" />
-                            </div>
-                            <span>Name</span>
-                            <span>Type</span>
-                            <span>Status</span>
-                            <span>Created</span>
-                            <span className="text-right">Actions</span>
-                        </div>
-
-                        {tenants.length === 0 ? (
+                <Table
+                    loading={loading}
+                    loadingRows={5}
+                    columns={[
+                            {
+                                label: (
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.length === tenants.length && tenants.length > 0}
+                                        onChange={toggleSelectAll}
+                                        className="rounded border-gray-300"
+                                        aria-label="Select all tenants"
+                                    />
+                                ),
+                                key: 'select',
+                            },
+                            { label: 'Name' },
+                            { label: 'Type' },
+                            { label: 'Status' },
+                            { label: 'Created' },
+                            { label: 'Actions', className: 'text-right' },
+                        ]}
+                        data={tenants}
+                        emptyState={
                             <div className="px-5 py-16 text-center">
                                 <svg viewBox="0 0 24 24" className="h-10 w-10 mx-auto mb-3" fill="currentColor" style={{ color: 'var(--color-text-tertiary)' }}>
                                     <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
@@ -228,33 +238,43 @@ const TenantsPage = () => {
                                 <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No tenants found</p>
                                 <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Try adjusting your search or filters</p>
                             </div>
-                        ) : tenants.map((t, i) => (
-                            <motion.div
+                        }
+                            pagination={{ page, totalPages, totalItems: total, itemsPerPage: 10, onPageChange: setPage }}
+                    renderRow={(t, index) => (
+                        <motion.tr
                                 key={t.id}
                                 initial={{ opacity: 0, y: 4 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.04, duration: 0.25 }}
-                                className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-3.5 text-sm cursor-pointer transition-colors"
+                                transition={{ delay: index * 0.04, duration: 0.25 }}
+                                className="transition-colors"
                                 style={{ borderTop: '1px solid var(--color-border)' }}
                                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')}
                                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                             >
-                                <div className="flex items-center" onClick={e => e.stopPropagation()}>
-                                    <input type="checkbox" checked={selectedIds.includes(t.id)} onChange={() => toggleSelect(t.id)} className="rounded border-gray-300" />
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
-                                        {t.name[0].toUpperCase()}
+                                <td className="px-5 py-3.5 align-top" onClick={e => e.stopPropagation()}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.includes(t.id)}
+                                        onChange={() => toggleSelect(t.id)}
+                                        className="rounded border-gray-300"
+                                        aria-label={`Select tenant ${t.name}`}
+                                    />
+                                </td>
+                                <td className="px-5 py-3.5 align-top">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
+                                            {t.name[0].toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-medium truncate" style={{ color: 'var(--color-text)' }}>{t.name}</p>
+                                            {t.hospital?.email && (
+                                                <p className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{t.hospital.email}</p>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="min-w-0">
-                                        <p className="font-medium truncate" style={{ color: 'var(--color-text)' }}>{t.name}</p>
-                                        {t.hospital?.email && (
-                                            <p className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{t.hospital.email}</p>
-                                        )}
-                                    </div>
-                                </div>
-                                <span style={{ color: 'var(--color-text-secondary)' }}>{t.type}</span>
-                                <span>
+                                </td>
+                                <td className="px-5 py-3.5 align-top" style={{ color: 'var(--color-text-secondary)' }}>{t.type}</td>
+                                <td className="px-5 py-3.5 align-top">
                                     <span
                                         className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
                                         style={{
@@ -264,89 +284,83 @@ const TenantsPage = () => {
                                     >
                                         {t.isActive ? 'Active' : 'Inactive'}
                                     </span>
-                                </span>
-                                <span style={{ color: 'var(--color-text-secondary)' }}>
+                                </td>
+                                <td className="px-5 py-3.5 align-top" style={{ color: 'var(--color-text-secondary)' }}>
                                     {new Date(t.createdAt).toLocaleDateString()}
-                                </span>
-                                <div className="flex items-center justify-end gap-2 pr-1">
-                                    {/* Info Tooltip Button */}
-                                    <div className="relative group">
-                                        <button
-                                            type="button"
-                                            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                setViewTenantId(t.id)
-                                            }}
-                                            title="View Details"
-                                        >
-                                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <circle cx="12" cy="12" r="10" />
-                                                <line x1="12" y1="16" x2="12" y2="12" />
-                                                <line x1="12" y1="8" x2="12.01" y2="8" />
-                                            </svg>
-                                        </button>
-                                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">
-                                            View Details
-                                        </span>
-                                    </div>
+                                </td>
+                                <td className="px-5 py-3.5 align-top">
+                                    <div className="flex items-center justify-end gap-2 pr-1">
+                                        <div className="relative group">
+                                            <button
+                                                type="button"
+                                                className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    setViewTenantId(t.id)
+                                                }}
+                                                title="View Details"
+                                            >
+                                                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <circle cx="12" cy="12" r="10" />
+                                                    <line x1="12" y1="16" x2="12" y2="12" />
+                                                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                                                </svg>
+                                            </button>
+                                            <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                View Details
+                                            </span>
+                                        </div>
 
-                                    {/* Edit Tooltip Button */}
-                                    <div className="relative group">
-                                        <button
-                                            type="button"
-                                            className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                setEditTenantData({ id: t.id, name: t.name, isActive: t.isActive })
-                                            }}
-                                            title="Edit Tenant"
-                                        >
-                                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M12 20h9" />
-                                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                            </svg>
-                                        </button>
-                                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">
-                                            Edit Tenant
-                                        </span>
-                                    </div>
+                                        <div className="relative group">
+                                            <button
+                                                type="button"
+                                                className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    setEditTenantData({ id: t.id, name: t.name, isActive: t.isActive })
+                                                }}
+                                                title="Edit Tenant"
+                                            >
+                                                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M12 20h9" />
+                                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                                </svg>
+                                            </button>
+                                            <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                Edit Tenant
+                                            </span>
+                                        </div>
 
-                                    {/* Delete Tooltip Button */}
-                                    <div className="relative group">
-                                        <button
-                                            type="button"
-                                            className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                setConfirmDialog({
-                                                    isOpen: true,
-                                                    tenantId: t.id,
-                                                    tenantName: t.name,
-                                                    type: 'single'
-                                                })
-                                            }}
-                                            title="Delete Tenant"
-                                        >
-                                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M3 6h18" />
-                                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                            </svg>
-                                        </button>
-                                        <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">
-                                            Delete Tenant
-                                        </span>
+                                        <div className="relative group">
+                                            <button
+                                                type="button"
+                                                className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    setConfirmDialog({
+                                                        isOpen: true,
+                                                        tenantId: t.id,
+                                                        tenantName: t.name,
+                                                        type: 'single'
+                                                    })
+                                                }}
+                                                title="Delete Tenant"
+                                            >
+                                                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M3 6h18" />
+                                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                                </svg>
+                                            </button>
+                                            <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                Delete Tenant
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
-
-                        <div className="px-5 py-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-                            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-                        </div>
-                    </div>
-                )}
+                                </td>
+                        </motion.tr>
+                    )}
+                />
             </motion.div>
 
             {/* Modular Add Tenant Modal */}

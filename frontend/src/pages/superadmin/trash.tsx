@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../Context/AuthContext'
 import DashboardLayout from '../../components/layout/DashboardLayout'
-import Pagination from '../../components/shared/Pagination'
+import Table from '../../components/shared/Table'
 import Button from '../../components/shared/Button'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { useToast } from '../../Context/ToastContext'
@@ -137,42 +137,38 @@ const TrashPage = () => {
 
                 <FilterTabs tabs={trashTabs} value={activeTab} onChange={(val) => { setActiveTab(val); setPage(1) }} layoutId="activeTrashTab" />
 
-                <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                    <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
-                        <div className="flex items-center">
-                            <input type="checkbox" checked={selectedIds.length === items.length && items.length > 0} onChange={toggleSelectAll} className="rounded border-gray-300" />
-                        </div>
-                        <span>Name</span>
-                        <span>{activeTab === 'tenants' ? 'Type' : 'Role'}</span>
-                        <span>Deleted At</span>
-                        <span className="text-right">Actions</span>
-                    </div>
-
-                    {loading ? (
-                        <div className="px-5 py-16 text-center text-sm text-gray-500">Loading...</div>
-                    ) : items.length === 0 ? (
-                        <div className="px-5 py-16 text-center">
-                            <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No deleted items found</p>
-                        </div>
-                    ) : items.map((item) => (
-                        <motion.div key={item.id} className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-3.5 text-sm" style={{ borderTop: '1px solid var(--color-border)' }}>
-                            <div className="flex items-center">
-                                <input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleSelect(item.id)} className="rounded border-gray-300" />
-                            </div>
-                            <div className="min-w-0 font-medium" style={{ color: 'var(--color-text)' }}>{item.name || item.email}</div>
-                            <span style={{ color: 'var(--color-text-secondary)' }}>{item.type || item.role}</span>
-                            <span style={{ color: 'var(--color-text-secondary)' }}>{new Date(item.deletedAt).toLocaleDateString()}</span>
-                            <div className="flex items-center justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => setConfirmDialog({ isOpen: true, action: 'restore', type: 'single', id: item.id })}>Restore</Button>
-                                <Button variant="danger" size="sm" onClick={() => setConfirmDialog({ isOpen: true, action: 'hardDelete', type: 'single', id: item.id })}>Delete</Button>
-                            </div>
-                        </motion.div>
-                    ))}
-
-                    <div className="px-5 py-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-                        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-                    </div>
-                </div>
+                <Table
+                    loading={loading}
+                    loadingRows={5}
+                    columns={[
+                        { label: <input type="checkbox" checked={selectedIds.length === items.length && items.length > 0} onChange={toggleSelectAll} className="rounded border-gray-300" aria-label="Select all deleted items" />, key: 'select' },
+                        { label: 'Name' },
+                        { label: activeTab === 'tenants' ? 'Type' : 'Role' },
+                        { label: 'Deleted At' },
+                        { label: 'Actions', className: 'text-right' },
+                    ]}
+                    data={loading ? Array.from({ length: 1 }) : items}
+                    emptyState={<div className="px-5 py-16 text-center"><p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No deleted items found</p></div>}
+                    pagination={items.length > 0 ? { page, totalPages, totalItems: total, itemsPerPage: 10, onPageChange: setPage } : undefined}
+                    renderRow={(item) => loading ? (
+                        <tr key={item?.id ?? 'loading'}>
+                            <td colSpan={5} className="px-5 py-16 text-center text-sm text-gray-500">Loading...</td>
+                        </tr>
+                    ) : (
+                        <motion.tr key={item.id} className="transition-colors" style={{ borderTop: '1px solid var(--color-border)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                            <td className="px-5 py-3.5 align-top" onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleSelect(item.id)} className="rounded border-gray-300" aria-label={`Select deleted item ${item.name || item.email}`} /></td>
+                            <td className="px-5 py-3.5 align-top min-w-0 font-medium" style={{ color: 'var(--color-text)' }}>{item.name || item.email}</td>
+                            <td className="px-5 py-3.5 align-top" style={{ color: 'var(--color-text-secondary)' }}>{item.type || item.role}</td>
+                            <td className="px-5 py-3.5 align-top" style={{ color: 'var(--color-text-secondary)' }}>{new Date(item.deletedAt).toLocaleDateString()}</td>
+                            <td className="px-5 py-3.5 align-top">
+                                <div className="flex items-center justify-end gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => setConfirmDialog({ isOpen: true, action: 'restore', type: 'single', id: item.id })}>Restore</Button>
+                                    <Button variant="danger" size="sm" onClick={() => setConfirmDialog({ isOpen: true, action: 'hardDelete', type: 'single', id: item.id })}>Delete</Button>
+                                </div>
+                            </td>
+                        </motion.tr>
+                    )}
+                />
             </motion.div>
 
             <ConfirmDialog

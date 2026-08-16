@@ -7,7 +7,10 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import FilterTabs from '../components/shared/FilterTabs'
 import Button from '../components/shared/Button'
 import InputField from '../components/shared/InputField'
+import Table from '../components/shared/Table'
 import { requestApi } from '../services/request.service'
+
+const REQUESTS_PAGE_SIZE = 5
 
 type HieRequest = {
   id: string
@@ -44,7 +47,7 @@ type SharedRecord = {
   createdAt: string
   doctor?: { name: string; specialization?: string | null }
   patient?: { name: string }
-  files?: { id: string; fileName?: string | null; name?: string }[]
+  files?: { id: string; fileName?: string | null; name?: string; fileUrl?: string }[]
 }
 
 const doctorTabs = [
@@ -68,6 +71,7 @@ const RequestsPage = () => {
 
   const [requests, setRequests] = useState<HieRequest[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
 
   // Shared records viewer
   const [viewingRequest, setViewingRequest] = useState<HieRequest | null>(null)
@@ -94,30 +98,33 @@ const RequestsPage = () => {
 
   const backendBase = (import.meta.env.VITE_API_URL as string || 'http://localhost:8080/api/v1').replace(/\/api.*$/, '')
 
-  const fetchRequests = async () => {
+  const fetchRequests = React.useCallback(async () => {
     try {
       setLoading(true)
-      const data = await requestApi.list() as any
+      const data = await requestApi.list() as { data: HieRequest[] }
       setRequests(data.data || [])
-    } catch (e: any) {
-      showToast(e.message || 'Failed to sync exchange requests from HIE network', 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Failed to sync exchange requests from HIE network', 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
 
   useEffect(() => {
     if (!user) {
       navigate('/login')
       return
     }
-    fetchRequests()
-    if (isDoctor) {
-      requestApi.listAllHospitals().then(res => {
-        setHospitals(((res as any).data || []).map((h: any) => ({ id: h.id, name: h.name })))
-      }).catch(() => { })
-    }
-  }, [user])
+    // Use setTimeout to avoid synchronous setState inside effect
+    setTimeout(() => {
+      fetchRequests()
+      if (isDoctor) {
+        requestApi.listAllHospitals().then(res => {
+          setHospitals(((res as { data?: { id: string; name: string }[] }).data || []).map((h) => ({ id: h.id, name: h.name })))
+        }).catch(() => { })
+      }
+    }, 0)
+  }, [user, navigate, isDoctor, fetchRequests])
 
   const fetchDropdownData = async (selectedHospitalId: string) => {
     setLoadingDropdowns(true)
@@ -126,15 +133,15 @@ const RequestsPage = () => {
         requestApi.listAllDoctors(selectedHospitalId),
         requestApi.listAllPatients(selectedHospitalId)
       ])
-      setNetworkDoctors(((docsRes as any).data || []).map((d: any) => ({
+      setNetworkDoctors(((docsRes as { data?: { id: string; name: string; specialization?: string }[] }).data || []).map((d) => ({
         id: d.id,
         name: d.name || '—',
         specialization: d.specialization
       })))
-      setLocalPatients(((patientsRes as any).data || []).map((p: any) => ({
+      setLocalPatients(((patientsRes as { data?: { id: string; name: string }[] }).data || []).map((p) => ({
         id: p.id,
         name: p.name || '—'
-      })).filter((p: { id: string; name: string }) => p.name !== '—'))
+      })).filter((p) => p.name !== '—'))
     } catch {
       setNetworkDoctors([])
       setLocalPatients([])
@@ -155,15 +162,16 @@ const RequestsPage = () => {
   }
 
   useEffect(() => {
-    if (location.state && (location.state as any).requestPatientId) {
-      setPatientId((location.state as any).requestPatientId)
-      setShowModal(true)
+    const locState = location.state as { requestPatientId?: string } | null
+    if (locState && locState.requestPatientId) {
+      setTimeout(() => {
+        setPatientId(locState.requestPatientId!)
+        setShowModal(true)
+      }, 0)
       // clear navigation state to prevent re-opening on manual refreshes
       window.history.replaceState({}, document.title)
     }
   }, [location])
-
-  if (!user) return null
 
   const filteredRequests = requests.filter(r => {
     const matchesStatus = statusFilter === 'All' || r.status === statusFilter
@@ -179,6 +187,13 @@ const RequestsPage = () => {
     }
     return true
   })
+
+  const totalRequests = filteredRequests.length
+  const totalPages = Math.max(1, Math.ceil(totalRequests / REQUESTS_PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paginatedRequests = filteredRequests.slice((safePage - 1) * REQUESTS_PAGE_SIZE, safePage * REQUESTS_PAGE_SIZE)
+
+  if (!user) return null
 
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -208,8 +223,8 @@ const RequestsPage = () => {
       setTargetDoctorId('')
       setReason('')
       fetchRequests()
-    } catch (e: any) {
-      showToast(e.message || 'Failed to register data request.', 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Failed to register data request.', 'error')
     }
   }
 
@@ -218,8 +233,8 @@ const RequestsPage = () => {
       await requestApi.hospitalConsent({ requestId, action })
       showToast(`Exchange request ${action === 'APPROVE' ? 'Approved & Released' : 'Rejected'} successfully!`, 'success')
       fetchRequests()
-    } catch (e: any) {
-      showToast(e.message || 'Operation failed.', 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Operation failed.', 'error')
     }
   }
 
@@ -256,7 +271,8 @@ const RequestsPage = () => {
           </div>
           {isDoctor && (
             <Button variant="primary" size="md" onClick={() => setShowModal(true)}>
-              Request Remote Dossier
+              <svg viewBox="0 0 24 24" className="h-4 w-4 mr-2 inline-block" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Create Request
             </Button>
           )}
         </div>
@@ -267,119 +283,114 @@ const RequestsPage = () => {
             <FilterTabs
               tabs={doctorTabs}
               value={activeTab}
-              onChange={(val) => setActiveTab(val as any)}
+              onChange={(val) => { setActiveTab(val as 'sent' | 'received'); setPage(1) }}
               layoutId="doctorRequestsTab"
             />
           )}
           <FilterTabs
             tabs={statusTabs}
             value={statusFilter}
-            onChange={setStatusFilter}
+            onChange={(val) => { setStatusFilter(val); setPage(1) }}
             layoutId="statusRequestsTab"
           />
         </div>
 
         {/* TABLE LISTING */}
-        <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-          <div className="grid grid-cols-12 px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }}>
-            <span className="col-span-3">Patient Name</span>
-            <span className="col-span-3">Requestor / Clinic</span>
-            <span className="col-span-2">Custodian Doctor</span>
-            <span className="col-span-2 text-center">Status</span>
-            <span className="col-span-2 text-right">Actions</span>
-          </div>
+          <Table
+            columns={[
+              { label: 'Patient Name', className: 'text-left' },
+              { label: 'Requested', className: 'text-left' },
+              { label: 'Requestor / Clinic', className: 'text-left' },
+              { label: 'Custodian Doctor', className: 'text-left' },
+              { label: 'Status', className: 'text-center' },
+              { label: 'Actions', className: 'text-right' }
+            ]}
+            data={loading ? Array.from({ length: 1 }) : paginatedRequests}
+            emptyState={
+              <div className="py-16 text-center">
+                <svg viewBox="0 0 24 24" className="h-10 w-10 mx-auto mb-3 text-(--color-text-tertiary)" fill="currentColor">
+                  <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                </svg>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No exchange requests</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Requests for medical files will appear here.</p>
+              </div>
+            }
+            renderRow={(r, index) => loading ? (
+              <tr key={index}>
+                <td colSpan={6} className="px-5 py-16 text-center text-xs text-(--color-text-secondary) animate-pulse">Loading requests ledger...</td>
+              </tr>
+            ) : (
+              <tr key={(r as HieRequest).id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+                <td className="px-5 py-4 align-top">
+                  <div className="flex flex-col">
+                    <span className="font-semibold" style={{ color: 'var(--color-text)' }}>{(r as HieRequest).patient?.name || 'Incapacitated Patient'}</span>
+                  </div>
+                </td>
 
-          {loading ? (
-            <div className="px-5 py-16 text-center text-xs text-(--color-text-secondary) animate-pulse">
-              Loading requests ledger...
-            </div>
-          ) : filteredRequests.length === 0 ? (
-            <div className="px-5 py-16 text-center">
-              <svg viewBox="0 0 24 24" className="h-10 w-10 mx-auto mb-3 text-(--color-text-tertiary)" fill="currentColor">
-                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-              </svg>
-              <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No exchange requests</p>
-              <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Requests for medical files will appear here.</p>
-            </div>
-          ) : filteredRequests.map((r, index) => {
-            return (
-              <motion.div
-                key={r.id}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.02, duration: 0.2 }}
-                className="grid grid-cols-12 items-center px-5 py-4 text-sm transition-all border-t"
-                style={{ borderColor: 'var(--color-border)' }}
-              >
-                {/* Patient */}
-                <div className="col-span-3 flex flex-col pr-2">
-                  <span className="font-semibold text-(--color-text)">{r.patient?.name || 'Incapacitated Patient'}</span>
-                  <span className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-                    Requested: {new Date(r.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
+                <td className="px-5 py-4 align-top text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{new Date((r as HieRequest).createdAt).toLocaleDateString()}</td>
 
-                {/* Requestor */}
-                <div className="col-span-3 flex flex-col pr-2">
-                  <span className="font-medium text-(--color-text)">{r.requestingDoctor?.name || 'Requesting Clinician'}</span>
-                  <span className="text-[10px] mt-0.5 text-(--color-text-secondary)">{r.requestingDoctor?.hospital?.name || 'External HIE Hospital'}</span>
-                </div>
+                <td className="px-5 py-4 align-top">
+                  <div className="flex flex-col">
+                    <span className="font-medium" style={{ color: 'var(--color-text)' }}>{(r as HieRequest).requestingDoctor?.name || 'Requesting Clinician'}</span>
+                    <span className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>{(r as HieRequest).requestingDoctor?.hospital?.name || 'External HIE Hospital'}</span>
+                  </div>
+                </td>
 
-                {/* Custodian */}
-                <span className="col-span-2 text-xs truncate pr-2 text-(--color-text-secondary)">
-                  {r.targetDoctor?.name || 'Local Custodian'}
-                </span>
+                <td className="px-5 py-4 align-top text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{(r as HieRequest).targetDoctor?.name || 'Local Custodian'}</td>
 
-                {/* Status Badge */}
-                <div className="col-span-2 text-center">
+                <td className="px-5 py-4 align-top text-center">
                   <span
                     className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider"
                     style={{
-                      backgroundColor: r.status === 'APPROVED' ? 'var(--color-success-light)' : r.status === 'PENDING' ? 'var(--color-warning-light)' : r.status === 'PATIENT_APPROVED' ? 'var(--color-primary-light)' : 'var(--color-error-light)',
-                      color: r.status === 'APPROVED' ? 'var(--color-success)' : r.status === 'PENDING' ? 'var(--color-warning)' : r.status === 'PATIENT_APPROVED' ? 'var(--color-primary)' : 'var(--color-error)',
+                      backgroundColor: (r as HieRequest).status === 'APPROVED' ? 'var(--color-success-light)' : (r as HieRequest).status === 'PENDING' ? 'var(--color-warning-light)' : (r as HieRequest).status === 'PATIENT_APPROVED' ? 'var(--color-primary-light)' : 'var(--color-error-light)',
+                      color: (r as HieRequest).status === 'APPROVED' ? 'var(--color-success)' : (r as HieRequest).status === 'PENDING' ? 'var(--color-warning)' : (r as HieRequest).status === 'PATIENT_APPROVED' ? 'var(--color-primary)' : 'var(--color-error)',
                     }}
                   >
-                    {r.status === 'PATIENT_APPROVED' ? 'PATIENT SIGNED' : r.status}
+                    {(r as HieRequest).status === 'PATIENT_APPROVED' ? 'PATIENT SIGNED' : (r as HieRequest).status}
                   </span>
-                </div>
+                </td>
 
-                {/* Action Items */}
-                <div className="col-span-2 flex items-center justify-end">
-                  {isDoctor && r.status === 'APPROVED' && (
-                    <button
-                      onClick={() => handleViewSharedRecords(r)}
-                      className="text-xs font-extrabold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
-                    >
-                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      View Records
-                    </button>
-                  )}
-                  {isDoctor && activeTab === 'received' && r.status === 'PATIENT_APPROVED' && (
-                    <div className="flex gap-2">
-                      <Button variant="danger" size="sm" onClick={() => handleAction(r.id, 'REJECT')}>
-                        Reject
-                      </Button>
-                      <Button variant="primary" size="sm" onClick={() => handleAction(r.id, 'APPROVE')}>
-                        Release
-                      </Button>
-                    </div>
-                  )}
-                  {isPatient && r.status === 'PENDING' && (
-                    <button
-                      onClick={() => navigate('/dashboard/consent', { state: { requestId: r.id } })}
-                      className="text-xs font-extrabold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer animate-pulse"
-                    >
-                      Sign OTP Consent
-                    </button>
-                  )}
-                  {(!isDoctor || activeTab !== 'received' || r.status !== 'PATIENT_APPROVED') && (!isPatient || r.status !== 'PENDING') && (
-                    <span className="text-xs italic text-(--color-text-tertiary)">{r.reason ? `"${r.reason}"` : 'No action'}</span>
-                  )}
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
+                <td className="px-5 py-4 align-top text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {isDoctor && (r as HieRequest).status === 'APPROVED' && (
+                      <button
+                        onClick={() => handleViewSharedRecords(r as HieRequest)}
+                        className="text-xs font-extrabold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        View Records
+                      </button>
+                    )}
+
+                    {isDoctor && activeTab === 'received' && (r as HieRequest).status === 'PATIENT_APPROVED' && (
+                      <div className="flex gap-2">
+                        <Button variant="danger" size="sm" onClick={() => handleAction((r as HieRequest).id, 'REJECT')}>
+                          Reject
+                        </Button>
+                        <Button variant="primary" size="sm" onClick={() => handleAction((r as HieRequest).id, 'APPROVE')}>
+                          Release
+                        </Button>
+                      </div>
+                    )}
+
+                    {isPatient && (r as HieRequest).status === 'PENDING' && (
+                      <button
+                        onClick={() => navigate('/dashboard/consent', { state: { requestId: (r as HieRequest).id } })}
+                        className="text-xs font-extrabold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer animate-pulse"
+                      >
+                        Sign OTP Consent
+                      </button>
+                    )}
+
+                    {(!isDoctor || activeTab !== 'received' || (r as HieRequest).status !== 'PATIENT_APPROVED') && (!isPatient || (r as HieRequest).status !== 'PENDING') && (
+                      <span className="text-xs italic" style={{ color: 'var(--color-text-tertiary)' }}>{(r as HieRequest).reason ? `"${(r as HieRequest).reason}"` : 'No action'}</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )}
+            pagination={totalRequests > 0 ? { page: safePage, totalPages, totalItems: totalRequests, itemsPerPage: REQUESTS_PAGE_SIZE, onPageChange: setPage } : undefined}
+          />
       </motion.div>
 
       {/* SHARED RECORDS VIEWER MODAL */}
@@ -436,10 +447,10 @@ const RequestsPage = () => {
                       </div>
                       {(r.files?.length ?? 0) > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {r.files?.map((f: any) => (
+                          {r.files?.map((f) => (
                             <button 
                               key={f.id} 
-                              onClick={() => setViewPdf(`${backendBase}${f.fileUrl}`)}
+                              onClick={() => setViewPdf(`${backendBase}${(f as { fileUrl?: string }).fileUrl ?? ''}`)}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors hover:bg-slate-800" 
                               style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
                             >
@@ -565,11 +576,11 @@ const RequestsPage = () => {
       {/* PDF VIEWER MODAL */}
       <AnimatePresence>
         {viewPdf && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewPdf(null)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative rounded-2xl shadow-2xl z-10 flex flex-col border flex-grow w-full max-w-6xl max-h-[90vh] overflow-hidden"
+              className="relative rounded-2xl shadow-2xl z-10 flex flex-col border grow w-full max-w-6xl max-h-[90vh] overflow-hidden"
               style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', height: '85vh' }}
             >
               <div className="flex justify-between items-center p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
@@ -578,8 +589,9 @@ const RequestsPage = () => {
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
                 </button>
               </div>
-              <div className="flex-grow w-full bg-slate-900 overflow-hidden relative">
+              <div className="grow w-full bg-slate-900 overflow-hidden relative">
                 {/* #toolbar=0 hides download/print buttons in modern browsers */}
+                {/* cspell:disable-next-line */}
                 <iframe src={`${viewPdf}#toolbar=0&navpanes=0`} className="absolute inset-0 w-full h-full border-0" title="Secure PDF View" />
               </div>
             </motion.div>

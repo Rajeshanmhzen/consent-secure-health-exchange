@@ -25,10 +25,15 @@ const Footer = () => {
         <div className="grid gap-10 lg:grid-cols-[1.1fr_2fr]">
           <div className="max-w-xs">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-500 text-sm font-black text-white">
-                H
+              <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ backgroundColor: 'var(--color-primary)' }}>
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="white">
+                  <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 3a1 1 0 0 1 1 1v3h3a1 1 0 0 1 0 2h-3v3a1 1 0 0 1-2 0v-3H8a1 1 0 0 1 0-2h3V7a1 1 0 0 1 1-1z" />
+                </svg>
               </div>
-              <span className="text-base font-bold text-white">HealthSync HX</span>
+              <div>
+                <span className="text-base font-bold text-white">SwasthyaConsent</span>
+                <p className="mt-1 text-sm text-slate-300">तपाईंको स्वास्थ्य, तपाईंको सहमति</p>
+              </div>
             </div>
             <p className="mt-5 text-sm leading-7 text-slate-300">
               Empowering patients, securing medical records, and enabling trusted care through explicit consent.

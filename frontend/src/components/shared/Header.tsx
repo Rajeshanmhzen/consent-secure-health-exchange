@@ -40,15 +40,17 @@ const Header = () => {
         >
           <div className="flex items-center gap-3">
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black"
+              className="flex h-10 w-10 items-center justify-center rounded-md text-sm font-black"
               style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-text-on-primary)' }}
             >
-              M
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="white">
+                  <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 3a1 1 0 0 1 1 1v3h3a1 1 0 0 1 0 2h-3v3a1 1 0 0 1-2 0v-3H8a1 1 0 0 1 0-2h3V7a1 1 0 0 1 1-1z" />
+                </svg>
             </div>
             <div>
-              <p className="text-base font-bold leading-none" style={{ color: 'var(--color-text)' }}>Moniveo</p>
+              <p className="text-base font-bold leading-none" style={{ color: 'var(--color-text)' }}>SwasthyaConsent</p>
               <p className="mt-1 text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--color-text-tertiary)' }}>
-                Secure Care Exchange
+                तपाईंको स्वास्थ्य, तपाईंको सहमति
               </p>
             </div>
           </div>

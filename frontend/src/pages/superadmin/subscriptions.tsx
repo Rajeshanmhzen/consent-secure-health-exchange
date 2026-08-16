@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../Context/AuthContext'
 import { useToast } from '../../Context/ToastContext'
 import DashboardLayout from '../../components/layout/DashboardLayout'
-import Pagination from '../../components/shared/Pagination'
+import Table from '../../components/shared/Table'
 import Button from '../../components/shared/Button'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { pricingApi, type Subscription, type Plan } from '../../services/pricing.service'
@@ -19,41 +19,6 @@ const subscriptionTabs = [
     { key: 'EXPIRED', label: 'Expired' }
 ] as const
 
-const SubscriptionListSkeleton = () => (
-    <div className="rounded-2xl overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.2fr 1.2fr 1.2fr 1fr', alignItems: 'center', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">
-            {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-3 w-16 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-            ))}
-            <div className="h-3 w-12 justify-self-end rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-        </div>
-        <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-            {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.2fr 1.2fr 1.2fr 1fr', alignItems: 'center' }} className="px-5 py-4 gap-4">
-                    <div className="flex flex-col gap-2">
-                        <div className="h-4 w-32 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                        <div className="h-3 w-20 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <div className="h-4 w-24 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                        <div className="flex items-center gap-2">
-                            <div className="h-3 w-12 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                            <div className="h-3 w-10 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                        </div>
-                    </div>
-                    <div className="h-5 w-20 rounded-full bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    <div className="h-3 w-20 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    <div className="h-3 w-20 rounded bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    <div className="flex items-center justify-end gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                        <div className="h-8 w-8 rounded-lg bg-[rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)]" />
-                    </div>
-                </div>
-            ))}
-        </div>
-    </div>
-)
-
 const SubscriptionsPage = () => {
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -63,7 +28,7 @@ const SubscriptionsPage = () => {
     const [page, setPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
     const [total, setTotal] = useState(0)
-    const [loading, setLoading] = useState(false)
+    const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [searchInput, setSearchInput] = useState('')
     const [statusFilter, setStatusFilter] = useState<'all' | 'ACTIVE' | 'TRIALING' | 'CANCELED' | 'EXPIRED'>('all')
@@ -129,7 +94,6 @@ const SubscriptionsPage = () => {
     }, [modalConfig.isOpen])
 
     useEffect(() => {
-        setLoading(true)
         pricingApi.listSubscriptions({
             page,
             limit: 8,
@@ -147,17 +111,20 @@ const SubscriptionsPage = () => {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
+        setLoading(true)
         setPage(1)
         setSearch(searchInput)
     }
 
     const clearSearch = () => {
+        setLoading(true)
         setSearchInput('')
         setSearch('')
         setPage(1)
     }
 
     const handleStatusChange = (val: 'all' | 'ACTIVE' | 'TRIALING' | 'CANCELED' | 'EXPIRED') => {
+        setLoading(true)
         setStatusFilter(val)
         setPage(1)
     }
@@ -215,10 +182,11 @@ const SubscriptionsPage = () => {
                 showToast('Hospital subscription details updated successfully', 'success')
             }
 
+            setLoading(true)
             setModalConfig(p => ({ ...p, isOpen: false }))
             setRefreshTrigger(prev => prev + 1)
-        } catch (err: any) {
-            showToast(err.message ?? 'An error occurred during submission', 'error')
+        } catch (error: unknown) {
+            showToast(error instanceof Error ? error.message : 'An error occurred during submission', 'error')
         } finally {
             setFormLoading(false)
         }
@@ -229,10 +197,11 @@ const SubscriptionsPage = () => {
         try {
             await pricingApi.deleteSubscription(confirmDialog.subscriptionId)
             showToast(`Subscription record deleted successfully`, 'success')
+            setLoading(true)
             setConfirmDialog(p => ({ ...p, isOpen: false }))
             setRefreshTrigger(prev => prev + 1)
-        } catch (err: any) {
-            showToast(err.message ?? 'Failed to delete subscription tier', 'error')
+        } catch (error: unknown) {
+            showToast(error instanceof Error ? error.message : 'Failed to delete subscription tier', 'error')
         } finally {
             setIsDeleting(false)
         }
@@ -310,85 +279,31 @@ const SubscriptionsPage = () => {
                 <FilterTabs tabs={subscriptionTabs} value={statusFilter} onChange={handleStatusChange} layoutId="activeSubscriptionTabUnderline" />
 
                 {/* Table list */}
-                {loading ? <SubscriptionListSkeleton /> : (
-                    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.2fr 1.2fr 1.2fr 1fr', alignItems: 'center', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)', borderBottom: '1px solid var(--color-border)' }} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide">
-                            <span>Hospital Tenant</span>
-                            <span>Selected Plan</span>
-                            <span>Status</span>
-                            <span>Starts At</span>
-                            <span>Ends At</span>
-                            <span className="text-right">Actions</span>
-                        </div>
-
-                        {subscriptions.length === 0 ? (
-                            <div className="px-5 py-16 text-center">
-                                <p className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>No active subscription records found.</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-                                {subscriptions.map(sub => (
-                                    <div key={sub.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.2fr 1.2fr 1.2fr 1fr', alignItems: 'center' }} className="px-5 py-4 text-sm hover:bg-[rgba(0,0,0,0.01)] transition-colors duration-150">
-                                        <div className="flex flex-col gap-1 pr-2">
-                                            <span className="font-bold block" style={{ color: 'var(--color-text)' }}>{sub.tenant?.name ?? 'Unknown Hospital'}</span>
-                                            <span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{sub.tenantId}</span>
-                                        </div>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="font-bold" style={{ color: 'var(--color-text)' }}>{sub.plan?.name ?? 'Unknown Tier'}</span>
-                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                <span className="text-xs font-semibold font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-                                                    {sub.billingCycle === 'YEARLY'
-                                                        ? `$${sub.plan?.yearlyPrice || 0}/yr`
-                                                        : `$${sub.plan?.monthlyPrice || 0}/mo`}
-                                                </span>
-                                                <span className={`text-[10px] font-extrabold uppercase px-1 rounded border tracking-wider`}
-                                                    style={{
-                                                        borderColor: sub.billingCycle === 'YEARLY' ? 'var(--color-primary)' : 'var(--color-border)',
-                                                        color: sub.billingCycle === 'YEARLY' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                                                        backgroundColor: sub.billingCycle === 'YEARLY' ? 'var(--color-primary-ghost)' : 'transparent'
-                                                    }}>
-                                                    {sub.billingCycle}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${getStatusStyles(sub.status)}`}>
-                                                {sub.status}
-                                            </span>
-                                        </div>
-                                        <span className="font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                                            {sub.startsAt.substring(0, 10)}
-                                        </span>
-                                        <span className="font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                                            {sub.endsAt ? sub.endsAt.substring(0, 10) : 'Ongoing'}
-                                        </span>
-                                        <div className="flex items-center justify-end gap-2.5">
-                                            <div className="relative group">
-                                                <button type="button" onClick={() => handleOpenEditModal(sub)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer">
-                                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-                                                </button>
-                                                <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Contract</span>
-                                            </div>
-                                            <div className="relative group">
-                                                <button type="button" onClick={() => setConfirmDialog({ isOpen: true, subscriptionId: sub.id, tenantName: sub.tenant?.name ?? 'this tenant' })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer">
-                                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
-                                                </button>
-                                                <span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Record</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="mt-4 flex justify-end">
-                        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-                    </div>
-                )}
+                <Table
+                    loading={loading}
+                    loadingRows={5}
+                    columns={[
+                        { label: 'Hospital Tenant' },
+                        { label: 'Selected Plan' },
+                        { label: 'Status' },
+                        { label: 'Starts At' },
+                        { label: 'Ends At' },
+                        { label: 'Actions', className: 'text-right' },
+                    ]}
+                    data={subscriptions}
+                    emptyState={<div className="px-5 py-16 text-center"><p className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>No active subscription records found.</p></div>}
+                    pagination={subscriptions.length > 0 ? { page, totalPages, totalItems: total, itemsPerPage: 8, onPageChange: setPage } : undefined}
+                    renderRow={(sub) => (
+                        <tr key={sub.id} style={{ borderTop: '1px solid var(--color-border)' }} className="text-sm hover:bg-[rgba(0,0,0,0.01)] transition-colors duration-150">
+                                <td className="px-5 py-4 align-top"><div className="flex flex-col gap-1 pr-2"><span className="font-bold block" style={{ color: 'var(--color-text)' }}>{sub.tenant?.name ?? 'Unknown Hospital'}</span><span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{sub.tenantId}</span></div></td>
+                                <td className="px-5 py-4 align-top"><div className="flex flex-col gap-0.5"><span className="font-bold" style={{ color: 'var(--color-text)' }}>{sub.plan?.name ?? 'Unknown Tier'}</span><div className="flex items-center gap-1.5 flex-wrap"><span className="text-xs font-semibold font-mono" style={{ color: 'var(--color-text-secondary)' }}>{sub.billingCycle === 'YEARLY' ? `$${sub.plan?.yearlyPrice || 0}/yr` : `$${sub.plan?.monthlyPrice || 0}/mo`}</span><span className="text-[10px] font-extrabold uppercase px-1 rounded border tracking-wider" style={{ borderColor: sub.billingCycle === 'YEARLY' ? 'var(--color-primary)' : 'var(--color-border)', color: sub.billingCycle === 'YEARLY' ? 'var(--color-primary)' : 'var(--color-text-secondary)', backgroundColor: sub.billingCycle === 'YEARLY' ? 'var(--color-primary-ghost)' : 'transparent' }}>{sub.billingCycle}</span></div></div></td>
+                                <td className="px-5 py-4 align-top"><span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${getStatusStyles(sub.status)}`}>{sub.status}</span></td>
+                                <td className="px-5 py-4 align-top font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>{sub.startsAt.substring(0, 10)}</td>
+                                <td className="px-5 py-4 align-top font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>{sub.endsAt ? sub.endsAt.substring(0, 10) : 'Ongoing'}</td>
+                                <td className="px-5 py-4 align-top"><div className="flex items-center justify-end gap-2.5"><div className="relative group"><button type="button" onClick={() => handleOpenEditModal(sub)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg></button><span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Edit Contract</span></div><div className="relative group"><button type="button" onClick={() => setConfirmDialog({ isOpen: true, subscriptionId: sub.id, tenantName: sub.tenant?.name ?? 'this tenant' })} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg></button><span className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/95 text-[10px] text-white px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50 shadow-md">Delete Record</span></div></div></td>
+                        </tr>
+                    )}
+                />
             </motion.div>
 
             {/* Deletion confirmation dialog */}
@@ -412,7 +327,7 @@ const SubscriptionsPage = () => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setModalConfig(p => ({ ...p, isOpen: false }))}
-                        className="fixed inset-0 z-[99] flex items-center justify-center p-4 backdrop-blur-md"
+                        className="fixed inset-0 z-99 flex items-center justify-center p-4 backdrop-blur-md"
                         style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
                     >
                         <motion.div
@@ -491,7 +406,7 @@ const SubscriptionsPage = () => {
                                     <select
                                         required
                                         value={formData.billingCycle}
-                                        onChange={e => setFormData(p => ({ ...p, billingCycle: e.target.value as any }))}
+                                        onChange={e => setFormData(p => ({ ...p, billingCycle: e.target.value as 'MONTHLY' | 'YEARLY' }))}
                                         className="w-full rounded-2xl px-4 py-3 text-sm outline-none border transition-all cursor-pointer"
                                         style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
                                     >
@@ -506,7 +421,7 @@ const SubscriptionsPage = () => {
                                     </label>
                                     <select
                                         value={formData.status}
-                                        onChange={e => setFormData(p => ({ ...p, status: e.target.value as any }))}
+                                        onChange={e => setFormData(p => ({ ...p, status: e.target.value as 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'EXPIRED' }))}
                                         className="w-full rounded-2xl px-4 py-3 text-sm outline-none border transition-all cursor-pointer"
                                         style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
                                     >

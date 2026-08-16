@@ -10,6 +10,7 @@ import DashboardSkeleton from '../components/skeletons/DashboardSkeleton'
 import { tenantApi, type Tenant } from '../services/tenant.service'
 import { dashboardApi, type SuperAdminDashboardStats } from '../services/dashboard.service'
 import { createRealtimeConnection } from '../services/realtime.service'
+import Table from '../components/shared/Table'
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
@@ -95,6 +96,7 @@ const DashboardPage = () => {
     const [tenants, setTenants] = useState<Tenant[]>([])
     const [page, setPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
+    const [totalTenantCount, setTotalTenantCount] = useState(0)
     const [loadingTenants, setLoadingTenants] = useState(false)
     const [pageLoading, setPageLoading] = useState(true)
 
@@ -138,10 +140,10 @@ const DashboardPage = () => {
                 .then(res => {
                     setTenants(res.data.hospitals)
                     setTotalPages(res.data.pagination.totalPages)
-
-                    // Also update the Total Tenants stat count dynamically
-                    const tenantCount = res.data.pagination.total
-                    setStats(prev => prev.map(s => s.label === 'Total Tenants' ? { ...s, value: String(tenantCount) } : s))
+                    // Store real total from API — not the slice length
+                    const total = res.data.pagination.total
+                    setTotalTenantCount(total)
+                    setStats(prev => prev.map(s => s.label === 'Total Tenants' ? { ...s, value: String(total) } : s))
                 })
                 .catch(() => {})
                 .finally(() => setLoadingTenants(false))
@@ -266,55 +268,61 @@ const DashboardPage = () => {
                             <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
                                 <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Recent Tenants</p>
                             </div>
-                            {tenants.length === 0 ? (
-                                <div className="px-5 py-10 text-center text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                    No tenants found.
-                                </div>
-                            ) : (
-                                <div>
-                                    {/* Table header */}
-                                    <div className="grid grid-cols-4 px-5 py-2 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-elevated)' }}>
-                                        <span>Name</span>
-                                        <span>Type</span>
-                                        <span>Status</span>
-                                        <span>Created</span>
-                                    </div>
-                                    {tenants.map((t) => (
-                                        <div
-                                            key={t.id}
-                                            className="grid grid-cols-4 items-center px-5 py-3 text-sm transition-colors"
-                                            style={{ borderTop: '1px solid var(--color-border)' }}
-                                            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')}
-                                            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                                        >
+                            <Table
+                                columns={[
+                                    { label: 'Name',    className: 'text-left' },
+                                    { label: 'Type',    className: 'text-left' },
+                                    { label: 'Status',  className: 'text-left' },
+                                    { label: 'Created', className: 'text-left' },
+                                ]}
+                                data={tenants}
+                                emptyState={
+                                    <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>No tenants found.</p>
+                                }
+                                pagination={{
+                                    page,
+                                    totalPages,
+                                    totalItems: totalTenantCount,
+                                    itemsPerPage: 8,
+                                    onPageChange: setPage,
+                                }}
+                                renderRow={(t) => (
+                                    <tr
+                                        key={(t as Tenant).id}
+                                        className="transition-colors"
+                                        style={{ borderTop: '1px solid var(--color-border)' }}
+                                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-table-hover)')}
+                                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
+                                        <td className="px-5 py-3 text-sm">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: 'var(--color-primary-ghost)', color: 'var(--color-primary)' }}>
-                                                    {t.name[0].toUpperCase()}
+                                                    {(t as Tenant).name[0].toUpperCase()}
                                                 </div>
-                                                <span className="font-medium truncate" style={{ color: 'var(--color-text)' }}>{t.name}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium truncate" style={{ color: 'var(--color-text)' }}>{(t as Tenant).name}</span>
+                                                    <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{(t as Tenant).hospital?.email ?? ''}</span>
+                                                </div>
                                             </div>
-                                            <span style={{ color: 'var(--color-text-secondary)' }}>{t.type}</span>
-                                            <span>
-                                                <span
-                                                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                                    style={{
-                                                        backgroundColor: t.isActive ? 'var(--color-success-light)' : 'var(--color-error-light)',
-                                                        color: t.isActive ? 'var(--color-success)' : 'var(--color-error)',
-                                                    }}
-                                                >
-                                                    {t.isActive ? 'Active' : 'Inactive'}
-                                                </span>
+                                        </td>
+                                        <td className="px-5 py-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>{(t as Tenant).type}</td>
+                                        <td className="px-5 py-3 text-sm">
+                                            <span
+                                                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                                style={{
+                                                    backgroundColor: (t as Tenant).isActive ? 'var(--color-success-light)' : 'var(--color-error-light)',
+                                                    color: (t as Tenant).isActive ? 'var(--color-success)' : 'var(--color-error)',
+                                                }}
+                                            >
+                                                {(t as Tenant).isActive ? 'Active' : 'Inactive'}
                                             </span>
-                                            <span style={{ color: 'var(--color-text-secondary)' }}>
-                                                {new Date(t.createdAt).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <div className="px-5 py-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-                                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-                            </div>
+                                        </td>
+                                        <td className="px-5 py-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                            {new Date((t as Tenant).createdAt).toLocaleDateString()}
+                                        </td>
+                                    </tr>
+                                )}
+                            />
                         </div>
                     )
                 )}
