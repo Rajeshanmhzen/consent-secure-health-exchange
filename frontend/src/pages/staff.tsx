@@ -139,7 +139,7 @@ const StaffPage = () => {
         bloodGroup: u.patient?.bloodGroup ?? undefined,
         allergies: u.patient?.allergies ?? undefined,
         isActive: u.isActive,
-        isVerified: u.isVerified,
+        isVerified: u.isVerified ?? undefined,
         createdAt: u.createdAt
       }))
       setStaff(users)
