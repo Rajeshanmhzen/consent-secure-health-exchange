@@ -19,7 +19,14 @@ export class TenantService {
     }
 
     async editTenant(tenantId: string, data: UpdateTenantPayload) {
-        return await this.repository.updateTenant(tenantId, data);
+        const passwordHash = data.adminPassword
+            ? await hashPassword(data.adminPassword)
+            : undefined;
+
+        return await this.repository.updateTenant(tenantId, {
+            ...data,
+            passwordHash
+        });
     }
 
     async detailTenant(tenantId: string) {
