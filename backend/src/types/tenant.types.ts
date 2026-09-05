@@ -14,6 +14,12 @@ export type UpdateTenantPayload = {
 	isActive?: boolean;
 	hospitalName?: string;
 	hospitalEmail?: string | null;
+	adminEmail?: string;
+	adminPassword?: string;
+	adminPhone?: string | null;
+	isAdminActive?: boolean;
+	isAdminVerified?: boolean;
+	passwordHash?: string;
 };
 
 export type TenantListParams = PaginationParams & {
@@ -34,7 +40,17 @@ export type TenantListItem = Prisma.TenantGetPayload<{
                 name: true;
                 email: true;
             }
-        }
+		},
+		users: {
+			where: { role: "HOSPITAL_ADMIN" };
+			select: {
+				id: true;
+				email: true;
+				phone: true;
+				isActive: true;
+				isVerified: true;
+			};
+		};
     }
 }>;
 

@@ -17,7 +17,12 @@ export const updateTenantSchema = z.object({
     type: z.enum(["HOSPITAL"]).optional(),
     isActive: z.boolean().optional(),
     hospitalName: z.string().trim().min(1).optional(),
-    hospitalEmail: z.string().trim().email().nullable().optional()
+    hospitalEmail: z.string().trim().email().nullable().optional(),
+    adminEmail: z.string().trim().email().optional(),
+    adminPassword: z.string().min(6).optional(),
+    adminPhone: z.string().trim().min(1).nullable().optional(),
+    isAdminActive: z.boolean().optional(),
+    isAdminVerified: z.boolean().optional()
 });
 
 export const listTenantSchema = z.object({

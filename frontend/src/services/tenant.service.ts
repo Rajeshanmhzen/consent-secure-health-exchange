@@ -8,6 +8,13 @@ export type Tenant = {
     isActive: boolean
     createdAt: string
     hospital?: { name: string; email: string | null; isVerified: boolean } | null
+    users?: Array<{
+        id: string
+        email: string
+        phone: string | null
+        isActive: boolean
+        isVerified: boolean
+    }>
 }
 
 export type TenantListData = {
@@ -31,6 +38,13 @@ export type UpdateTenantPayload = {
     name?: string
     type?: 'HOSPITAL'
     isActive?: boolean
+    hospitalName?: string
+    hospitalEmail?: string | null
+    adminEmail?: string
+    adminPassword?: string
+    adminPhone?: string | null
+    isAdminActive?: boolean
+    isAdminVerified?: boolean
 }
 
 export type TenantUserRole = 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT'

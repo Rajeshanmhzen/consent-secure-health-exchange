@@ -8,7 +8,7 @@ import Button from '../../components/shared/Button'
 import AddTenantModal from '../../components/dashboard/AddTenantModal'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { useToast } from '../../Context/ToastContext'
-import { tenantApi, type Tenant } from '../../services/tenant.service'
+import { tenantApi, type Tenant, type UpdateTenantPayload } from '../../services/tenant.service'
 import FilterTabs from '../../components/shared/FilterTabs'
 
 const tenantTabs = [
@@ -43,7 +43,7 @@ const TenantsPage = () => {
     }>({ isOpen: false, type: 'single' })
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [viewTenantId, setViewTenantId] = useState<string | null>(null)
-    const [editTenantData, setEditTenantData] = useState<{ id: string; name: string; isActive: boolean } | null>(null)
+    const [editTenantData, setEditTenantData] = useState<(UpdateTenantPayload & { id: string }) | null>(null)
     const [isSavingEdit, setIsSavingEdit] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
 
@@ -89,7 +89,17 @@ const TenantsPage = () => {
         if (!editTenantData) return
         setIsSavingEdit(true)
         try {
-            await tenantApi.updateTenant(editTenantData.id, { name: editTenantData.name, isActive: editTenantData.isActive })
+            await tenantApi.updateTenant(editTenantData.id, {
+                name: editTenantData.name?.trim(),
+                isActive: editTenantData.isActive,
+                hospitalName: editTenantData.hospitalName?.trim(),
+                hospitalEmail: editTenantData.hospitalEmail?.trim() || null,
+                adminEmail: editTenantData.adminEmail?.trim(),
+                adminPassword: editTenantData.adminPassword?.trim() || undefined,
+                adminPhone: editTenantData.adminPhone?.trim() || null,
+                isAdminActive: editTenantData.isAdminActive,
+                isAdminVerified: editTenantData.isAdminVerified,
+            })
             showToast(`Tenant updated successfully`, 'success')
             setEditTenantData(null)
             setRefreshTrigger(prev => prev + 1)
@@ -316,7 +326,18 @@ const TenantsPage = () => {
                                                 className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer"
                                                 onClick={(e) => {
                                                     e.stopPropagation()
-                                                    setEditTenantData({ id: t.id, name: t.name, isActive: t.isActive })
+                                                    setEditTenantData({
+                                                        id: t.id,
+                                                        name: t.name,
+                                                        isActive: t.isActive,
+                                                        hospitalName: t.hospital?.name ?? '',
+                                                        hospitalEmail: t.hospital?.email ?? '',
+                                                        adminEmail: t.users?.[0]?.email ?? '',
+                                                        adminPhone: t.users?.[0]?.phone ?? '',
+                                                        isAdminActive: t.users?.[0]?.isActive ?? true,
+                                                        isAdminVerified: t.users?.[0]?.isVerified ?? false,
+                                                        adminPassword: '',
+                                                    })
                                                 }}
                                                 title="Edit Tenant"
                                             >
@@ -388,7 +409,7 @@ const TenantsPage = () => {
             {/* View Modal */}
             {viewTenantId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ backgroundColor: 'rgba(0, 0, 0, 0.45)' }}>
-                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl p-6 shadow-xl border flex flex-col gap-4" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl p-6 shadow-xl border flex flex-col gap-4" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
                         <button type="button" onClick={() => setViewTenantId(null)} className="absolute right-4 top-4 p-1.5 rounded-full hover:bg-gray-100 text-gray-500">
                             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
                         </button>
@@ -426,13 +447,36 @@ const TenantsPage = () => {
                         </button>
                         <h3 className="text-xl font-bold">Edit Tenant</h3>
                         <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Tenant Name</label>
-                                <input type="text" value={editTenantData.name} onChange={e => setEditTenantData(p => p ? { ...p, name: e.target.value } : null)} className="rounded-xl px-3 py-2 text-sm outline-none bg-transparent" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
-                            </div>
+                            {([
+                                ['name', 'Tenant Name', 'text'],
+                                ['hospitalName', 'Hospital Name', 'text'],
+                                ['hospitalEmail', 'Hospital Email', 'email'],
+                                ['adminEmail', 'Admin Email', 'email'],
+                                ['adminPhone', 'Admin Phone', 'tel'],
+                                ['adminPassword', 'New Admin Password (optional)', 'password'],
+                            ] as const).map(([field, label, type]) => (
+                                <div className="flex flex-col gap-1.5" key={field}>
+                                    <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
+                                    <input
+                                        type={type}
+                                        value={editTenantData[field] ?? ''}
+                                        onChange={e => setEditTenantData(p => p ? { ...p, [field]: e.target.value } : null)}
+                                        className="rounded-xl px-3 py-2 text-sm outline-none bg-transparent"
+                                        style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+                                    />
+                                </div>
+                            ))}
                             <label className="flex items-center gap-2 cursor-pointer select-none">
                                 <input type="checkbox" checked={editTenantData.isActive} onChange={e => setEditTenantData(p => p ? { ...p, isActive: e.target.checked } : null)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                 <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Active Status</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox" checked={editTenantData.isAdminActive ?? true} onChange={e => setEditTenantData(p => p ? { ...p, isAdminActive: e.target.checked } : null)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Admin Active</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox" checked={editTenantData.isAdminVerified ?? false} onChange={e => setEditTenantData(p => p ? { ...p, isAdminVerified: e.target.checked } : null)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Admin Verified</span>
                             </label>
                             <div className="flex justify-end gap-3 mt-4">
                                 <Button type="button" variant="default" onClick={() => setEditTenantData(null)}>Cancel</Button>

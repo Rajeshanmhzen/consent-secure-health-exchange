@@ -51,6 +51,25 @@ export class TenantRepository {
                 });
             }
 
+            if (
+                data.adminEmail !== undefined ||
+                data.passwordHash !== undefined ||
+                data.adminPhone !== undefined ||
+                data.isAdminActive !== undefined ||
+                data.isAdminVerified !== undefined
+            ) {
+                await tx.user.updateMany({
+                    where: { tenantId, role: "HOSPITAL_ADMIN" },
+                    data: {
+                        email: data.adminEmail,
+                        passwordHash: data.passwordHash,
+                        phone: data.adminPhone,
+                        isActive: data.isAdminActive,
+                        isVerified: data.isAdminVerified
+                    }
+                });
+            }
+
             return tenant;
         });
     }
@@ -99,6 +118,16 @@ export class TenantRepository {
                             id: true,
                             name: true,
                             email: true,
+                        }
+                    },
+                    users: {
+                        where: { role: "HOSPITAL_ADMIN" },
+                        select: {
+                            id: true,
+                            email: true,
+                            phone: true,
+                            isActive: true,
+                            isVerified: true
                         }
                     }
                 },
