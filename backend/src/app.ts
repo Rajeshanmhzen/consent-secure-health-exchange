@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { baseUploadPath } from './middleware/fileUpload';
 import routes from './routes';
+import { trackApiPerformance } from './utils/apiPerformance';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.json({ limit: "20kb" }));
 app.use(express.urlencoded({ extended: true, limit: "20kb" }));
 app.use("/uploads", express.static(baseUploadPath));
 
+app.use('/api/v1', trackApiPerformance);
 app.use('/api/v1', routes);
 
 export default app;

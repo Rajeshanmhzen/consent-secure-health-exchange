@@ -44,3 +44,4 @@ export const staffRouteElement = createLazyRouteElement(() => import('../pages/s
 export const profileRouteElement = createLazyRouteElement(() => import('../pages/profile'))
 export const changePasswordRouteElement = createLazyRouteElement(() => import('../pages/change-password'))
 export const trashRouteElement = createLazyRouteElement(() => import('../pages/superadmin/trash'))
+export const apiPerformanceRouteElement = createLazyRouteElement(() => import('../pages/superadmin/api-performance'), <DashboardSkeleton />)
