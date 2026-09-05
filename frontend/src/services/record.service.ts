@@ -1,6 +1,8 @@
 import { request } from "./api";
 import type { ApiResponse } from "../types/auth.types";
 
+const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1';
+
 export type RecordFile = {
     id: string
     recordId: string
@@ -55,3 +57,29 @@ export const recordApi = {
     delete: (id: string) =>
         request<ApiResponse<null>>(`/records/${id}`, { method: 'DELETE' }),
 }
+
+export const openProtectedRecordFile = async (fileId: string) => {
+    const newTab = window.open('about:blank', '_blank');
+    try {
+        const response = await fetch(`${BASE}/records/files/${encodeURIComponent(fileId)}`, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Unable to open this protected file');
+        }
+
+        const fileUrl = URL.createObjectURL(await response.blob());
+        if (newTab) {
+            newTab.location.href = fileUrl;
+        } else {
+            window.open(fileUrl, '_blank');
+        }
+        window.setTimeout(() => URL.revokeObjectURL(fileUrl), 60_000);
+    } catch (error) {
+        newTab?.close();
+        throw error;
+    }
+};

@@ -580,7 +580,7 @@ export class RequestService {
         }
 
         // Access check: Ensure the requesting doctor is either the recipient doctor or emergency authorized
-        if (request.status !== "APPROVED" && request.requestingDoctorId !== doctor.id) {
+        if (request.status !== "APPROVED" || request.requestingDoctorId !== doctor.id) {
             throw new AppError("Access to this dossier is restricted. Awaiting patient consent approval.", 403);
         }
 
