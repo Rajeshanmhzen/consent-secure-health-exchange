@@ -8,7 +8,7 @@ import Button from '../components/shared/Button'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import InputField from '../components/shared/InputField'
 import Table from '../components/shared/Table'
-import { recordApi, type MedicalRecord as ApiMedicalRecord } from '../services/record.service'
+import { openProtectedRecordFile, recordApi, type MedicalRecord as ApiMedicalRecord } from '../services/record.service'
 import { tenantApi } from '../services/tenant.service'
 
 const RECORDS_PAGE_SIZE = 5
@@ -465,17 +465,16 @@ const RecordsPage = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Attachments ({viewRecord.files.length})</span>
                 <div className="flex flex-wrap gap-2">
                   {viewRecord.files.map(f => (
-                    <a
+                    <button
                       key={f.id}
-                      href={`${backendBase}/uploads/record-files/${f.name}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      type="button"
+                      onClick={() => openProtectedRecordFile(f.id).catch(() => showToast('Unable to open protected file', 'error'))}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-opacity hover:opacity-80"
                       style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
                     >
                       <svg viewBox="0 0 24 24" className="h-4 w-4 text-emerald-400" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-1 9-4-4h2.5v-3h3v3H16l-4 4z" /></svg>
                       {f.name}
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -513,17 +512,16 @@ const RecordsPage = () => {
                     <label className="text-xs font-semibold px-1" style={{ color: 'var(--color-text-secondary)' }}>Existing Attachments</label>
                     <div className="flex flex-wrap gap-2">
                       {editRecord.files.map(f => (
-                        <a
+                        <button
                           key={f.id}
-                          href={`${backendBase}/uploads/record-files/${f.name}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          type="button"
+                          onClick={() => openProtectedRecordFile(f.id).catch(() => showToast('Unable to open protected file', 'error'))}
                           className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-opacity hover:opacity-80"
                           style={{ backgroundColor: 'var(--color-surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
                         >
                           <svg viewBox="0 0 24 24" className="h-4 w-4 text-emerald-400" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-1 9-4-4h2.5v-3h3v3H16l-4 4z" /></svg>
                           {f.name}
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>

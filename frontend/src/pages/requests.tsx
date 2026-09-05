@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../Context/AuthContext'
 import { useToast } from '../Context/ToastContext'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { openProtectedRecordFile } from '../services/record.service'
 import FilterTabs from '../components/shared/FilterTabs'
 import Button from '../components/shared/Button'
 import InputField from '../components/shared/InputField'
@@ -77,7 +78,6 @@ const RequestsPage = () => {
   const [viewingRequest, setViewingRequest] = useState<HieRequest | null>(null)
   const [sharedRecords, setSharedRecords] = useState<SharedRecord[]>([])
   const [loadingRecords, setLoadingRecords] = useState(false)
-  const [viewPdf, setViewPdf] = useState<string | null>(null)
 
   // Creation State
   const [showModal, setShowModal] = useState(false)
@@ -96,7 +96,6 @@ const RequestsPage = () => {
   const isDoctor = user?.role === 'DOCTOR'
   const isPatient = user?.role === 'PATIENT'
 
-  const backendBase = (import.meta.env.VITE_API_URL as string || 'http://localhost:8080/api/v1').replace(/\/api.*$/, '')
 
   const fetchRequests = React.useCallback(async () => {
     try {
@@ -450,7 +449,7 @@ const RequestsPage = () => {
                           {r.files?.map((f) => (
                             <button 
                               key={f.id} 
-                              onClick={() => setViewPdf(`${backendBase}${(f as { fileUrl?: string }).fileUrl ?? ''}`)}
+                              onClick={() => openProtectedRecordFile(f.id).catch(() => showToast('Unable to open protected file', 'error'))}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors hover:bg-slate-800" 
                               style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
                             >
@@ -573,31 +572,6 @@ const RequestsPage = () => {
         )}
       </AnimatePresence>
 
-      {/* PDF VIEWER MODAL */}
-      <AnimatePresence>
-        {viewPdf && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewPdf(null)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative rounded-2xl shadow-2xl z-10 flex flex-col border grow w-full max-w-6xl max-h-[90vh] overflow-hidden"
-              style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', height: '85vh' }}
-            >
-              <div className="flex justify-between items-center p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-                <h3 className="text-sm font-bold tracking-wide text-(--color-text)">Secure Document Viewer <span className="text-[10px] text-red-400 uppercase tracking-widest ml-2 border border-red-500/30 bg-red-500/10 px-2 py-0.5 rounded-full">View Only Mode</span></h3>
-                <button onClick={() => setViewPdf(null)} className="p-1.5 rounded-full hover:bg-slate-800 transition-colors" style={{ color: 'var(--color-text-secondary)' }}>
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
-                </button>
-              </div>
-              <div className="grow w-full bg-slate-900 overflow-hidden relative">
-                {/* #toolbar=0 hides download/print buttons in modern browsers */}
-                {/* cspell:disable-next-line */}
-                <iframe src={`${viewPdf}#toolbar=0&navpanes=0`} className="absolute inset-0 w-full h-full border-0" title="Secure PDF View" />
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </DashboardLayout>
   )
 }

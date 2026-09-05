@@ -5,6 +5,8 @@ import { sendSuccess } from "../utils/apiResponse";
 import { AppError } from "../utils/appError";
 import { MedicalRecordRepository } from "../repository/medicalRecord.repository";
 import { decryptAsymmetric, decryptPacked } from "../utils/crypto.helper";
+import { baseUploadPath } from "../middleware/fileUpload";
+import path from "path";
 
 type AuthenticatedRequest = Request & {
     user?: { id: string; role: string };
@@ -27,6 +29,61 @@ function decryptRecord(record: any, privateKey: string) {
 
 export class RecordController {
     private repository = new MedicalRecordRepository();
+
+    downloadFile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const user = req.user;
+        if (!user) throw new AppError("Unauthorized", 401);
+
+        const file = await prisma.recordFile.findUnique({
+            where: { id: req.params.fileId as string },
+            include: {
+                record: {
+                    select: {
+                        patientId: true,
+                        doctorId: true,
+                        doctor: { select: { hospitalId: true } }
+                    }
+                }
+            }
+        });
+        if (!file || !file.record) throw new AppError("File not found", 404);
+
+        let allowed = false;
+        if (user.role === "PATIENT") {
+            const patient = await prisma.patient.findUnique({ where: { userId: user.id }, select: { id: true } });
+            allowed = patient?.id === file.record.patientId;
+        } else if (user.role === "DOCTOR") {
+            const doctor = await prisma.doctor.findUnique({ where: { userId: user.id }, select: { id: true, hospitalId: true } });
+            if (doctor) {
+                allowed = doctor.id === file.record.doctorId || doctor.hospitalId === file.record.doctor.hospitalId;
+                if (!allowed) {
+                    const approvedShare = await prisma.sharedRecord.findFirst({
+                        where: {
+                            recordId: file.recordId,
+                            request: { requestingDoctorId: doctor.id, status: "APPROVED" }
+                        },
+                        select: { id: true }
+                    });
+                    allowed = Boolean(approvedShare);
+                }
+            }
+        } else if (user.role === "HOSPITAL_ADMIN") {
+            const admin = await prisma.user.findUnique({ where: { id: user.id }, select: { tenantId: true } });
+            if (admin?.tenantId) {
+                const hospital = await prisma.hospital.findUnique({ where: { tenantId: admin.tenantId }, select: { id: true } });
+                allowed = hospital?.id === file.record.doctor.hospitalId;
+            }
+        } else if (user.role === "RECEPTIONIST") {
+            const receptionist = await prisma.receptionist.findUnique({ where: { userId: user.id }, select: { hospitalId: true } });
+            allowed = receptionist?.hospitalId === file.record.doctor.hospitalId;
+        }
+
+        if (!allowed) throw new AppError("Access denied", 403);
+
+        const fileName = path.basename(file.fileUrl);
+        const filePath = path.join(baseUploadPath, "record-files", fileName);
+        return res.download(filePath, file.fileName ?? fileName);
+    });
 
     listRecords = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         const user = req.user;
