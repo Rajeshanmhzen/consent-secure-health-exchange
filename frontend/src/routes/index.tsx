@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import App from '../App'
-import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement, forgotPasswordRouteElement, verifyCodeRouteElement, resetPasswordRouteElement, dashboardRouteElement, tenantsRouteElement, superadminsRouteElement, plansRouteElement, subscriptionsRouteElement, inquiriesRouteElement, settingsRouteElement, recordsRouteElement, requestsRouteElement, consentRouteElement, emergencyRouteElement, scheduleRouteElement, auditRouteElement, staffRouteElement, profileRouteElement, changePasswordRouteElement, trashRouteElement } from './routeElements'
+import { contactRouteElement, featureRouteElement, homeRouteElement, loginRouteElement, pricingRouteElement, registerRouteElement, forgotPasswordRouteElement, verifyCodeRouteElement, resetPasswordRouteElement, dashboardRouteElement, tenantsRouteElement, superadminsRouteElement, plansRouteElement, subscriptionsRouteElement, inquiriesRouteElement, settingsRouteElement, recordsRouteElement, requestsRouteElement, consentRouteElement, emergencyRouteElement, scheduleRouteElement, auditRouteElement, staffRouteElement, profileRouteElement, changePasswordRouteElement, trashRouteElement, apiPerformanceRouteElement } from './routeElements'
 
 const router = createBrowserRouter([
   {
@@ -35,6 +35,7 @@ const router = createBrowserRouter([
   { path: '/dashboard/profile', element: profileRouteElement },
   { path: '/dashboard/change-password', element: changePasswordRouteElement },
   { path: '/dashboard/trash', element: trashRouteElement },
+  { path: '/dashboard/api-performance', element: apiPerformanceRouteElement },
 ])
 
 export default router

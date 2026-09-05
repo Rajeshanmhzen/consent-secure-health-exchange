@@ -6,6 +6,7 @@ const router = Router();
 const controller = new DashboardController();
 
 router.get("/superadmin/stats", requireRole("SUPER_ADMIN"), controller.superAdminStats);
+router.get("/superadmin/api-performance", requireRole("SUPER_ADMIN"), controller.apiPerformance);
 router.get("/hospitaladmin/stats", requireRole("HOSPITAL_ADMIN"), controller.hospitalAdminStats);
 router.get("/doctor/stats", requireRole("DOCTOR"), controller.doctorStats);
 router.get("/receptionist/stats", requireRole("RECEPTIONIST"), controller.receptionistStats);

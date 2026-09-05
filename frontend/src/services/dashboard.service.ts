@@ -10,6 +10,25 @@ export type SuperAdminDashboardStats = {
     totalInquiries: number
 }
 
+export type ApiPerformanceStatus = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+
+export type ApiPerformanceMetric = {
+    route: string
+    requests: number
+    errors: number
+    errorRate: number
+    averageLatencyMs: number
+    lastLatencyMs: number
+    status: ApiPerformanceStatus
+}
+
+export type ApiPerformanceData = {
+    windowMinutes: number
+    overall: ApiPerformanceMetric
+    endpoints: ApiPerformanceMetric[]
+    pagination: { total: number; page: number; limit: number; totalPages: number }
+}
+
 export type AuditLogItem = {
     id: string
     action: string
@@ -57,6 +76,12 @@ export type RecordListItem = {
 
 export const dashboardApi = {
     superAdminStats: () => request<ApiResponse<SuperAdminDashboardStats>>('/dashboard/superadmin/stats'),
+    apiPerformance: (params: { page?: number; limit?: number } = {}) => {
+        const query = new URLSearchParams()
+        if (params.page) query.set('page', String(params.page))
+        if (params.limit) query.set('limit', String(params.limit))
+        return request<ApiResponse<ApiPerformanceData>>(`/dashboard/superadmin/api-performance?${query.toString()}`)
+    },
     hospitalAdminStats: () => request<ApiResponse<Record<string, number>>>('/dashboard/hospitaladmin/stats'),
     doctorStats: () => request<ApiResponse<Record<string, number>>>('/dashboard/doctor/stats'),
     receptionistStats: () => request<ApiResponse<Record<string, number>>>('/dashboard/receptionist/stats'),

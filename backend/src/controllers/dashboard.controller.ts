@@ -2,8 +2,15 @@ import { Request, Response } from "express";
 import prisma from "../config/prisma";
 import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
+import { getApiPerformance } from "../utils/apiPerformance";
 
 export class DashboardController {
+    apiPerformance = asyncHandler(async (req: Request, res: Response) => {
+        const page = Math.max(1, Number(req.query.page) || 1);
+        const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 8));
+        return sendSuccess(res, "API performance fetched successfully", getApiPerformance(page, limit));
+    });
+
     superAdminStats = asyncHandler(async (_req: Request, res: Response) => {
         const [
             totalTenants,
